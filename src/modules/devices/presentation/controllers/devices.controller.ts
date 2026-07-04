@@ -1,0 +1,97 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import { Roles } from '../../../../shared/decorators/roles.decorator';
+import { Role } from '../../../../shared/guards/roles.enum';
+import { CreateDeviceUseCase } from '../../application/use-cases/create-device.usecase';
+import { DeleteDeviceUseCase } from '../../application/use-cases/delete-device.usecase';
+import { GetDeviceUseCase } from '../../application/use-cases/get-device.usecase';
+import { ListDevicesUseCase } from '../../application/use-cases/list-devices.usecase';
+import { UpdateDeviceUseCase } from '../../application/use-cases/update-device.usecase';
+import { CreateDeviceDto } from '../../application/dto/create-device.dto';
+import { DeviceResponseDto } from '../../application/dto/device-response.dto';
+import { UpdateDeviceDto } from '../../application/dto/update-device.dto';
+import { DeviceMapper } from '../../application/mappers/device.mapper';
+
+@ApiTags('Devices')
+@ApiBearerAuth('bearerAuth')
+@Controller('devices')
+export class DevicesController {
+  constructor(
+    private readonly listDevicesUseCase: ListDevicesUseCase,
+    private readonly getDeviceUseCase: GetDeviceUseCase,
+    private readonly createDeviceUseCase: CreateDeviceUseCase,
+    private readonly updateDeviceUseCase: UpdateDeviceUseCase,
+    private readonly deleteDeviceUseCase: DeleteDeviceUseCase,
+  ) {}
+
+  @Get()
+  @ApiQuery({ name: 'branchId', required: false })
+  @ApiOperation({
+    summary: 'Cihazların siyahısı (filial üzrə filtrlənə bilər)',
+  })
+  @ApiResponse({ status: 200, type: [DeviceResponseDto] })
+  async findAll(
+    @Query('branchId') branchId?: string,
+  ): Promise<DeviceResponseDto[]> {
+    const devices = await this.listDevicesUseCase.execute(branchId);
+    return DeviceMapper.toResponseDtoList(devices);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'ID üzrə cihaz məlumatı' })
+  @ApiResponse({ status: 200, type: DeviceResponseDto })
+  async findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<DeviceResponseDto> {
+    const device = await this.getDeviceUseCase.execute(id);
+    return DeviceMapper.toResponseDto(device);
+  }
+
+  @Roles(Role.ADMIN)
+  @Post()
+  @ApiOperation({ summary: 'Yeni cihaz yarat (yalnız admin)' })
+  @ApiResponse({ status: 201, type: DeviceResponseDto })
+  async create(@Body() dto: CreateDeviceDto): Promise<DeviceResponseDto> {
+    const device = await this.createDeviceUseCase.execute(dto);
+    return DeviceMapper.toResponseDto(device);
+  }
+
+  @Roles(Role.ADMIN)
+  @Patch(':id')
+  @ApiOperation({ summary: 'Cihazı yenilə (yalnız admin)' })
+  @ApiResponse({ status: 200, type: DeviceResponseDto })
+  async update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateDeviceDto,
+  ): Promise<DeviceResponseDto> {
+    const device = await this.updateDeviceUseCase.execute(id, dto);
+    return DeviceMapper.toResponseDto(device);
+  }
+
+  @Roles(Role.ADMIN)
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Cihazı sil (yalnız admin)' })
+  @ApiResponse({ status: 204 })
+  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
+    await this.deleteDeviceUseCase.execute(id);
+  }
+}

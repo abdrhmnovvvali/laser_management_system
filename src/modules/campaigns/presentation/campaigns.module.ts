@@ -1,0 +1,27 @@
+import { Module } from '@nestjs/common';
+import { CAMPAIGN_REPOSITORY } from '../domain/repositories/campaign.repository.interface';
+import { SupabaseCampaignRepository } from '../infrastructure/persistence/supabase/supabase-campaign.repository';
+import { CampaignFacade } from '../application/campaign.facade';
+import { CreateCampaignUseCase } from '../application/use-cases/create-campaign.usecase';
+import { DeleteCampaignUseCase } from '../application/use-cases/delete-campaign.usecase';
+import { GetCampaignUseCase } from '../application/use-cases/get-campaign.usecase';
+import { ListActiveCampaignsUseCase } from '../application/use-cases/list-active-campaigns.usecase';
+import { ListCampaignsUseCase } from '../application/use-cases/list-campaigns.usecase';
+import { UpdateCampaignUseCase } from '../application/use-cases/update-campaign.usecase';
+import { CampaignsController } from './controllers/campaigns.controller';
+
+@Module({
+  controllers: [CampaignsController],
+  providers: [
+    ListCampaignsUseCase,
+    ListActiveCampaignsUseCase,
+    GetCampaignUseCase,
+    CreateCampaignUseCase,
+    UpdateCampaignUseCase,
+    DeleteCampaignUseCase,
+    CampaignFacade,
+    { provide: CAMPAIGN_REPOSITORY, useClass: SupabaseCampaignRepository },
+  ],
+  exports: [CampaignFacade],
+})
+export class CampaignsModule {}
