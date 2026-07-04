@@ -17,3 +17,18 @@
 - Backend iki fərqli Supabase client istifadə edir (`src/shared/supabase`):
   - **request-scoped** (anon key + istifadəçi JWT-si) — RLS-ə tabedir, adi CRUD üçün.
   - **admin** (service role key) — RLS-i bypass edir, yalnız sistem/cron/auth əməliyyatları üçün.
+
+## İlk admin istifadəçisini yaratmaq
+
+`POST /auth/staff` endpoint-i artıq admin rolunu tələb etdiyi üçün ilk admin
+istifadəçisi bir seed skripti ilə yaradılmalıdır:
+
+```bash
+npm run seed:admin -- admin@lazer.az StrongPass123! "Baş Admin"
+```
+
+Bu skript (`scripts/seed-admin.ts`) `.env`-dəki `SUPABASE_URL` və
+`SUPABASE_SERVICE_ROLE_KEY` dəyərlərini oxuyur, Supabase Auth-da istifadəçi
+yaradır və `profiles` cədvəlində `role='admin'` sətri əlavə edir. Skript
+təkrar işə salınsa (email artıq mövcuddursa) profili yenidən yazır, xəta
+vermir.
