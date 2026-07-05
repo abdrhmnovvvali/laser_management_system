@@ -19,6 +19,14 @@ import {
 
 const TABLE = 'customers';
 
+function escapeIlikePattern(value: string): string {
+  return value.replace(/[%_\\]/g, '\\$&');
+}
+
+function toIlikePattern(value: string): string {
+  return `%${escapeIlikePattern(value)}%`;
+}
+
 interface ProcedureZoneRow {
   procedures: { customer_id: string } | null;
 }
@@ -42,10 +50,7 @@ export class SupabaseCustomerRepository implements ICustomerRepository {
       query = query.eq('gender', filters.gender);
     }
     if (filters.search) {
-      const term = filters.search.trim();
-      query = query.or(
-        `first_name.ilike.%${term}%,last_name.ilike.%${term}%,phone.ilike.%${term}%`,
-      );
+      query = this.applySearchFilter(query, filters.search);
     }
     if (filters.zoneId) {
       const customerIds = await this.findCustomerIdsByZone(filters.zoneId);
@@ -120,6 +125,39 @@ export class SupabaseCustomerRepository implements ICustomerRepository {
   async delete(id: string): Promise<void> {
     const response = await this.supabase.from(TABLE).delete().eq('id', id);
     unwrap(response);
+  }
+
+  private applySearchFilter<T extends { or: (filters: string) => T }>(
+    query: T,
+    search: string,
+  ): T {
+    const term = search.trim();
+    if (!term) {
+      return query;
+    }
+
+    const parts = term.split(/\s+/).filter(Boolean).map(escapeIlikePattern);
+    const fullPattern = toIlikePattern(term);
+
+    if (parts.length <= 1) {
+      const pattern = toIlikePattern(parts[0] ?? term);
+      return query.or(
+        `first_name.ilike.${pattern},last_name.ilike.${pattern},phone.ilike.${pattern}`,
+      );
+    }
+
+    const firstNamePart = toIlikePattern(parts[0]);
+    const lastNamePart = toIlikePattern(parts.slice(1).join(' '));
+
+    return query.or(
+      [
+        `and(first_name.ilike.${firstNamePart},last_name.ilike.${lastNamePart})`,
+        `and(first_name.ilike.${lastNamePart},last_name.ilike.${firstNamePart})`,
+        `first_name.ilike.${fullPattern}`,
+        `last_name.ilike.${fullPattern}`,
+        `phone.ilike.${fullPattern}`,
+      ].join(','),
+    );
   }
 
   private async findCustomerIdsByZone(zoneId: string): Promise<string[]> {

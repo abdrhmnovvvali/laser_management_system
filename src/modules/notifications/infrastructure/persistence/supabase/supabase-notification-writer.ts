@@ -12,8 +12,6 @@ import {
   NotificationRow,
 } from '../../mappers/notification-persistence.mapper';
 
-const TABLE = 'notifications';
-
 @Injectable()
 export class SupabaseNotificationWriter implements INotificationWriter {
   constructor(
@@ -21,16 +19,11 @@ export class SupabaseNotificationWriter implements INotificationWriter {
   ) {}
 
   async create(data: CreateNotificationData): Promise<Notification> {
-    const response = await this.supabase
-      .from(TABLE)
-      .insert({
-        type: data.type,
-        customer_id: data.customerId,
-        message: data.message,
-        is_read: false,
-      })
-      .select('*')
-      .single();
+    const response = await this.supabase.rpc('create_notification', {
+      p_type: data.type,
+      p_customer_id: data.customerId,
+      p_message: data.message,
+    });
 
     return NotificationPersistenceMapper.toDomain(
       unwrapOrThrow<NotificationRow>(response),

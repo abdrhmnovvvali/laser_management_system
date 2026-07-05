@@ -1,6 +1,7 @@
 -- notifications: müştəriyə bağlı olanlar filial üzrə sərhədlənir; müştərisiz
 -- (sistem səviyyəli) bildirişləri yalnız admin görür. Yazma əməliyyatları
--- NotificationModule tərəfindən SUPABASE_ADMIN_CLIENT ilə edilir (event-driven).
+-- NotificationModule tərəfindən `create_notification` RPC funksiyası ilə edilir
+-- (event-driven, security definer — bax 0018_create_notification_function.sql).
 
 create policy "notifications_select"
 on public.notifications
