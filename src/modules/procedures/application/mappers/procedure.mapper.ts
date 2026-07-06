@@ -14,6 +14,11 @@ export class ProcedureMapper {
     dto.actualShotCount = procedure.actualShotCount;
     dto.shotCountDifference = procedure.shotCountDifference;
     dto.price = procedure.price;
+    dto.originalPrice = procedure.originalPrice;
+    dto.loyaltyRewardApplied = procedure.loyaltyRewardApplied;
+    dto.freeZoneId = procedure.freeZoneId;
+    dto.discountAmount = procedure.discountAmount;
+    dto.visitNumber = procedure.visitNumber;
     dto.createdAt = procedure.createdAt;
     return dto;
   }

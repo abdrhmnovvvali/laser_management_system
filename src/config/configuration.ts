@@ -30,6 +30,11 @@ export interface PrinterConfig {
   serviceUrl?: string;
 }
 
+export interface LoyaltyConfig {
+  /** 6 = 7-ci, 14-cü, 21-ci vizitlərdə bir nahiyə pulsuz. 0 = söndürülüb. */
+  visitsBeforeFreeZone: number;
+}
+
 export interface Configuration {
   app: AppConfig;
   supabase: SupabaseConfig;
@@ -38,6 +43,7 @@ export interface Configuration {
   swagger: SwaggerConfig;
   excelImport: ExcelImportConfig;
   printer: PrinterConfig;
+  loyalty: LoyaltyConfig;
 }
 
 export default (): Configuration => ({
@@ -65,5 +71,11 @@ export default (): Configuration => ({
   },
   printer: {
     serviceUrl: process.env.PRINTER_SERVICE_URL,
+  },
+  loyalty: {
+    visitsBeforeFreeZone: parseInt(
+      process.env.LOYALTY_VISITS_BEFORE_FREE_ZONE ?? '6',
+      10,
+    ),
   },
 });

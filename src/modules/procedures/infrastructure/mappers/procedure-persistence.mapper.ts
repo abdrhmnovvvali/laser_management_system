@@ -10,6 +10,9 @@ export interface ProcedureRow {
   actual_shot_count: number;
   price: number;
   created_at: string;
+  free_zone_id: string | null;
+  discount_amount: number;
+  visit_number: number | null;
   procedure_zones: { zone_id: string }[] | null;
 }
 
@@ -26,6 +29,9 @@ export class ProcedurePersistenceMapper {
       row.actual_shot_count,
       Number(row.price),
       (row.procedure_zones ?? []).map((pz) => pz.zone_id),
+      row.free_zone_id,
+      Number(row.discount_amount ?? 0),
+      row.visit_number,
     );
   }
 }

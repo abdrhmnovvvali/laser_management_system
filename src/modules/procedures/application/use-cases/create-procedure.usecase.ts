@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { BusinessRuleViolationException } from '../../../../shared/kernel/domain.exception';
 import { EVENT_PUBLISHER } from '../../../../shared/events/event-publisher.interface';
 import type { IEventPublisher } from '../../../../shared/events/event-publisher.interface';
@@ -10,6 +11,10 @@ import { Procedure } from '../../domain/entities/procedure.entity';
 import { ProcedureCompletedEvent } from '../../domain/events/procedure-completed.event';
 import { PROCEDURE_REPOSITORY } from '../../domain/repositories/procedure.repository.interface';
 import type { IProcedureRepository } from '../../domain/repositories/procedure.repository.interface';
+import {
+  LoyaltyRewardCalculator,
+  type ZonePrice,
+} from '../../domain/services/loyalty-reward.calculator';
 
 export interface CreateProcedureInput {
   customerId: string;
@@ -19,6 +24,12 @@ export interface CreateProcedureInput {
   date?: Date;
   declaredShotCount: number;
   actualShotCount: number;
+}
+
+interface ResolvedPricing {
+  price: number;
+  zoneIds: string[];
+  zones: ZonePrice[];
 }
 
 @Injectable()
@@ -32,13 +43,27 @@ export class CreateProcedureUseCase {
     private readonly zoneFacade: ZoneFacade,
     @Inject(EVENT_PUBLISHER)
     private readonly eventPublisher: IEventPublisher,
+    private readonly configService: ConfigService,
   ) {}
 
   async execute(input: CreateProcedureInput): Promise<Procedure> {
     await this.customerFacade.getById(input.customerId);
     await this.deviceFacade.getById(input.deviceId);
 
-    const { price, zoneIds } = await this.resolvePriceAndZones(input);
+    const completedVisitCount = await this.procedureRepository.countByCustomerId(
+      input.customerId,
+    );
+    const pricing = await this.resolvePriceAndZones(input);
+    const loyalty = LoyaltyRewardCalculator.apply(
+      pricing.price,
+      pricing.zones,
+      completedVisitCount,
+      {
+        visitsBeforeFreeZone: this.configService.get<number>(
+          'loyalty.visitsBeforeFreeZone',
+        )!,
+      },
+    );
 
     const procedure = await this.procedureRepository.create({
       customerId: input.customerId,
@@ -47,8 +72,11 @@ export class CreateProcedureUseCase {
       date: input.date ?? new Date(),
       declaredShotCount: input.declaredShotCount,
       actualShotCount: input.actualShotCount,
-      price,
-      zoneIds,
+      price: loyalty.finalPrice,
+      zoneIds: pricing.zoneIds,
+      freeZoneId: loyalty.freeZoneId,
+      discountAmount: loyalty.discountAmount,
+      visitNumber: loyalty.visitNumber,
     });
 
     await this.deviceFacade.incrementShotCounter(
@@ -72,12 +100,13 @@ export class CreateProcedureUseCase {
 
   private async resolvePriceAndZones(
     input: CreateProcedureInput,
-  ): Promise<{ price: number; zoneIds: string[] }> {
+  ): Promise<ResolvedPricing> {
     if (input.packageId) {
       const pkg = await this.packageFacade.getById(input.packageId);
       const zoneIds =
         input.zoneIds && input.zoneIds.length > 0 ? input.zoneIds : pkg.zoneIds;
-      return { price: pkg.price, zoneIds };
+      const zones = await this.loadZonePrices(zoneIds);
+      return { price: pkg.price, zoneIds, zones };
     }
 
     if (!input.zoneIds || input.zoneIds.length === 0) {
@@ -86,7 +115,7 @@ export class CreateProcedureUseCase {
       );
     }
 
-    const zones = await this.zoneFacade.getByIds(input.zoneIds);
+    const zones = await this.loadZonePrices(input.zoneIds);
     if (zones.length !== input.zoneIds.length) {
       throw new BusinessRuleViolationException(
         'Seçilən nahiyələrdən biri və ya bir neçəsi tapılmadı',
@@ -94,6 +123,15 @@ export class CreateProcedureUseCase {
     }
 
     const price = zones.reduce((sum, zone) => sum + zone.price, 0);
-    return { price, zoneIds: input.zoneIds };
+    return { price, zoneIds: input.zoneIds, zones };
+  }
+
+  private async loadZonePrices(zoneIds: string[]): Promise<ZonePrice[]> {
+    if (zoneIds.length === 0) {
+      return [];
+    }
+
+    const zones = await this.zoneFacade.getByIds(zoneIds);
+    return zones.map((zone) => ({ id: zone.id, price: zone.price }));
   }
 }

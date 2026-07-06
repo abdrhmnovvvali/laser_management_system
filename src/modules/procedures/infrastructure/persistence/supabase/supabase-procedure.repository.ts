@@ -69,6 +69,16 @@ export class SupabaseProcedureRepository implements IProcedureRepository {
     return row ? ProcedurePersistenceMapper.toDomain(row) : null;
   }
 
+  async countByCustomerId(customerId: string): Promise<number> {
+    const response = await this.supabase
+      .from(TABLE)
+      .select('id', { count: 'exact', head: true })
+      .eq('customer_id', customerId);
+
+    unwrap<null>(response);
+    return (response as { count: number | null }).count ?? 0;
+  }
+
   async create(data: CreateProcedureData): Promise<Procedure> {
     const insertResponse = await this.supabase
       .from(TABLE)
@@ -80,6 +90,9 @@ export class SupabaseProcedureRepository implements IProcedureRepository {
         declared_shot_count: data.declaredShotCount,
         actual_shot_count: data.actualShotCount,
         price: data.price,
+        free_zone_id: data.freeZoneId ?? null,
+        discount_amount: data.discountAmount ?? 0,
+        visit_number: data.visitNumber ?? null,
       })
       .select('*')
       .single();

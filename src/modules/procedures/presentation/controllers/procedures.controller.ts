@@ -65,7 +65,7 @@ export class ProceduresController {
   @Post()
   @ApiOperation({
     summary:
-      'Yeni vizit qeydi yarat — zona/paket seçimi və atış sayları ilə, qiymət avtomatik hesablanır',
+      'Yeni vizit qeydi yarat — zona/paket seçimi və atış sayları ilə, qiymət avtomatik hesablanır. Loyallıq: hər 7-ci vizitdə (default) ən ucuz nahiyə pulsuzdur — LOYALTY_VISITS_BEFORE_FREE_ZONE ilə dəyişdirilir.',
   })
   @ApiResponse({ status: 201, type: ProcedureResponseDto })
   async create(@Body() dto: CreateProcedureDto): Promise<ProcedureResponseDto> {

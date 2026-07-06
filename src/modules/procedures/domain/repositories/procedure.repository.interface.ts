@@ -11,6 +11,9 @@ export interface CreateProcedureData {
   actualShotCount: number;
   price: number;
   zoneIds: string[];
+  freeZoneId?: string | null;
+  discountAmount?: number;
+  visitNumber?: number | null;
 }
 
 export interface UpdateProcedureData {
@@ -30,6 +33,7 @@ export interface ProcedureFilters {
 export interface IProcedureRepository {
   findAll(filters: ProcedureFilters): Promise<Procedure[]>;
   findById(id: string): Promise<Procedure | null>;
+  countByCustomerId(customerId: string): Promise<number>;
   create(data: CreateProcedureData): Promise<Procedure>;
   update(id: string, data: UpdateProcedureData): Promise<Procedure>;
   delete(id: string): Promise<void>;

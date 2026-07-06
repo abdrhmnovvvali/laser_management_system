@@ -20,4 +20,6 @@ export const validationSchema = Joi.object({
   MAX_IMPORT_FILE_SIZE_MB: Joi.number().default(10),
 
   PRINTER_SERVICE_URL: Joi.string().optional().allow(''),
+
+  LOYALTY_VISITS_BEFORE_FREE_ZONE: Joi.number().integer().min(0).default(6),
 });
