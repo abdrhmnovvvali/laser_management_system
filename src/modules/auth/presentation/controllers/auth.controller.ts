@@ -1,9 +1,12 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
+  Param,
+  ParseUUIDPipe,
   Post,
 } from '@nestjs/common';
 import {
@@ -18,6 +21,7 @@ import { Roles } from '../../../../shared/decorators/roles.decorator';
 import type { AuthenticatedUser } from '../../../../shared/guards/authenticated-user.interface';
 import { Role } from '../../../../shared/guards/roles.enum';
 import { CreateStaffUserUseCase } from '../../application/use-cases/create-staff-user.usecase';
+import { DeleteStaffUserUseCase } from '../../application/use-cases/delete-staff-user.usecase';
 import { LoginUseCase } from '../../application/use-cases/login.usecase';
 import { CreateStaffUserDto } from '../../application/dto/create-staff-user.dto';
 import { CurrentUserResponseDto } from '../../application/dto/current-user-response.dto';
@@ -32,6 +36,7 @@ export class AuthController {
   constructor(
     private readonly loginUseCase: LoginUseCase,
     private readonly createStaffUserUseCase: CreateStaffUserUseCase,
+    private readonly deleteStaffUserUseCase: DeleteStaffUserUseCase,
   ) {}
 
   @Public()
@@ -74,5 +79,20 @@ export class AuthController {
       branchId: dto.branchId ?? null,
     });
     return AuthMapper.toStaffUserResponseDto(staffUser);
+  }
+
+  @ApiBearerAuth('bearerAuth')
+  @Roles(Role.ADMIN)
+  @Delete('staff/:id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Filial işçisi/admin hesabını sil (yalnız admin)',
+  })
+  @ApiResponse({ status: 204, description: 'İstifadəçi silindi' })
+  async deleteStaffUser(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<void> {
+    await this.deleteStaffUserUseCase.execute(id, user.id);
   }
 }

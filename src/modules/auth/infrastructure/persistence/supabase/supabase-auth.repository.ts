@@ -13,6 +13,7 @@ import {
 interface ProfileRow {
   role: Role;
   branch_id: string | null;
+  full_name: string | null;
 }
 
 @Injectable()
@@ -33,6 +34,9 @@ export class SupabaseAuthRepository implements IAuthRepository {
     }
 
     const profile = await this.fetchProfile(data.user.id);
+    if (!profile) {
+      throw new UnauthorizedException('İstifadəçi profili tapılmadı');
+    }
 
     return new AuthSession(
       data.user.id,
@@ -81,15 +85,63 @@ export class SupabaseAuthRepository implements IAuthRepository {
     );
   }
 
-  private async fetchProfile(userId: string): Promise<ProfileRow> {
+  async findStaffUserById(id: string): Promise<StaffUser | null> {
+    const {
+      data: { user },
+      error: userError,
+    } = await this.supabase.auth.admin.getUserById(id);
+
+    if (userError || !user?.email) {
+      return null;
+    }
+
+    const profile = await this.fetchProfile(id, false);
+    if (!profile) {
+      return null;
+    }
+
+    return new StaffUser(
+      id,
+      user.email,
+      profile.full_name ?? undefined,
+      profile.role,
+      profile.branch_id,
+    );
+  }
+
+  async countStaffByRole(role: Role): Promise<number> {
+    const response = await this.supabase
+      .from('profiles')
+      .select('id', { count: 'exact', head: true })
+      .eq('role', role);
+
+    return (response as { count: number | null }).count ?? 0;
+  }
+
+  async deleteStaffUser(id: string): Promise<void> {
+    const { error } = await this.supabase.auth.admin.deleteUser(id);
+    if (error) {
+      throw new BusinessRuleViolationException(
+        error.message ?? 'İstifadəçi silinə bilmədi',
+      );
+    }
+  }
+
+  private async fetchProfile(
+    userId: string,
+    throwOnMissing = true,
+  ): Promise<ProfileRow | null> {
     const { data, error } = await this.supabase
       .from('profiles')
-      .select('role, branch_id')
+      .select('role, branch_id, full_name')
       .eq('id', userId)
       .single();
 
     if (error || !data) {
-      throw new UnauthorizedException('İstifadəçi profili tapılmadı');
+      if (throwOnMissing) {
+        throw new UnauthorizedException('İstifadəçi profili tapılmadı');
+      }
+      return null;
     }
 
     return data;
