@@ -5,6 +5,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { BranchFacade } from '../../../branches/application/branch.facade';
 import { GetFraudReportUseCase } from '../../application/use-cases/get-fraud-report.usecase';
 import { FraudReportItemResponseDto } from '../../application/dto/fraud-report-item-response.dto';
 import { FraudReportQueryDto } from '../../application/dto/fraud-report-query.dto';
@@ -14,7 +15,10 @@ import { FraudReportMapper } from '../../application/mappers/fraud-report.mapper
 @ApiBearerAuth('bearerAuth')
 @Controller('procedures')
 export class FraudReportController {
-  constructor(private readonly getFraudReportUseCase: GetFraudReportUseCase) {}
+  constructor(
+    private readonly getFraudReportUseCase: GetFraudReportUseCase,
+    private readonly branchFacade: BranchFacade,
+  ) {}
 
   @Get('fraud-report')
   @ApiOperation({
@@ -26,6 +30,9 @@ export class FraudReportController {
     @Query() query: FraudReportQueryDto,
   ): Promise<FraudReportItemResponseDto[]> {
     const items = await this.getFraudReportUseCase.execute(query);
-    return FraudReportMapper.toResponseDtoList(items);
+    const branchNames = await this.branchFacade.resolveNames(
+      items.map((item) => item.branchId),
+    );
+    return FraudReportMapper.toResponseDtoList(items, branchNames);
   }
 }

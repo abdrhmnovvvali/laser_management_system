@@ -20,6 +20,7 @@ import { Public } from '../../../../shared/decorators/public.decorator';
 import { Roles } from '../../../../shared/decorators/roles.decorator';
 import type { AuthenticatedUser } from '../../../../shared/guards/authenticated-user.interface';
 import { Role } from '../../../../shared/guards/roles.enum';
+import { BranchFacade } from '../../../branches/application/branch.facade';
 import { CreateStaffUserUseCase } from '../../application/use-cases/create-staff-user.usecase';
 import { DeleteStaffUserUseCase } from '../../application/use-cases/delete-staff-user.usecase';
 import { LoginUseCase } from '../../application/use-cases/login.usecase';
@@ -37,6 +38,7 @@ export class AuthController {
     private readonly loginUseCase: LoginUseCase,
     private readonly createStaffUserUseCase: CreateStaffUserUseCase,
     private readonly deleteStaffUserUseCase: DeleteStaffUserUseCase,
+    private readonly branchFacade: BranchFacade,
   ) {}
 
   @Public()
@@ -46,7 +48,8 @@ export class AuthController {
   @ApiResponse({ status: 200, type: LoginResponseDto })
   async login(@Body() dto: LoginDto): Promise<LoginResponseDto> {
     const session = await this.loginUseCase.execute(dto.email, dto.password);
-    return AuthMapper.toLoginResponseDto(session);
+    const branchNames = await this.branchFacade.resolveNames([session.branchId]);
+    return AuthMapper.toLoginResponseDto(session, branchNames);
   }
 
   @ApiBearerAuth('bearerAuth')
@@ -55,10 +58,11 @@ export class AuthController {
     summary: 'Cari autentifikasiya olunmuş istifadəçinin məlumatı',
   })
   @ApiResponse({ status: 200, type: CurrentUserResponseDto })
-  getCurrentUser(
+  async getCurrentUser(
     @CurrentUser() user: AuthenticatedUser,
-  ): CurrentUserResponseDto {
-    return AuthMapper.toCurrentUserResponseDto(user);
+  ): Promise<CurrentUserResponseDto> {
+    const branchNames = await this.branchFacade.resolveNames([user.branchId]);
+    return AuthMapper.toCurrentUserResponseDto(user, branchNames);
   }
 
   @ApiBearerAuth('bearerAuth')
@@ -78,7 +82,10 @@ export class AuthController {
       role: dto.role,
       branchId: dto.branchId ?? null,
     });
-    return AuthMapper.toStaffUserResponseDto(staffUser);
+    const branchNames = await this.branchFacade.resolveNames([
+      staffUser.branchId,
+    ]);
+    return AuthMapper.toStaffUserResponseDto(staffUser, branchNames);
   }
 
   @ApiBearerAuth('bearerAuth')

@@ -7,6 +7,9 @@ export class DeviceResponseDto {
   @ApiProperty()
   branchId: string;
 
+  @ApiProperty({ nullable: true, description: 'Filialın adı' })
+  branchName: string | null;
+
   @ApiProperty()
   type: string;
 

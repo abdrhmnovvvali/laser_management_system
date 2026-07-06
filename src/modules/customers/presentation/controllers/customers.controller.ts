@@ -17,6 +17,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { BranchFacade } from '../../../branches/application/branch.facade';
 import { CreateCustomerUseCase } from '../../application/use-cases/create-customer.usecase';
 import { DeleteCustomerUseCase } from '../../application/use-cases/delete-customer.usecase';
 import { GetCustomerUseCase } from '../../application/use-cases/get-customer.usecase';
@@ -38,6 +39,7 @@ export class CustomersController {
     private readonly createCustomerUseCase: CreateCustomerUseCase,
     private readonly updateCustomerUseCase: UpdateCustomerUseCase,
     private readonly deleteCustomerUseCase: DeleteCustomerUseCase,
+    private readonly branchFacade: BranchFacade,
   ) {}
 
   @Get()
@@ -49,7 +51,10 @@ export class CustomersController {
     @Query() query: ListCustomersQueryDto,
   ): Promise<CustomerResponseDto[]> {
     const customers = await this.listCustomersUseCase.execute(query);
-    return CustomerMapper.toResponseDtoList(customers);
+    const branchNames = await this.branchFacade.resolveNames(
+      customers.map((customer) => customer.branchId),
+    );
+    return CustomerMapper.toResponseDtoList(customers, branchNames);
   }
 
   @Get(':id')
@@ -59,7 +64,10 @@ export class CustomersController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<CustomerResponseDto> {
     const customer = await this.getCustomerUseCase.execute(id);
-    return CustomerMapper.toResponseDto(customer);
+    const branchNames = await this.branchFacade.resolveNames([
+      customer.branchId,
+    ]);
+    return CustomerMapper.toResponseDto(customer, branchNames);
   }
 
   @Post()
@@ -70,7 +78,10 @@ export class CustomersController {
       ...dto,
       birthDate: dto.birthDate ? new Date(dto.birthDate) : null,
     });
-    return CustomerMapper.toResponseDto(customer);
+    const branchNames = await this.branchFacade.resolveNames([
+      customer.branchId,
+    ]);
+    return CustomerMapper.toResponseDto(customer, branchNames);
   }
 
   @Patch(':id')
@@ -89,7 +100,10 @@ export class CustomersController {
             : null
           : undefined,
     });
-    return CustomerMapper.toResponseDto(customer);
+    const branchNames = await this.branchFacade.resolveNames([
+      customer.branchId,
+    ]);
+    return CustomerMapper.toResponseDto(customer, branchNames);
   }
 
   @Delete(':id')

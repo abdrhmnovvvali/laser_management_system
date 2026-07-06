@@ -23,6 +23,9 @@ export class CustomerResponseDto {
   @ApiProperty()
   branchId: string;
 
+  @ApiProperty({ nullable: true, description: 'Filialın adı' })
+  branchName: string | null;
+
   @ApiProperty()
   registeredAt: Date;
 }

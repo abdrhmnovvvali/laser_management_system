@@ -20,6 +20,7 @@ import {
 } from '@nestjs/swagger';
 import { Roles } from '../../../../shared/decorators/roles.decorator';
 import { Role } from '../../../../shared/guards/roles.enum';
+import { BranchFacade } from '../../../branches/application/branch.facade';
 import { CreateDeviceUseCase } from '../../application/use-cases/create-device.usecase';
 import { DeleteDeviceUseCase } from '../../application/use-cases/delete-device.usecase';
 import { GetDeviceUseCase } from '../../application/use-cases/get-device.usecase';
@@ -40,6 +41,7 @@ export class DevicesController {
     private readonly createDeviceUseCase: CreateDeviceUseCase,
     private readonly updateDeviceUseCase: UpdateDeviceUseCase,
     private readonly deleteDeviceUseCase: DeleteDeviceUseCase,
+    private readonly branchFacade: BranchFacade,
   ) {}
 
   @Get()
@@ -52,7 +54,10 @@ export class DevicesController {
     @Query('branchId') branchId?: string,
   ): Promise<DeviceResponseDto[]> {
     const devices = await this.listDevicesUseCase.execute(branchId);
-    return DeviceMapper.toResponseDtoList(devices);
+    const branchNames = await this.branchFacade.resolveNames(
+      devices.map((device) => device.branchId),
+    );
+    return DeviceMapper.toResponseDtoList(devices, branchNames);
   }
 
   @Get(':id')
@@ -62,7 +67,8 @@ export class DevicesController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<DeviceResponseDto> {
     const device = await this.getDeviceUseCase.execute(id);
-    return DeviceMapper.toResponseDto(device);
+    const branchNames = await this.branchFacade.resolveNames([device.branchId]);
+    return DeviceMapper.toResponseDto(device, branchNames);
   }
 
   @Roles(Role.ADMIN)
@@ -71,7 +77,8 @@ export class DevicesController {
   @ApiResponse({ status: 201, type: DeviceResponseDto })
   async create(@Body() dto: CreateDeviceDto): Promise<DeviceResponseDto> {
     const device = await this.createDeviceUseCase.execute(dto);
-    return DeviceMapper.toResponseDto(device);
+    const branchNames = await this.branchFacade.resolveNames([device.branchId]);
+    return DeviceMapper.toResponseDto(device, branchNames);
   }
 
   @Roles(Role.ADMIN)
@@ -83,7 +90,8 @@ export class DevicesController {
     @Body() dto: UpdateDeviceDto,
   ): Promise<DeviceResponseDto> {
     const device = await this.updateDeviceUseCase.execute(id, dto);
-    return DeviceMapper.toResponseDto(device);
+    const branchNames = await this.branchFacade.resolveNames([device.branchId]);
+    return DeviceMapper.toResponseDto(device, branchNames);
   }
 
   @Roles(Role.ADMIN)

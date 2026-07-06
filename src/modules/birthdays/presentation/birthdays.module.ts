@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { BranchesModule } from '../../branches/presentation/branches.module';
 import {
   BIRTHDAY_ADMIN_READER,
   BIRTHDAY_READER,
@@ -12,6 +13,7 @@ import { NotifyTodaysBirthdaysUseCase } from '../application/use-cases/notify-to
 import { BirthdaysController } from './controllers/birthdays.controller';
 
 @Module({
+  imports: [BranchesModule],
   controllers: [BirthdaysController],
   providers: [
     ListTodaysBirthdaysUseCase,

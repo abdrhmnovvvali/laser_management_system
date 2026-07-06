@@ -16,4 +16,7 @@ export class LoginResponseDto {
 
   @ApiProperty({ nullable: true })
   branchId: string | null;
+
+  @ApiProperty({ nullable: true, description: 'Filialın adı' })
+  branchName: string | null;
 }

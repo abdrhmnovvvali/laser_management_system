@@ -5,6 +5,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { BranchFacade } from '../../../branches/application/branch.facade';
 import { ListTodaysBirthdaysUseCase } from '../../application/use-cases/list-todays-birthdays.usecase';
 import { BirthdayCustomerResponseDto } from '../../application/dto/birthday-customer-response.dto';
 import { BirthdayMapper } from '../../application/mappers/birthday.mapper';
@@ -15,6 +16,7 @@ import { BirthdayMapper } from '../../application/mappers/birthday.mapper';
 export class BirthdaysController {
   constructor(
     private readonly listTodaysBirthdaysUseCase: ListTodaysBirthdaysUseCase,
+    private readonly branchFacade: BranchFacade,
   ) {}
 
   @Get('today')
@@ -25,6 +27,9 @@ export class BirthdaysController {
   @ApiResponse({ status: 200, type: [BirthdayCustomerResponseDto] })
   async findTodaysBirthdays(): Promise<BirthdayCustomerResponseDto[]> {
     const customers = await this.listTodaysBirthdaysUseCase.execute();
-    return BirthdayMapper.toResponseDtoList(customers);
+    const branchNames = await this.branchFacade.resolveNames(
+      customers.map((customer) => customer.branchId),
+    );
+    return BirthdayMapper.toResponseDtoList(customers, branchNames);
   }
 }

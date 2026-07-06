@@ -13,6 +13,9 @@ export class BirthdayCustomerResponseDto {
   @ApiProperty()
   branchId: string;
 
+  @ApiProperty({ nullable: true, description: 'Filialın adı' })
+  branchName: string | null;
+
   @ApiProperty()
   birthDate: Date;
 }
