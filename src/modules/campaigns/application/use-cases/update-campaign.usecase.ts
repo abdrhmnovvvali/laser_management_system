@@ -3,6 +3,7 @@ import {
   BusinessRuleViolationException,
   EntityNotFoundException,
 } from '../../../../shared/kernel/domain.exception';
+import { ZoneFacade } from '../../../zones/application/zone.facade';
 import { CAMPAIGN_REPOSITORY } from '../../domain/repositories/campaign.repository.interface';
 import type {
   ICampaignRepository,
@@ -15,6 +16,7 @@ export class UpdateCampaignUseCase {
   constructor(
     @Inject(CAMPAIGN_REPOSITORY)
     private readonly campaignRepository: ICampaignRepository,
+    private readonly zoneFacade: ZoneFacade,
   ) {}
 
   async execute(id: string, data: UpdateCampaignData): Promise<Campaign> {
@@ -29,6 +31,15 @@ export class UpdateCampaignUseCase {
       throw new BusinessRuleViolationException(
         'endDate startDate-dan əvvəl ola bilməz',
       );
+    }
+
+    if (data.zoneIds) {
+      const zones = await this.zoneFacade.getByIds(data.zoneIds);
+      if (zones.length !== data.zoneIds.length) {
+        throw new BusinessRuleViolationException(
+          'Seçilən nahiyələrdən biri və ya bir neçəsi tapılmadı',
+        );
+      }
     }
 
     return this.campaignRepository.update(id, data);

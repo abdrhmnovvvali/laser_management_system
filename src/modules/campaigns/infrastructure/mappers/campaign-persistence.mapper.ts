@@ -10,6 +10,7 @@ export interface CampaignRow {
   start_date: string;
   end_date: string;
   created_at: string;
+  campaign_zones: { zone_id: string }[] | null;
 }
 
 export class CampaignPersistenceMapper {
@@ -23,6 +24,7 @@ export class CampaignPersistenceMapper {
       Number(row.discount_value),
       new Date(row.start_date),
       new Date(row.end_date),
+      (row.campaign_zones ?? []).map((cz) => cz.zone_id),
     );
   }
 }

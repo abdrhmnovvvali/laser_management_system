@@ -17,6 +17,8 @@ import {
 } from '../../mappers/campaign-persistence.mapper';
 
 const TABLE = 'campaigns';
+const JUNCTION_TABLE = 'campaign_zones';
+const SELECT_WITH_ZONES = '*, campaign_zones(zone_id)';
 
 function toDateOnly(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -31,7 +33,7 @@ export class SupabaseCampaignRepository implements ICampaignRepository {
   async findAll(): Promise<Campaign[]> {
     const response = await this.supabase
       .from(TABLE)
-      .select('*')
+      .select(SELECT_WITH_ZONES)
       .order('start_date', { ascending: false });
 
     const rows = unwrap<CampaignRow[]>(response) ?? [];
@@ -42,7 +44,7 @@ export class SupabaseCampaignRepository implements ICampaignRepository {
     const dateOnly = toDateOnly(onDate);
     const response = await this.supabase
       .from(TABLE)
-      .select('*')
+      .select(SELECT_WITH_ZONES)
       .lte('start_date', dateOnly)
       .gte('end_date', dateOnly)
       .order('start_date', { ascending: false });
@@ -54,7 +56,7 @@ export class SupabaseCampaignRepository implements ICampaignRepository {
   async findById(id: string): Promise<Campaign | null> {
     const response = await this.supabase
       .from(TABLE)
-      .select('*')
+      .select(SELECT_WITH_ZONES)
       .eq('id', id)
       .maybeSingle();
 
@@ -76,9 +78,10 @@ export class SupabaseCampaignRepository implements ICampaignRepository {
       .select('*')
       .single();
 
-    return CampaignPersistenceMapper.toDomain(
-      unwrapOrThrow<CampaignRow>(response),
-    );
+    const created = unwrapOrThrow<{ id: string }>(response);
+    await this.replaceZoneLinks(created.id, data.zoneIds);
+
+    return this.findById(created.id) as Promise<Campaign>;
   }
 
   async update(id: string, data: UpdateCampaignData): Promise<Campaign> {
@@ -93,20 +96,46 @@ export class SupabaseCampaignRepository implements ICampaignRepository {
       payload.start_date = toDateOnly(data.startDate);
     if (data.endDate !== undefined) payload.end_date = toDateOnly(data.endDate);
 
-    const response = await this.supabase
-      .from(TABLE)
-      .update(payload)
-      .eq('id', id)
-      .select('*')
-      .single();
+    if (Object.keys(payload).length > 0) {
+      const response = await this.supabase
+        .from(TABLE)
+        .update(payload)
+        .eq('id', id);
+      unwrap(response);
+    }
 
-    return CampaignPersistenceMapper.toDomain(
-      unwrapOrThrow<CampaignRow>(response),
-    );
+    if (data.zoneIds) {
+      await this.replaceZoneLinks(id, data.zoneIds);
+    }
+
+    return this.findById(id) as Promise<Campaign>;
   }
 
   async delete(id: string): Promise<void> {
     const response = await this.supabase.from(TABLE).delete().eq('id', id);
     unwrap(response);
+  }
+
+  private async replaceZoneLinks(
+    campaignId: string,
+    zoneIds: string[],
+  ): Promise<void> {
+    const deleteResponse = await this.supabase
+      .from(JUNCTION_TABLE)
+      .delete()
+      .eq('campaign_id', campaignId);
+    unwrap(deleteResponse);
+
+    if (zoneIds.length === 0) {
+      return;
+    }
+
+    const insertResponse = await this.supabase.from(JUNCTION_TABLE).insert(
+      zoneIds.map((zoneId) => ({
+        campaign_id: campaignId,
+        zone_id: zoneId,
+      })),
+    );
+    unwrap(insertResponse);
   }
 }

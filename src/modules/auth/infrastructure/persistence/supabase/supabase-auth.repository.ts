@@ -49,6 +49,31 @@ export class SupabaseAuthRepository implements IAuthRepository {
     );
   }
 
+  async refreshSession(refreshToken: string): Promise<AuthSession> {
+    const { data, error } = await this.supabase.auth.refreshSession({
+      refresh_token: refreshToken,
+    });
+
+    if (error || !data.session || !data.user) {
+      throw new UnauthorizedException('Refresh token yanlış və ya vaxtı bitib');
+    }
+
+    const profile = await this.fetchProfile(data.user.id);
+    if (!profile) {
+      throw new UnauthorizedException('İstifadəçi profili tapılmadı');
+    }
+
+    return new AuthSession(
+      data.user.id,
+      data.user.email,
+      profile.role,
+      profile.branch_id,
+      data.session.access_token,
+      data.session.refresh_token,
+      data.session.expires_in,
+    );
+  }
+
   async createStaffUser(input: CreateStaffUserInput): Promise<StaffUser> {
     const { data, error } = await this.supabase.auth.admin.createUser({
       email: input.email,
@@ -62,14 +87,12 @@ export class SupabaseAuthRepository implements IAuthRepository {
       );
     }
 
-    const { error: profileError } = await this.supabase
-      .from('profiles')
-      .insert({
-        id: data.user.id,
-        role: input.role,
-        branch_id: input.branchId,
-        full_name: input.fullName,
-      });
+    const { error: profileError } = await this.supabase.rpc('upsert_profile', {
+      p_id: data.user.id,
+      p_role: input.role,
+      p_branch_id: input.branchId,
+      p_full_name: input.fullName ?? null,
+    });
 
     if (profileError) {
       await this.supabase.auth.admin.deleteUser(data.user.id);

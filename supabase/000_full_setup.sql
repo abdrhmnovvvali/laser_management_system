@@ -173,6 +173,55 @@ comment on table public.campaigns is 'Endirim kampaniyaları';
 
 alter table public.campaigns enable row level security;
 
+-- ---- migrations/0020_create_campaign_zones.sql ----
+-- campaign_zones: kampaniya <-> zona many-to-many əlaqəsi
+create table if not exists public.campaign_zones (
+  campaign_id uuid not null references public.campaigns(id) on delete cascade,
+  zone_id uuid not null references public.zones(id) on delete cascade,
+  primary key (campaign_id, zone_id)
+);
+
+create index if not exists idx_campaign_zones_zone_id on public.campaign_zones(zone_id);
+
+comment on table public.campaign_zones is 'Kampaniyanın tətbiq olunduğu nahiyələr';
+
+alter table public.campaign_zones enable row level security;
+
+-- ---- migrations/0021_create_profile_function.sql ----
+-- Profil yaratma/yeniləmə (staff seed, POST /auth/staff).
+create or replace function public.upsert_profile(
+  p_id uuid,
+  p_role text,
+  p_branch_id uuid,
+  p_full_name text
+)
+returns public.profiles
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  saved_profile public.profiles;
+begin
+  if p_role not in ('admin', 'branch_staff') then
+    raise exception 'Invalid role: %', p_role;
+  end if;
+
+  insert into public.profiles (id, role, branch_id, full_name)
+  values (p_id, p_role, p_branch_id, p_full_name)
+  on conflict (id) do update set
+    role = excluded.role,
+    branch_id = excluded.branch_id,
+    full_name = excluded.full_name
+  returning * into saved_profile;
+
+  return saved_profile;
+end;
+$$;
+
+revoke all on function public.upsert_profile(uuid, text, uuid, text) from public;
+grant execute on function public.upsert_profile(uuid, text, uuid, text) to service_role;
+
 -- ---- migrations/0011_create_notes.sql ----
 -- Qeydlər (notes) — zəng/sosial media/üz-üzə kommunikasiya
 create table if not exists public.notes (
@@ -416,8 +465,8 @@ with check (public.is_admin());
 
 -- ---- policies/profiles_policies.sql ----
 -- profiles: hər kəs öz profilini oxuya bilər, admin hamısını görür.
--- Yazma əməliyyatları normalda backend-in SUPABASE_ADMIN_CLIENT-i (service role) ilə
--- edilir və RLS-i bypass edir, ona görə burada yalnız SELECT policy-ləri kifayətdir.
+-- Yazma əməliyyatları `upsert_profile` RPC funksiyası ilə edilir
+-- (security definer — bax 0021_create_profile_function.sql).
 
 create policy "profiles_select_self_or_admin"
 on public.profiles
@@ -613,6 +662,20 @@ using (auth.role() = 'authenticated');
 
 create policy "campaigns_admin_write"
 on public.campaigns
+for all
+using (public.is_admin())
+with check (public.is_admin());
+
+-- ---- policies/campaign_zones_policies.sql ----
+-- campaign_zones: kampaniya-nahiyə əlaqəsi, campaigns ilə eyni məntiq.
+
+create policy "campaign_zones_select_authenticated"
+on public.campaign_zones
+for select
+using (auth.role() = 'authenticated');
+
+create policy "campaign_zones_admin_write"
+on public.campaign_zones
 for all
 using (public.is_admin())
 with check (public.is_admin());

@@ -5,6 +5,7 @@ import { SupabaseAuthRepository } from '../infrastructure/persistence/supabase/s
 import { CreateStaffUserUseCase } from '../application/use-cases/create-staff-user.usecase';
 import { DeleteStaffUserUseCase } from '../application/use-cases/delete-staff-user.usecase';
 import { LoginUseCase } from '../application/use-cases/login.usecase';
+import { RefreshSessionUseCase } from '../application/use-cases/refresh-session.usecase';
 import { AuthController } from './controllers/auth.controller';
 
 @Module({
@@ -12,6 +13,7 @@ import { AuthController } from './controllers/auth.controller';
   controllers: [AuthController],
   providers: [
     LoginUseCase,
+    RefreshSessionUseCase,
     CreateStaffUserUseCase,
     DeleteStaffUserUseCase,
     { provide: AUTH_REPOSITORY, useClass: SupabaseAuthRepository },

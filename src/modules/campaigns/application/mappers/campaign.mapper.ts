@@ -12,6 +12,7 @@ export class CampaignMapper {
     dto.startDate = campaign.startDate;
     dto.endDate = campaign.endDate;
     dto.isActive = campaign.isActiveOn(new Date());
+    dto.zoneIds = campaign.zoneIds;
     dto.createdAt = campaign.createdAt;
     return dto;
   }

@@ -26,6 +26,9 @@ export class CampaignResponseDto {
   @ApiProperty()
   isActive: boolean;
 
+  @ApiProperty({ type: [String] })
+  zoneIds: string[];
+
   @ApiProperty()
   createdAt: Date;
 }

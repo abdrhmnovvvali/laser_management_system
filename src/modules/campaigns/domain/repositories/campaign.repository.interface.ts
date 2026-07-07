@@ -10,6 +10,7 @@ export interface CreateCampaignData {
   discountValue: number;
   startDate: Date;
   endDate: Date;
+  zoneIds: string[];
 }
 
 export interface UpdateCampaignData {
@@ -19,6 +20,7 @@ export interface UpdateCampaignData {
   discountValue?: number;
   startDate?: Date;
   endDate?: Date;
+  zoneIds?: string[];
 }
 
 export interface ICampaignRepository {

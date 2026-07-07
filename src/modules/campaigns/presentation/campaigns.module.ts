@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ZonesModule } from '../../zones/presentation/zones.module';
 import { CAMPAIGN_REPOSITORY } from '../domain/repositories/campaign.repository.interface';
 import { SupabaseCampaignRepository } from '../infrastructure/persistence/supabase/supabase-campaign.repository';
 import { CampaignFacade } from '../application/campaign.facade';
@@ -11,6 +12,7 @@ import { UpdateCampaignUseCase } from '../application/use-cases/update-campaign.
 import { CampaignsController } from './controllers/campaigns.controller';
 
 @Module({
+  imports: [ZonesModule],
   controllers: [CampaignsController],
   providers: [
     ListCampaignsUseCase,

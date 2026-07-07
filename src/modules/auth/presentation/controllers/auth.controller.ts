@@ -24,10 +24,12 @@ import { BranchFacade } from '../../../branches/application/branch.facade';
 import { CreateStaffUserUseCase } from '../../application/use-cases/create-staff-user.usecase';
 import { DeleteStaffUserUseCase } from '../../application/use-cases/delete-staff-user.usecase';
 import { LoginUseCase } from '../../application/use-cases/login.usecase';
+import { RefreshSessionUseCase } from '../../application/use-cases/refresh-session.usecase';
 import { CreateStaffUserDto } from '../../application/dto/create-staff-user.dto';
 import { CurrentUserResponseDto } from '../../application/dto/current-user-response.dto';
 import { LoginDto } from '../../application/dto/login.dto';
 import { LoginResponseDto } from '../../application/dto/login-response.dto';
+import { RefreshTokenDto } from '../../application/dto/refresh-token.dto';
 import { StaffUserResponseDto } from '../../application/dto/staff-user-response.dto';
 import { AuthMapper } from '../../application/mappers/auth.mapper';
 
@@ -36,6 +38,7 @@ import { AuthMapper } from '../../application/mappers/auth.mapper';
 export class AuthController {
   constructor(
     private readonly loginUseCase: LoginUseCase,
+    private readonly refreshSessionUseCase: RefreshSessionUseCase,
     private readonly createStaffUserUseCase: CreateStaffUserUseCase,
     private readonly deleteStaffUserUseCase: DeleteStaffUserUseCase,
     private readonly branchFacade: BranchFacade,
@@ -48,6 +51,20 @@ export class AuthController {
   @ApiResponse({ status: 200, type: LoginResponseDto })
   async login(@Body() dto: LoginDto): Promise<LoginResponseDto> {
     const session = await this.loginUseCase.execute(dto.email, dto.password);
+    const branchNames = await this.branchFacade.resolveNames([session.branchId]);
+    return AuthMapper.toLoginResponseDto(session, branchNames);
+  }
+
+  @Public()
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary:
+      'Refresh token ilə yeni access token al — sessiyanı davam etdir',
+  })
+  @ApiResponse({ status: 200, type: LoginResponseDto })
+  async refresh(@Body() dto: RefreshTokenDto): Promise<LoginResponseDto> {
+    const session = await this.refreshSessionUseCase.execute(dto.refreshToken);
     const branchNames = await this.branchFacade.resolveNames([session.branchId]);
     return AuthMapper.toLoginResponseDto(session, branchNames);
   }

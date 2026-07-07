@@ -112,11 +112,11 @@ async function main() {
     userId = created.user.id;
   }
 
-  const { error: profileError } = await supabase.from('profiles').upsert({
-    id: userId,
-    role: 'admin',
-    branch_id: null,
-    full_name: fullName ?? 'Admin',
+  const { error: profileError } = await supabase.rpc('upsert_profile', {
+    p_id: userId,
+    p_role: 'admin',
+    p_branch_id: null,
+    p_full_name: fullName ?? 'Admin',
   });
 
   if (profileError) {

@@ -11,6 +11,7 @@ export class Campaign extends BaseEntity<string> {
     public readonly discountValue: number,
     public readonly startDate: Date,
     public readonly endDate: Date,
+    public readonly zoneIds: string[],
   ) {
     super(id, createdAt);
   }

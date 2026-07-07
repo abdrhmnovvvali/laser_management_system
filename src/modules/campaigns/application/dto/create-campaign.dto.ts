@@ -1,10 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  ArrayMinSize,
+  IsArray,
   IsDateString,
   IsEnum,
   IsNumber,
   IsOptional,
   IsString,
+  IsUUID,
   Min,
   MinLength,
 } from 'class-validator';
@@ -16,7 +19,7 @@ export class CreateCampaignDto {
   @MinLength(2)
   name: string;
 
-  @ApiProperty({ example: 'Bütün paketlərdə 20% endirim', required: false })
+  @ApiProperty({ example: 'Seçilmiş nahiyələrdə 20% endirim', required: false })
   @IsOptional()
   @IsString()
   description?: string;
@@ -37,4 +40,14 @@ export class CreateCampaignDto {
   @ApiProperty({ example: '2026-08-31' })
   @IsDateString()
   endDate: string;
+
+  @ApiProperty({
+    example: ['a1b2...', 'c3d4...'],
+    type: [String],
+    description: 'Kampaniyanın tətbiq olunduğu nahiyələr',
+  })
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsUUID('4', { each: true })
+  zoneIds: string[];
 }
