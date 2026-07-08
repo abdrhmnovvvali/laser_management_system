@@ -20,6 +20,7 @@ import {
 } from '@nestjs/swagger';
 import { Roles } from '../../../../shared/decorators/roles.decorator';
 import { Role } from '../../../../shared/guards/roles.enum';
+import { RelationLookupService } from '../../../../shared/relations/relation-lookup.service';
 import { CreateZoneUseCase } from '../../application/use-cases/create-zone.usecase';
 import { DeleteZoneUseCase } from '../../application/use-cases/delete-zone.usecase';
 import { GetZoneUseCase } from '../../application/use-cases/get-zone.usecase';
@@ -40,6 +41,7 @@ export class ZonesController {
     private readonly createZoneUseCase: CreateZoneUseCase,
     private readonly updateZoneUseCase: UpdateZoneUseCase,
     private readonly deleteZoneUseCase: DeleteZoneUseCase,
+    private readonly relationLookupService: RelationLookupService,
   ) {}
 
   @Get()
@@ -52,7 +54,10 @@ export class ZonesController {
     @Query('deviceId') deviceId?: string,
   ): Promise<ZoneResponseDto[]> {
     const zones = await this.listZonesUseCase.execute(deviceId);
-    return ZoneMapper.toResponseDtoList(zones);
+    const lookups = await this.relationLookupService.load({
+      deviceIds: zones.map((zone) => zone.deviceId),
+    });
+    return ZoneMapper.toResponseDtoList(zones, lookups);
   }
 
   @Get(':id')
@@ -62,7 +67,10 @@ export class ZonesController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<ZoneResponseDto> {
     const zone = await this.getZoneUseCase.execute(id);
-    return ZoneMapper.toResponseDto(zone);
+    const lookups = await this.relationLookupService.load({
+      deviceIds: [zone.deviceId],
+    });
+    return ZoneMapper.toResponseDto(zone, lookups);
   }
 
   @Roles(Role.ADMIN)

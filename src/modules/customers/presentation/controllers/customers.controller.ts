@@ -17,7 +17,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { BranchFacade } from '../../../branches/application/branch.facade';
+import { RelationLookupService } from '../../../../shared/relations/relation-lookup.service';
 import { CreateCustomerUseCase } from '../../application/use-cases/create-customer.usecase';
 import { DeleteCustomerUseCase } from '../../application/use-cases/delete-customer.usecase';
 import { GetCustomerUseCase } from '../../application/use-cases/get-customer.usecase';
@@ -39,7 +39,7 @@ export class CustomersController {
     private readonly createCustomerUseCase: CreateCustomerUseCase,
     private readonly updateCustomerUseCase: UpdateCustomerUseCase,
     private readonly deleteCustomerUseCase: DeleteCustomerUseCase,
-    private readonly branchFacade: BranchFacade,
+    private readonly relationLookupService: RelationLookupService,
   ) {}
 
   @Get()
@@ -51,10 +51,10 @@ export class CustomersController {
     @Query() query: ListCustomersQueryDto,
   ): Promise<CustomerResponseDto[]> {
     const customers = await this.listCustomersUseCase.execute(query);
-    const branchNames = await this.branchFacade.resolveNames(
-      customers.map((customer) => customer.branchId),
-    );
-    return CustomerMapper.toResponseDtoList(customers, branchNames);
+    const lookups = await this.relationLookupService.load({
+      branchIds: customers.map((customer) => customer.branchId),
+    });
+    return CustomerMapper.toResponseDtoList(customers, lookups);
   }
 
   @Get(':id')
@@ -64,10 +64,10 @@ export class CustomersController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<CustomerResponseDto> {
     const customer = await this.getCustomerUseCase.execute(id);
-    const branchNames = await this.branchFacade.resolveNames([
-      customer.branchId,
-    ]);
-    return CustomerMapper.toResponseDto(customer, branchNames);
+    const lookups = await this.relationLookupService.load({
+      branchIds: [customer.branchId],
+    });
+    return CustomerMapper.toResponseDto(customer, lookups);
   }
 
   @Post()
@@ -78,10 +78,7 @@ export class CustomersController {
       ...dto,
       birthDate: dto.birthDate ? new Date(dto.birthDate) : null,
     });
-    const branchNames = await this.branchFacade.resolveNames([
-      customer.branchId,
-    ]);
-    return CustomerMapper.toResponseDto(customer, branchNames);
+    return CustomerMapper.toResponseDto(customer);
   }
 
   @Patch(':id')
@@ -100,10 +97,7 @@ export class CustomersController {
             : null
           : undefined,
     });
-    const branchNames = await this.branchFacade.resolveNames([
-      customer.branchId,
-    ]);
-    return CustomerMapper.toResponseDto(customer, branchNames);
+    return CustomerMapper.toResponseDto(customer);
   }
 
   @Delete(':id')

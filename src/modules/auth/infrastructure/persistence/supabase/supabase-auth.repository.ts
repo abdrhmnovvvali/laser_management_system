@@ -108,6 +108,42 @@ export class SupabaseAuthRepository implements IAuthRepository {
     );
   }
 
+  async findAllStaffUsers(): Promise<StaffUser[]> {
+    const { data: profiles, error } = await this.supabase
+      .from('profiles')
+      .select('id, role, branch_id, full_name')
+      .order('created_at', { ascending: false });
+
+    if (error || !profiles?.length) {
+      return [];
+    }
+
+    const staffUsers = await Promise.all(
+      profiles.map(async (profile) => {
+        const {
+          data: { user },
+          error: userError,
+        } = await this.supabase.auth.admin.getUserById(profile.id);
+
+        if (userError || !user?.email) {
+          return null;
+        }
+
+        return new StaffUser(
+          profile.id,
+          user.email,
+          profile.full_name ?? undefined,
+          profile.role,
+          profile.branch_id,
+        );
+      }),
+    );
+
+    return staffUsers.filter((staffUser): staffUser is StaffUser =>
+      Boolean(staffUser),
+    );
+  }
+
   async findStaffUserById(id: string): Promise<StaffUser | null> {
     const {
       data: { user },

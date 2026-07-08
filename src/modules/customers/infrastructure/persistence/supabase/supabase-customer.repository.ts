@@ -76,6 +76,16 @@ export class SupabaseCustomerRepository implements ICustomerRepository {
     return row ? CustomerPersistenceMapper.toDomain(row) : null;
   }
 
+  async findByIds(ids: string[]): Promise<Customer[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const response = await this.supabase.from(TABLE).select('*').in('id', ids);
+    const rows = unwrap<CustomerRow[]>(response) ?? [];
+    return rows.map((row) => CustomerPersistenceMapper.toDomain(row));
+  }
+
   async create(data: CreateCustomerData): Promise<Customer> {
     const response = await this.supabase
       .from(TABLE)

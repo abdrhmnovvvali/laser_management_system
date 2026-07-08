@@ -50,6 +50,16 @@ export class SupabaseDeviceRepository implements IDeviceRepository {
     return row ? DevicePersistenceMapper.toDomain(row) : null;
   }
 
+  async findByIds(ids: string[]): Promise<Device[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const response = await this.supabase.from(TABLE).select('*').in('id', ids);
+    const rows = unwrap<DeviceRow[]>(response) ?? [];
+    return rows.map((row) => DevicePersistenceMapper.toDomain(row));
+  }
+
   async create(data: CreateDeviceData): Promise<Device> {
     const response = await this.supabase
       .from(TABLE)

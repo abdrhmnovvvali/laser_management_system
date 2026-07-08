@@ -18,6 +18,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { RelationLookupService } from '../../../../shared/relations/relation-lookup.service';
 import { CreateFollowUpUseCase } from '../../application/use-cases/create-follow-up.usecase';
 import { DeleteFollowUpUseCase } from '../../application/use-cases/delete-follow-up.usecase';
 import { GetFollowUpUseCase } from '../../application/use-cases/get-follow-up.usecase';
@@ -41,6 +42,7 @@ export class FollowUpsController {
     private readonly createFollowUpUseCase: CreateFollowUpUseCase,
     private readonly updateFollowUpUseCase: UpdateFollowUpUseCase,
     private readonly deleteFollowUpUseCase: DeleteFollowUpUseCase,
+    private readonly relationLookupService: RelationLookupService,
   ) {}
 
   @Get()
@@ -52,7 +54,10 @@ export class FollowUpsController {
   ): Promise<FollowUpResponseDto[]> {
     const followUps =
       await this.listFollowUpsByCustomerUseCase.execute(customerId);
-    return FollowUpMapper.toResponseDtoList(followUps);
+    const lookups = await this.relationLookupService.load({
+      customerIds: followUps.map((followUp) => followUp.customerId),
+    });
+    return FollowUpMapper.toResponseDtoList(followUps, lookups);
   }
 
   @Get('upcoming')
@@ -64,7 +69,10 @@ export class FollowUpsController {
     const followUps = await this.listUpcomingFollowUpsUseCase.execute(
       query.days ?? 7,
     );
-    return FollowUpMapper.toResponseDtoList(followUps);
+    const lookups = await this.relationLookupService.load({
+      customerIds: followUps.map((followUp) => followUp.customerId),
+    });
+    return FollowUpMapper.toResponseDtoList(followUps, lookups);
   }
 
   @Get(':id')
@@ -74,7 +82,10 @@ export class FollowUpsController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<FollowUpResponseDto> {
     const followUp = await this.getFollowUpUseCase.execute(id);
-    return FollowUpMapper.toResponseDto(followUp);
+    const lookups = await this.relationLookupService.load({
+      customerIds: [followUp.customerId],
+    });
+    return FollowUpMapper.toResponseDto(followUp, lookups);
   }
 
   @Post()

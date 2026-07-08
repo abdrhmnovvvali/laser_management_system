@@ -31,6 +31,7 @@ export interface CustomerFilters {
 export interface ICustomerRepository {
   findAll(filters: CustomerFilters): Promise<Customer[]>;
   findById(id: string): Promise<Customer | null>;
+  findByIds(ids: string[]): Promise<Customer[]>;
   create(data: CreateCustomerData): Promise<Customer>;
   update(id: string, data: UpdateCustomerData): Promise<Customer>;
   delete(id: string): Promise<void>;

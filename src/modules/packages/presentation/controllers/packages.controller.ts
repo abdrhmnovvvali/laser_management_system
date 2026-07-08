@@ -18,6 +18,7 @@ import {
 } from '@nestjs/swagger';
 import { Roles } from '../../../../shared/decorators/roles.decorator';
 import { Role } from '../../../../shared/guards/roles.enum';
+import { RelationLookupService } from '../../../../shared/relations/relation-lookup.service';
 import { CreatePackageUseCase } from '../../application/use-cases/create-package.usecase';
 import { DeletePackageUseCase } from '../../application/use-cases/delete-package.usecase';
 import { GetPackageUseCase } from '../../application/use-cases/get-package.usecase';
@@ -38,6 +39,7 @@ export class PackagesController {
     private readonly createPackageUseCase: CreatePackageUseCase,
     private readonly updatePackageUseCase: UpdatePackageUseCase,
     private readonly deletePackageUseCase: DeletePackageUseCase,
+    private readonly relationLookupService: RelationLookupService,
   ) {}
 
   @Get()
@@ -45,7 +47,10 @@ export class PackagesController {
   @ApiResponse({ status: 200, type: [PackageResponseDto] })
   async findAll(): Promise<PackageResponseDto[]> {
     const packages = await this.listPackagesUseCase.execute();
-    return PackageMapper.toResponseDtoList(packages);
+    const lookups = await this.relationLookupService.load({
+      zoneIds: packages.flatMap((pkg) => pkg.zoneIds),
+    });
+    return PackageMapper.toResponseDtoList(packages, lookups);
   }
 
   @Get(':id')
@@ -55,7 +60,10 @@ export class PackagesController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<PackageResponseDto> {
     const pkg = await this.getPackageUseCase.execute(id);
-    return PackageMapper.toResponseDto(pkg);
+    const lookups = await this.relationLookupService.load({
+      zoneIds: pkg.zoneIds,
+    });
+    return PackageMapper.toResponseDto(pkg, lookups);
   }
 
   @Roles(Role.ADMIN)

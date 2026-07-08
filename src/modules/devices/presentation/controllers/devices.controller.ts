@@ -20,7 +20,7 @@ import {
 } from '@nestjs/swagger';
 import { Roles } from '../../../../shared/decorators/roles.decorator';
 import { Role } from '../../../../shared/guards/roles.enum';
-import { BranchFacade } from '../../../branches/application/branch.facade';
+import { RelationLookupService } from '../../../../shared/relations/relation-lookup.service';
 import { CreateDeviceUseCase } from '../../application/use-cases/create-device.usecase';
 import { DeleteDeviceUseCase } from '../../application/use-cases/delete-device.usecase';
 import { GetDeviceUseCase } from '../../application/use-cases/get-device.usecase';
@@ -41,7 +41,7 @@ export class DevicesController {
     private readonly createDeviceUseCase: CreateDeviceUseCase,
     private readonly updateDeviceUseCase: UpdateDeviceUseCase,
     private readonly deleteDeviceUseCase: DeleteDeviceUseCase,
-    private readonly branchFacade: BranchFacade,
+    private readonly relationLookupService: RelationLookupService,
   ) {}
 
   @Get()
@@ -54,10 +54,10 @@ export class DevicesController {
     @Query('branchId') branchId?: string,
   ): Promise<DeviceResponseDto[]> {
     const devices = await this.listDevicesUseCase.execute(branchId);
-    const branchNames = await this.branchFacade.resolveNames(
-      devices.map((device) => device.branchId),
-    );
-    return DeviceMapper.toResponseDtoList(devices, branchNames);
+    const lookups = await this.relationLookupService.load({
+      branchIds: devices.map((device) => device.branchId),
+    });
+    return DeviceMapper.toResponseDtoList(devices, lookups);
   }
 
   @Get(':id')
@@ -67,8 +67,10 @@ export class DevicesController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<DeviceResponseDto> {
     const device = await this.getDeviceUseCase.execute(id);
-    const branchNames = await this.branchFacade.resolveNames([device.branchId]);
-    return DeviceMapper.toResponseDto(device, branchNames);
+    const lookups = await this.relationLookupService.load({
+      branchIds: [device.branchId],
+    });
+    return DeviceMapper.toResponseDto(device, lookups);
   }
 
   @Roles(Role.ADMIN)
@@ -77,8 +79,7 @@ export class DevicesController {
   @ApiResponse({ status: 201, type: DeviceResponseDto })
   async create(@Body() dto: CreateDeviceDto): Promise<DeviceResponseDto> {
     const device = await this.createDeviceUseCase.execute(dto);
-    const branchNames = await this.branchFacade.resolveNames([device.branchId]);
-    return DeviceMapper.toResponseDto(device, branchNames);
+    return DeviceMapper.toResponseDto(device);
   }
 
   @Roles(Role.ADMIN)
@@ -90,8 +91,7 @@ export class DevicesController {
     @Body() dto: UpdateDeviceDto,
   ): Promise<DeviceResponseDto> {
     const device = await this.updateDeviceUseCase.execute(id, dto);
-    const branchNames = await this.branchFacade.resolveNames([device.branchId]);
-    return DeviceMapper.toResponseDto(device, branchNames);
+    return DeviceMapper.toResponseDto(device);
   }
 
   @Roles(Role.ADMIN)

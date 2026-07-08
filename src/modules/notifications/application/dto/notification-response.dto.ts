@@ -11,6 +11,9 @@ export class NotificationResponseDto {
   @ApiProperty({ nullable: true })
   customerId: string | null;
 
+  @ApiProperty({ nullable: true, description: 'Müştərinin adı soyadı' })
+  customerName: string | null;
+
   @ApiProperty()
   message: string;
 

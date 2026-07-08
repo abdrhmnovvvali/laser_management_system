@@ -7,6 +7,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import configuration from './config/configuration';
 import { validationSchema } from './config/validation.schema';
+import { RelationsModule } from './shared/relations/relations.module';
 import { SupabaseModule } from './shared/supabase/supabase.module';
 import { EventsModule } from './shared/events/events.module';
 import { SupabaseAuthGuard } from './shared/guards/supabase-auth.guard';
@@ -39,6 +40,7 @@ import { PrinterModule } from './modules/printer/presentation/printer.module';
     }),
     EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
+    RelationsModule,
     SupabaseModule,
     EventsModule,
     AuthModule,

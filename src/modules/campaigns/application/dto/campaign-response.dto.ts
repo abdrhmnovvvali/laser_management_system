@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { NamedEntityDto } from '../../../../shared/dto/named-entity.dto';
 import { DiscountType } from '../../domain/entities/discount-type.enum';
 
 export class CampaignResponseDto {
@@ -28,6 +29,9 @@ export class CampaignResponseDto {
 
   @ApiProperty({ type: [String] })
   zoneIds: string[];
+
+  @ApiProperty({ type: [NamedEntityDto], description: 'Nahiyələrin id və adları' })
+  zones: NamedEntityDto[];
 
   @ApiProperty()
   createdAt: Date;

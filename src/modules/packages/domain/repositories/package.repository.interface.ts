@@ -17,6 +17,7 @@ export interface UpdatePackageData {
 export interface IPackageRepository {
   findAll(): Promise<Package[]>;
   findById(id: string): Promise<Package | null>;
+  findByIds(ids: string[]): Promise<Package[]>;
   create(data: CreatePackageData): Promise<Package>;
   update(id: string, data: UpdatePackageData): Promise<Package>;
   delete(id: string): Promise<void>;

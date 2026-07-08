@@ -18,6 +18,7 @@ import {
 } from '@nestjs/swagger';
 import { Roles } from '../../../../shared/decorators/roles.decorator';
 import { Role } from '../../../../shared/guards/roles.enum';
+import { RelationLookupService } from '../../../../shared/relations/relation-lookup.service';
 import { CreateCampaignUseCase } from '../../application/use-cases/create-campaign.usecase';
 import { DeleteCampaignUseCase } from '../../application/use-cases/delete-campaign.usecase';
 import { GetCampaignUseCase } from '../../application/use-cases/get-campaign.usecase';
@@ -40,6 +41,7 @@ export class CampaignsController {
     private readonly createCampaignUseCase: CreateCampaignUseCase,
     private readonly updateCampaignUseCase: UpdateCampaignUseCase,
     private readonly deleteCampaignUseCase: DeleteCampaignUseCase,
+    private readonly relationLookupService: RelationLookupService,
   ) {}
 
   @Get()
@@ -47,7 +49,10 @@ export class CampaignsController {
   @ApiResponse({ status: 200, type: [CampaignResponseDto] })
   async findAll(): Promise<CampaignResponseDto[]> {
     const campaigns = await this.listCampaignsUseCase.execute();
-    return CampaignMapper.toResponseDtoList(campaigns);
+    const lookups = await this.relationLookupService.load({
+      zoneIds: campaigns.flatMap((campaign) => campaign.zoneIds),
+    });
+    return CampaignMapper.toResponseDtoList(campaigns, lookups);
   }
 
   @Get('active')
@@ -55,7 +60,10 @@ export class CampaignsController {
   @ApiResponse({ status: 200, type: [CampaignResponseDto] })
   async findActive(): Promise<CampaignResponseDto[]> {
     const campaigns = await this.listActiveCampaignsUseCase.execute();
-    return CampaignMapper.toResponseDtoList(campaigns);
+    const lookups = await this.relationLookupService.load({
+      zoneIds: campaigns.flatMap((campaign) => campaign.zoneIds),
+    });
+    return CampaignMapper.toResponseDtoList(campaigns, lookups);
   }
 
   @Get(':id')
@@ -65,7 +73,10 @@ export class CampaignsController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<CampaignResponseDto> {
     const campaign = await this.getCampaignUseCase.execute(id);
-    return CampaignMapper.toResponseDto(campaign);
+    const lookups = await this.relationLookupService.load({
+      zoneIds: campaign.zoneIds,
+    });
+    return CampaignMapper.toResponseDto(campaign, lookups);
   }
 
   @Roles(Role.ADMIN)

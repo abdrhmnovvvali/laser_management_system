@@ -1,7 +1,8 @@
 import {
-  BranchNameLookup,
-  lookupBranchName,
-} from '../../../../shared/branch/branch-name.util';
+  EMPTY_RELATION_LOOKUPS,
+  RelationLookups,
+} from '../../../../shared/relations/relation-lookups.interface';
+import { lookupName } from '../../../../shared/relations/relation-name.util';
 import { AuthSession } from '../../domain/entities/auth-session.entity';
 import { StaffUser } from '../../domain/entities/staff-user.entity';
 import { CurrentUserResponseDto } from '../dto/current-user-response.dto';
@@ -11,7 +12,7 @@ import { StaffUserResponseDto } from '../dto/staff-user-response.dto';
 export class AuthMapper {
   static toLoginResponseDto(
     session: AuthSession,
-    branchNames: BranchNameLookup = new Map(),
+    lookups: RelationLookups = EMPTY_RELATION_LOOKUPS,
   ): LoginResponseDto {
     const dto = new LoginResponseDto();
     dto.accessToken = session.accessToken;
@@ -19,7 +20,7 @@ export class AuthMapper {
     dto.expiresIn = session.expiresIn;
     dto.role = session.role;
     dto.branchId = session.branchId;
-    dto.branchName = lookupBranchName(session.branchId, branchNames);
+    dto.branchName = lookupName(lookups.branches, session.branchId);
     return dto;
   }
 
@@ -30,20 +31,20 @@ export class AuthMapper {
       role: AuthSession['role'];
       branchId: string | null;
     },
-    branchNames: BranchNameLookup = new Map(),
+    lookups: RelationLookups = EMPTY_RELATION_LOOKUPS,
   ): CurrentUserResponseDto {
     const dto = new CurrentUserResponseDto();
     dto.id = session.id;
     dto.email = session.email;
     dto.role = session.role;
     dto.branchId = session.branchId;
-    dto.branchName = lookupBranchName(session.branchId, branchNames);
+    dto.branchName = lookupName(lookups.branches, session.branchId);
     return dto;
   }
 
   static toStaffUserResponseDto(
     staffUser: StaffUser,
-    branchNames: BranchNameLookup = new Map(),
+    lookups: RelationLookups = EMPTY_RELATION_LOOKUPS,
   ): StaffUserResponseDto {
     const dto = new StaffUserResponseDto();
     dto.id = staffUser.id;
@@ -51,7 +52,16 @@ export class AuthMapper {
     dto.fullName = staffUser.fullName;
     dto.role = staffUser.role;
     dto.branchId = staffUser.branchId;
-    dto.branchName = lookupBranchName(staffUser.branchId, branchNames);
+    dto.branchName = lookupName(lookups.branches, staffUser.branchId);
     return dto;
+  }
+
+  static toStaffUserResponseDtoList(
+    staffUsers: StaffUser[],
+    lookups: RelationLookups = EMPTY_RELATION_LOOKUPS,
+  ): StaffUserResponseDto[] {
+    return staffUsers.map((staffUser) =>
+      this.toStaffUserResponseDto(staffUser, lookups),
+    );
   }
 }

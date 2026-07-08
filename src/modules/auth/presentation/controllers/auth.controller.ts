@@ -20,9 +20,10 @@ import { Public } from '../../../../shared/decorators/public.decorator';
 import { Roles } from '../../../../shared/decorators/roles.decorator';
 import type { AuthenticatedUser } from '../../../../shared/guards/authenticated-user.interface';
 import { Role } from '../../../../shared/guards/roles.enum';
-import { BranchFacade } from '../../../branches/application/branch.facade';
+import { RelationLookupService } from '../../../../shared/relations/relation-lookup.service';
 import { CreateStaffUserUseCase } from '../../application/use-cases/create-staff-user.usecase';
 import { DeleteStaffUserUseCase } from '../../application/use-cases/delete-staff-user.usecase';
+import { ListStaffUsersUseCase } from '../../application/use-cases/list-staff-users.usecase';
 import { LoginUseCase } from '../../application/use-cases/login.usecase';
 import { RefreshSessionUseCase } from '../../application/use-cases/refresh-session.usecase';
 import { CreateStaffUserDto } from '../../application/dto/create-staff-user.dto';
@@ -40,8 +41,9 @@ export class AuthController {
     private readonly loginUseCase: LoginUseCase,
     private readonly refreshSessionUseCase: RefreshSessionUseCase,
     private readonly createStaffUserUseCase: CreateStaffUserUseCase,
+    private readonly listStaffUsersUseCase: ListStaffUsersUseCase,
     private readonly deleteStaffUserUseCase: DeleteStaffUserUseCase,
-    private readonly branchFacade: BranchFacade,
+    private readonly relationLookupService: RelationLookupService,
   ) {}
 
   @Public()
@@ -51,8 +53,10 @@ export class AuthController {
   @ApiResponse({ status: 200, type: LoginResponseDto })
   async login(@Body() dto: LoginDto): Promise<LoginResponseDto> {
     const session = await this.loginUseCase.execute(dto.email, dto.password);
-    const branchNames = await this.branchFacade.resolveNames([session.branchId]);
-    return AuthMapper.toLoginResponseDto(session, branchNames);
+    const lookups = await this.relationLookupService.load({
+      branchIds: [session.branchId],
+    });
+    return AuthMapper.toLoginResponseDto(session, lookups);
   }
 
   @Public()
@@ -65,8 +69,10 @@ export class AuthController {
   @ApiResponse({ status: 200, type: LoginResponseDto })
   async refresh(@Body() dto: RefreshTokenDto): Promise<LoginResponseDto> {
     const session = await this.refreshSessionUseCase.execute(dto.refreshToken);
-    const branchNames = await this.branchFacade.resolveNames([session.branchId]);
-    return AuthMapper.toLoginResponseDto(session, branchNames);
+    const lookups = await this.relationLookupService.load({
+      branchIds: [session.branchId],
+    });
+    return AuthMapper.toLoginResponseDto(session, lookups);
   }
 
   @ApiBearerAuth('bearerAuth')
@@ -78,8 +84,25 @@ export class AuthController {
   async getCurrentUser(
     @CurrentUser() user: AuthenticatedUser,
   ): Promise<CurrentUserResponseDto> {
-    const branchNames = await this.branchFacade.resolveNames([user.branchId]);
-    return AuthMapper.toCurrentUserResponseDto(user, branchNames);
+    const lookups = await this.relationLookupService.load({
+      branchIds: [user.branchId],
+    });
+    return AuthMapper.toCurrentUserResponseDto(user, lookups);
+  }
+
+  @ApiBearerAuth('bearerAuth')
+  @Roles(Role.ADMIN)
+  @Get('staff')
+  @ApiOperation({
+    summary: 'Bütün filial işçisi/admin hesablarının siyahısı (yalnız admin)',
+  })
+  @ApiResponse({ status: 200, type: [StaffUserResponseDto] })
+  async listStaffUsers(): Promise<StaffUserResponseDto[]> {
+    const staffUsers = await this.listStaffUsersUseCase.execute();
+    const lookups = await this.relationLookupService.load({
+      branchIds: staffUsers.map((staffUser) => staffUser.branchId),
+    });
+    return AuthMapper.toStaffUserResponseDtoList(staffUsers, lookups);
   }
 
   @ApiBearerAuth('bearerAuth')
@@ -99,10 +122,10 @@ export class AuthController {
       role: dto.role,
       branchId: dto.branchId ?? null,
     });
-    const branchNames = await this.branchFacade.resolveNames([
-      staffUser.branchId,
-    ]);
-    return AuthMapper.toStaffUserResponseDto(staffUser, branchNames);
+    const lookups = await this.relationLookupService.load({
+      branchIds: [staffUser.branchId],
+    });
+    return AuthMapper.toStaffUserResponseDto(staffUser, lookups);
   }
 
   @ApiBearerAuth('bearerAuth')

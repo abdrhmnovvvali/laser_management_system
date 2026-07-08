@@ -28,6 +28,7 @@ export interface ProcedureFilters {
   branchId?: string;
   dateFrom?: Date;
   dateTo?: Date;
+  zoneIds?: string[];
 }
 
 export interface IProcedureRepository {

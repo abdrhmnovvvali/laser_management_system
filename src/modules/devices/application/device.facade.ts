@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { uniqueIds } from '../../../shared/relations/relation-name.util';
 import { Device } from '../domain/entities/device.entity';
 import { DEVICE_REPOSITORY } from '../domain/repositories/device.repository.interface';
 import type { IDeviceRepository } from '../domain/repositories/device.repository.interface';
@@ -23,5 +24,17 @@ export class DeviceFacade {
 
   async incrementShotCounter(id: string, byAmount: number): Promise<Device> {
     return this.deviceRepository.incrementShotCounter(id, byAmount);
+  }
+
+  async resolveNames(
+    deviceIds: Iterable<string | null | undefined>,
+  ): Promise<Map<string, string>> {
+    const ids = uniqueIds(deviceIds);
+    if (ids.length === 0) {
+      return new Map();
+    }
+
+    const devices = await this.deviceRepository.findByIds(ids);
+    return new Map(devices.map((device) => [device.id, device.type]));
   }
 }

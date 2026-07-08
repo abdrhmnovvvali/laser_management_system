@@ -8,6 +8,9 @@ export class NoteResponseDto {
   @ApiProperty()
   customerId: string;
 
+  @ApiProperty({ nullable: true, description: 'Müştərinin adı soyadı' })
+  customerName: string | null;
+
   @ApiProperty({ enum: NoteType })
   type: NoteType;
 

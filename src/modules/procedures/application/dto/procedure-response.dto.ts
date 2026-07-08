@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { NamedEntityDto } from '../../../../shared/dto/named-entity.dto';
 
 export class ProcedureResponseDto {
   @ApiProperty()
@@ -7,14 +8,26 @@ export class ProcedureResponseDto {
   @ApiProperty()
   customerId: string;
 
+  @ApiProperty({ nullable: true, description: 'Müştərinin adı soyadı' })
+  customerName: string | null;
+
   @ApiProperty()
   deviceId: string;
+
+  @ApiProperty({ nullable: true, description: 'Cihazın tipi/adı' })
+  deviceName: string | null;
 
   @ApiProperty({ nullable: true })
   packageId: string | null;
 
+  @ApiProperty({ nullable: true, description: 'Paketin adı' })
+  packageName: string | null;
+
   @ApiProperty({ type: [String] })
   zoneIds: string[];
+
+  @ApiProperty({ type: [NamedEntityDto], description: 'Nahiyələrin id və adları' })
+  zones: NamedEntityDto[];
 
   @ApiProperty()
   date: Date;
@@ -46,6 +59,12 @@ export class ProcedureResponseDto {
     description: 'Pulsuz verilən nahiyənin ID-si',
   })
   freeZoneId: string | null;
+
+  @ApiProperty({
+    nullable: true,
+    description: 'Pulsuz verilən nahiyənin adı',
+  })
+  freeZoneName: string | null;
 
   @ApiProperty({
     description: 'Loyallıq endiriminin məbləği (AZN)',

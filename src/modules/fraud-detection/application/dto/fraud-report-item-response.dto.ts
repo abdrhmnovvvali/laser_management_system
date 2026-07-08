@@ -7,8 +7,14 @@ export class FraudReportItemResponseDto {
   @ApiProperty()
   customerId: string;
 
+  @ApiProperty({ nullable: true, description: 'Müştərinin adı soyadı' })
+  customerName: string | null;
+
   @ApiProperty()
   deviceId: string;
+
+  @ApiProperty({ nullable: true, description: 'Cihazın tipi/adı' })
+  deviceName: string | null;
 
   @ApiProperty()
   branchId: string;

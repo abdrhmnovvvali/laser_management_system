@@ -1,5 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { uniqueIds } from '../../../shared/relations/relation-name.util';
 import { Customer } from '../domain/entities/customer.entity';
+import { CUSTOMER_REPOSITORY } from '../domain/repositories/customer.repository.interface';
+import type { ICustomerRepository } from '../domain/repositories/customer.repository.interface';
 import type {
   CreateCustomerData,
   CustomerFilters,
@@ -18,6 +21,8 @@ export class CustomerFacade {
     private readonly getCustomerUseCase: GetCustomerUseCase,
     private readonly createCustomerUseCase: CreateCustomerUseCase,
     private readonly listCustomersUseCase: ListCustomersUseCase,
+    @Inject(CUSTOMER_REPOSITORY)
+    private readonly customerRepository: ICustomerRepository,
   ) {}
 
   async getById(id: string): Promise<Customer> {
@@ -40,5 +45,17 @@ export class CustomerFacade {
   async count(filters: CustomerFilters): Promise<number> {
     const customers = await this.listCustomersUseCase.execute(filters);
     return customers.length;
+  }
+
+  async resolveNames(
+    customerIds: Iterable<string | null | undefined>,
+  ): Promise<Map<string, string>> {
+    const ids = uniqueIds(customerIds);
+    if (ids.length === 0) {
+      return new Map();
+    }
+
+    const customers = await this.customerRepository.findByIds(ids);
+    return new Map(customers.map((customer) => [customer.id, customer.fullName]));
   }
 }

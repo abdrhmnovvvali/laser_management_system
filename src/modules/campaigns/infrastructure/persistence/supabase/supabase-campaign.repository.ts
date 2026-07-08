@@ -18,10 +18,14 @@ import {
 
 const TABLE = 'campaigns';
 const JUNCTION_TABLE = 'campaign_zones';
-const SELECT_WITH_ZONES = '*, campaign_zones(zone_id)';
 
 function toDateOnly(date: Date): string {
   return date.toISOString().slice(0, 10);
+}
+
+interface CampaignZoneLinkRow {
+  campaign_id: string;
+  zone_id: string;
 }
 
 @Injectable()
@@ -33,35 +37,43 @@ export class SupabaseCampaignRepository implements ICampaignRepository {
   async findAll(): Promise<Campaign[]> {
     const response = await this.supabase
       .from(TABLE)
-      .select(SELECT_WITH_ZONES)
+      .select('*')
       .order('start_date', { ascending: false });
 
     const rows = unwrap<CampaignRow[]>(response) ?? [];
-    return rows.map((row) => CampaignPersistenceMapper.toDomain(row));
+    return this.mapRowsWithZones(rows);
   }
 
   async findActive(onDate: Date): Promise<Campaign[]> {
     const dateOnly = toDateOnly(onDate);
     const response = await this.supabase
       .from(TABLE)
-      .select(SELECT_WITH_ZONES)
+      .select('*')
       .lte('start_date', dateOnly)
       .gte('end_date', dateOnly)
       .order('start_date', { ascending: false });
 
     const rows = unwrap<CampaignRow[]>(response) ?? [];
-    return rows.map((row) => CampaignPersistenceMapper.toDomain(row));
+    return this.mapRowsWithZones(rows);
   }
 
   async findById(id: string): Promise<Campaign | null> {
     const response = await this.supabase
       .from(TABLE)
-      .select(SELECT_WITH_ZONES)
+      .select('*')
       .eq('id', id)
       .maybeSingle();
 
     const row = unwrap<CampaignRow>(response);
-    return row ? CampaignPersistenceMapper.toDomain(row) : null;
+    if (!row) {
+      return null;
+    }
+
+    const zoneIdsByCampaign = await this.fetchZoneIdsByCampaignIds([row.id]);
+    return CampaignPersistenceMapper.toDomain(
+      row,
+      zoneIdsByCampaign.get(row.id) ?? [],
+    );
   }
 
   async create(data: CreateCampaignData): Promise<Campaign> {
@@ -78,10 +90,10 @@ export class SupabaseCampaignRepository implements ICampaignRepository {
       .select('*')
       .single();
 
-    const created = unwrapOrThrow<{ id: string }>(response);
+    const created = unwrapOrThrow<CampaignRow>(response);
     await this.replaceZoneLinks(created.id, data.zoneIds);
 
-    return this.findById(created.id) as Promise<Campaign>;
+    return CampaignPersistenceMapper.toDomain(created, data.zoneIds);
   }
 
   async update(id: string, data: UpdateCampaignData): Promise<Campaign> {
@@ -114,6 +126,42 @@ export class SupabaseCampaignRepository implements ICampaignRepository {
   async delete(id: string): Promise<void> {
     const response = await this.supabase.from(TABLE).delete().eq('id', id);
     unwrap(response);
+  }
+
+  private async mapRowsWithZones(rows: CampaignRow[]): Promise<Campaign[]> {
+    const zoneIdsByCampaign = await this.fetchZoneIdsByCampaignIds(
+      rows.map((row) => row.id),
+    );
+
+    return rows.map((row) =>
+      CampaignPersistenceMapper.toDomain(
+        row,
+        zoneIdsByCampaign.get(row.id) ?? [],
+      ),
+    );
+  }
+
+  private async fetchZoneIdsByCampaignIds(
+    campaignIds: string[],
+  ): Promise<Map<string, string[]>> {
+    const zoneIdsByCampaign = new Map<string, string[]>();
+    if (campaignIds.length === 0) {
+      return zoneIdsByCampaign;
+    }
+
+    const response = await this.supabase
+      .from(JUNCTION_TABLE)
+      .select('campaign_id, zone_id')
+      .in('campaign_id', campaignIds);
+
+    const links = unwrap<CampaignZoneLinkRow[]>(response) ?? [];
+    for (const link of links) {
+      const existing = zoneIdsByCampaign.get(link.campaign_id) ?? [];
+      existing.push(link.zone_id);
+      zoneIdsByCampaign.set(link.campaign_id, existing);
+    }
+
+    return zoneIdsByCampaign;
   }
 
   private async replaceZoneLinks(

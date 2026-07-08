@@ -8,6 +8,9 @@ export class FollowUpResponseDto {
   @ApiProperty()
   customerId: string;
 
+  @ApiProperty({ nullable: true, description: 'Müştərinin adı soyadı' })
+  customerName: string | null;
+
   @ApiProperty()
   plannedDate: Date;
 

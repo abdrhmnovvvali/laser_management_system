@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { uniqueIds } from '../../../shared/relations/relation-name.util';
 import { Branch } from '../domain/entities/branch.entity';
 import { GetBranchUseCase } from './use-cases/get-branch.usecase';
 import { ListBranchesUseCase } from './use-cases/list-branches.usecase';
@@ -30,21 +31,16 @@ export class BranchFacade {
   async resolveNames(
     branchIds: Iterable<string | null | undefined>,
   ): Promise<Map<string, string>> {
-    const uniqueIds = new Set<string>();
-    for (const id of branchIds) {
-      if (id) {
-        uniqueIds.add(id);
-      }
-    }
+    const uniqueIdsList = uniqueIds(branchIds);
 
-    if (uniqueIds.size === 0) {
+    if (uniqueIdsList.length === 0) {
       return new Map();
     }
 
     const branches = await this.listBranchesUseCase.execute();
     const names = new Map<string, string>();
     for (const branch of branches) {
-      if (uniqueIds.has(branch.id)) {
+      if (uniqueIdsList.includes(branch.id)) {
         names.set(branch.id, branch.name);
       }
     }

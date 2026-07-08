@@ -12,6 +12,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { RelationLookupService } from '../../../../shared/relations/relation-lookup.service';
 import { ListNotificationsUseCase } from '../../application/use-cases/list-notifications.usecase';
 import { MarkNotificationAsReadUseCase } from '../../application/use-cases/mark-notification-as-read.usecase';
 import { ListNotificationsQueryDto } from '../../application/dto/list-notifications-query.dto';
@@ -25,6 +26,7 @@ export class NotificationsController {
   constructor(
     private readonly listNotificationsUseCase: ListNotificationsUseCase,
     private readonly markNotificationAsReadUseCase: MarkNotificationAsReadUseCase,
+    private readonly relationLookupService: RelationLookupService,
   ) {}
 
   @Get()
@@ -34,7 +36,10 @@ export class NotificationsController {
     @Query() query: ListNotificationsQueryDto,
   ): Promise<NotificationResponseDto[]> {
     const notifications = await this.listNotificationsUseCase.execute(query);
-    return NotificationMapper.toResponseDtoList(notifications);
+    const lookups = await this.relationLookupService.load({
+      customerIds: notifications.map((notification) => notification.customerId),
+    });
+    return NotificationMapper.toResponseDtoList(notifications, lookups);
   }
 
   @Patch(':id/read')
@@ -44,6 +49,9 @@ export class NotificationsController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<NotificationResponseDto> {
     const notification = await this.markNotificationAsReadUseCase.execute(id);
-    return NotificationMapper.toResponseDto(notification);
+    const lookups = await this.relationLookupService.load({
+      customerIds: [notification.customerId],
+    });
+    return NotificationMapper.toResponseDto(notification, lookups);
   }
 }

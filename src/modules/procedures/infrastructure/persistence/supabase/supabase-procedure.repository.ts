@@ -53,6 +53,14 @@ export class SupabaseProcedureRepository implements IProcedureRepository {
       query = query.lte('date', filters.dateTo.toISOString());
     }
 
+    if (filters.zoneIds?.length) {
+      const procedureIds = await this.findProcedureIdsByZoneIds(filters.zoneIds);
+      if (procedureIds.length === 0) {
+        return [];
+      }
+      query = query.in('id', procedureIds);
+    }
+
     const response = await query;
     const rows = unwrap<ProcedureRow[]>(response) ?? [];
     return rows.map((row) => ProcedurePersistenceMapper.toDomain(row));
@@ -134,5 +142,25 @@ export class SupabaseProcedureRepository implements IProcedureRepository {
   async delete(id: string): Promise<void> {
     const response = await this.supabase.from(TABLE).delete().eq('id', id);
     unwrap(response);
+  }
+
+  private async findProcedureIdsByZoneIds(zoneIds: string[]): Promise<string[]> {
+    const [junctionResponse, freeZoneResponse] = await Promise.all([
+      this.supabase
+        .from(JUNCTION_TABLE)
+        .select('procedure_id')
+        .in('zone_id', zoneIds),
+      this.supabase.from(TABLE).select('id').in('free_zone_id', zoneIds),
+    ]);
+
+    const junctionRows = unwrap<{ procedure_id: string }[]>(junctionResponse) ?? [];
+    const freeZoneRows = unwrap<{ id: string }[]>(freeZoneResponse) ?? [];
+
+    return [
+      ...new Set([
+        ...junctionRows.map((row) => row.procedure_id),
+        ...freeZoneRows.map((row) => row.id),
+      ]),
+    ];
   }
 }

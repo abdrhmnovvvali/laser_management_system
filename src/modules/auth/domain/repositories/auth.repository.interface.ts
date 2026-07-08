@@ -21,6 +21,7 @@ export interface IAuthRepository {
   signIn(email: string, password: string): Promise<AuthSession>;
   refreshSession(refreshToken: string): Promise<AuthSession>;
   createStaffUser(input: CreateStaffUserInput): Promise<StaffUser>;
+  findAllStaffUsers(): Promise<StaffUser[]>;
   findStaffUserById(id: string): Promise<StaffUser | null>;
   countStaffByRole(role: Role): Promise<number>;
   deleteStaffUser(id: string): Promise<void>;

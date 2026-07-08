@@ -18,6 +18,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { RelationLookupService } from '../../../../shared/relations/relation-lookup.service';
 import { CreateNoteUseCase } from '../../application/use-cases/create-note.usecase';
 import { DeleteNoteUseCase } from '../../application/use-cases/delete-note.usecase';
 import { GetNoteUseCase } from '../../application/use-cases/get-note.usecase';
@@ -38,6 +39,7 @@ export class NotesController {
     private readonly createNoteUseCase: CreateNoteUseCase,
     private readonly updateNoteUseCase: UpdateNoteUseCase,
     private readonly deleteNoteUseCase: DeleteNoteUseCase,
+    private readonly relationLookupService: RelationLookupService,
   ) {}
 
   @Get()
@@ -48,7 +50,10 @@ export class NotesController {
     @Query('customerId', ParseUUIDPipe) customerId: string,
   ): Promise<NoteResponseDto[]> {
     const notes = await this.listNotesByCustomerUseCase.execute(customerId);
-    return NoteMapper.toResponseDtoList(notes);
+    const lookups = await this.relationLookupService.load({
+      customerIds: notes.map((note) => note.customerId),
+    });
+    return NoteMapper.toResponseDtoList(notes, lookups);
   }
 
   @Get(':id')
@@ -58,7 +63,10 @@ export class NotesController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<NoteResponseDto> {
     const note = await this.getNoteUseCase.execute(id);
-    return NoteMapper.toResponseDto(note);
+    const lookups = await this.relationLookupService.load({
+      customerIds: [note.customerId],
+    });
+    return NoteMapper.toResponseDto(note, lookups);
   }
 
   @Post()

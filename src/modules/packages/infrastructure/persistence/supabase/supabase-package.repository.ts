@@ -47,6 +47,19 @@ export class SupabasePackageRepository implements IPackageRepository {
     return row ? PackagePersistenceMapper.toDomain(row) : null;
   }
 
+  async findByIds(ids: string[]): Promise<Package[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const response = await this.supabase
+      .from(TABLE)
+      .select(SELECT_WITH_ZONES)
+      .in('id', ids);
+    const rows = unwrap<PackageRow[]>(response) ?? [];
+    return rows.map((row) => PackagePersistenceMapper.toDomain(row));
+  }
+
   async create(data: CreatePackageData): Promise<Package> {
     const insertResponse = await this.supabase
       .from(TABLE)

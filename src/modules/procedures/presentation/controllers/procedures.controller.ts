@@ -17,6 +17,8 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { RelationLookupService } from '../../../../shared/relations/relation-lookup.service';
+import { collectProcedureRelationIds } from '../../../../shared/relations/relation-name.util';
 import { CreateProcedureUseCase } from '../../application/use-cases/create-procedure.usecase';
 import { DeleteProcedureUseCase } from '../../application/use-cases/delete-procedure.usecase';
 import { GetProcedureUseCase } from '../../application/use-cases/get-procedure.usecase';
@@ -38,18 +40,23 @@ export class ProceduresController {
     private readonly createProcedureUseCase: CreateProcedureUseCase,
     private readonly updateProcedureUseCase: UpdateProcedureUseCase,
     private readonly deleteProcedureUseCase: DeleteProcedureUseCase,
+    private readonly relationLookupService: RelationLookupService,
   ) {}
 
   @Get()
   @ApiOperation({
-    summary: 'Prosedurların siyahısı (müştəri/cihaz üzrə filtr)',
+    summary:
+      'Prosedurların siyahısı (müştəri/cihaz/nahiyə adı üzrə filtr)',
   })
   @ApiResponse({ status: 200, type: [ProcedureResponseDto] })
   async findAll(
     @Query() query: ListProceduresQueryDto,
   ): Promise<ProcedureResponseDto[]> {
     const procedures = await this.listProceduresUseCase.execute(query);
-    return ProcedureMapper.toResponseDtoList(procedures);
+    const lookups = await this.relationLookupService.load(
+      collectProcedureRelationIds(procedures),
+    );
+    return ProcedureMapper.toResponseDtoList(procedures, lookups);
   }
 
   @Get(':id')
@@ -59,7 +66,10 @@ export class ProceduresController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<ProcedureResponseDto> {
     const procedure = await this.getProcedureUseCase.execute(id);
-    return ProcedureMapper.toResponseDto(procedure);
+    const lookups = await this.relationLookupService.load(
+      collectProcedureRelationIds([procedure]),
+    );
+    return ProcedureMapper.toResponseDto(procedure, lookups);
   }
 
   @Post()

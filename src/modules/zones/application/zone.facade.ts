@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { uniqueIds } from '../../../shared/relations/relation-name.util';
 import { Zone } from '../domain/entities/zone.entity';
 import { ZONE_REPOSITORY } from '../domain/repositories/zone.repository.interface';
 import type { IZoneRepository } from '../domain/repositories/zone.repository.interface';
@@ -22,5 +23,22 @@ export class ZoneFacade {
 
   async getByIds(ids: string[]): Promise<Zone[]> {
     return this.zoneRepository.findByIds(ids);
+  }
+
+  async findIdsByNames(names: string[]): Promise<string[]> {
+    const zones = await this.zoneRepository.findByNames(names);
+    return zones.map((zone) => zone.id);
+  }
+
+  async resolveNames(
+    zoneIds: Iterable<string | null | undefined>,
+  ): Promise<Map<string, string>> {
+    const ids = uniqueIds(zoneIds);
+    if (ids.length === 0) {
+      return new Map();
+    }
+
+    const zones = await this.zoneRepository.findByIds(ids);
+    return new Map(zones.map((zone) => [zone.id, zone.name]));
   }
 }

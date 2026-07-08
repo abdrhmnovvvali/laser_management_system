@@ -59,6 +59,21 @@ export class SupabaseZoneRepository implements IZoneRepository {
     return rows.map((row) => ZonePersistenceMapper.toDomain(row));
   }
 
+  async findByNames(names: string[]): Promise<Zone[]> {
+    const normalized = [...new Set(names.map((name) => name.trim()).filter(Boolean))];
+    if (normalized.length === 0) {
+      return [];
+    }
+
+    const orConditions = normalized
+      .map((name) => `name.ilike.%${name}%`)
+      .join(',');
+
+    const response = await this.supabase.from(TABLE).select('*').or(orConditions);
+    const rows = unwrap<ZoneRow[]>(response) ?? [];
+    return rows.map((row) => ZonePersistenceMapper.toDomain(row));
+  }
+
   async create(data: CreateZoneData): Promise<Zone> {
     const response = await this.supabase
       .from(TABLE)
