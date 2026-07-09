@@ -1,6 +1,4 @@
--- Bu gün ad günü olan müştəriləri göstərən görünüş (il nəzərə alınmadan ay/gün müqayisəsi).
--- `security_invoker = true` sayəsində filial işçisi yalnız öz filialının
--- müştərilərini görür, admin isə hamısını.
+-- Ad günü görünüşünü Bakı vaxt zonasına uyğunlaşdır
 create or replace view public.todays_birthdays_view
 with (security_invoker = true)
 as
@@ -17,3 +15,6 @@ where
     extract(month from timezone('Asia/Baku', now())::date)
   and extract(day from birth_date) =
     extract(day from timezone('Asia/Baku', now())::date);
+
+grant select on public.todays_birthdays_view to authenticated;
+grant select on public.todays_birthdays_view to service_role;

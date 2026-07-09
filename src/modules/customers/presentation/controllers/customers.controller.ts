@@ -78,7 +78,10 @@ export class CustomersController {
       ...dto,
       birthDate: dto.birthDate ? new Date(dto.birthDate) : null,
     });
-    return CustomerMapper.toResponseDto(customer);
+    const lookups = await this.relationLookupService.load({
+      branchIds: [customer.branchId],
+    });
+    return CustomerMapper.toResponseDto(customer, lookups);
   }
 
   @Patch(':id')
@@ -97,7 +100,10 @@ export class CustomersController {
             : null
           : undefined,
     });
-    return CustomerMapper.toResponseDto(customer);
+    const lookups = await this.relationLookupService.load({
+      branchIds: [customer.branchId],
+    });
+    return CustomerMapper.toResponseDto(customer, lookups);
   }
 
   @Delete(':id')

@@ -5,6 +5,7 @@ export interface NotificationRow {
   id: string;
   type: NotificationType;
   customer_id: string | null;
+  procedure_id: string | null;
   message: string;
   is_read: boolean;
   created_at: string;
@@ -17,6 +18,7 @@ export class NotificationPersistenceMapper {
       new Date(row.created_at),
       row.type,
       row.customer_id,
+      row.procedure_id,
       row.message,
       row.is_read,
     );

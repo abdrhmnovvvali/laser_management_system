@@ -17,6 +17,8 @@ export class FollowUpMapper {
     dto.customerName = lookupName(lookups.customers, followUp.customerId);
     dto.plannedDate = followUp.plannedDate;
     dto.status = followUp.status;
+    dto.zoneId = followUp.zoneId;
+    dto.zoneName = lookupName(lookups.zones, followUp.zoneId);
     dto.createdAt = followUp.createdAt;
     return dto;
   }

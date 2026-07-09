@@ -6,6 +6,7 @@ export interface FollowUpRow {
   customer_id: string;
   planned_date: string;
   status: FollowUpStatus;
+  zone_id: string | null;
   created_at: string;
 }
 
@@ -17,6 +18,7 @@ export class FollowUpPersistenceMapper {
       row.customer_id,
       new Date(row.planned_date),
       row.status,
+      row.zone_id,
     );
   }
 }

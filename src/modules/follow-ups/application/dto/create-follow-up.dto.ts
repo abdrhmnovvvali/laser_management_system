@@ -12,6 +12,15 @@ export class CreateFollowUpDto {
   plannedDate: string;
 
   @ApiProperty({
+    example: 'a1b2c3d4-...',
+    required: false,
+    description: 'Planlaşdırılan nahiyə',
+  })
+  @IsOptional()
+  @IsUUID()
+  zoneId?: string;
+
+  @ApiProperty({
     enum: FollowUpStatus,
     required: false,
     default: FollowUpStatus.PENDING,

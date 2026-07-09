@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { CustomersModule } from '../../customers/presentation/customers.module';
+import { ZonesModule } from '../../zones/presentation/zones.module';
 import { FOLLOW_UP_ADMIN_READER } from '../domain/repositories/follow-up-admin-reader.interface';
 import { FOLLOW_UP_REPOSITORY } from '../domain/repositories/follow-up.repository.interface';
 import { SupabaseFollowUpAdminReader } from '../infrastructure/persistence/supabase/supabase-follow-up-admin-reader';
@@ -16,7 +17,7 @@ import { UpdateFollowUpUseCase } from '../application/use-cases/update-follow-up
 import { FollowUpsController } from './controllers/follow-ups.controller';
 
 @Module({
-  imports: [CustomersModule],
+  imports: [CustomersModule, ZonesModule],
   controllers: [FollowUpsController],
   providers: [
     ListFollowUpsByCustomerUseCase,

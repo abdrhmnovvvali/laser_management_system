@@ -52,3 +52,18 @@ export function collectProcedureRelationIds(
     ]),
   };
 }
+
+export function collectFollowUpRelationIds(
+  followUps: Array<{
+    customerId: string;
+    zoneId: string | null;
+  }>,
+): {
+  customerIds: string[];
+  zoneIds: (string | null | undefined)[];
+} {
+  return {
+    customerIds: followUps.map((followUp) => followUp.customerId),
+    zoneIds: followUps.map((followUp) => followUp.zoneId),
+  };
+}

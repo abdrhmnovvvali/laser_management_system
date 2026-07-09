@@ -7,11 +7,13 @@ export interface CreateFollowUpData {
   customerId: string;
   plannedDate: Date;
   status?: FollowUpStatus;
+  zoneId?: string;
 }
 
 export interface UpdateFollowUpData {
   plannedDate?: Date;
   status?: FollowUpStatus;
+  zoneId?: string | null;
 }
 
 export interface IFollowUpRepository {

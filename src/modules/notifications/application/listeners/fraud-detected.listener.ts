@@ -17,6 +17,7 @@ export class FraudDetectedListener {
     await this.notificationWriter.create({
       type: NotificationType.FRAUD,
       customerId: event.customerId,
+      procedureId: event.procedureId,
       message: event.message,
     });
   }

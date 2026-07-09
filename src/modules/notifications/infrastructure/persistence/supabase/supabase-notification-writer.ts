@@ -22,6 +22,7 @@ export class SupabaseNotificationWriter implements INotificationWriter {
     const response = await this.supabase.rpc('create_notification', {
       p_type: data.type,
       p_customer_id: data.customerId,
+      p_procedure_id: data.procedureId ?? null,
       p_message: data.message,
     });
 

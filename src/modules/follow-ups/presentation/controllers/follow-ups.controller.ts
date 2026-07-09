@@ -19,6 +19,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { RelationLookupService } from '../../../../shared/relations/relation-lookup.service';
+import { collectFollowUpRelationIds } from '../../../../shared/relations/relation-name.util';
 import { CreateFollowUpUseCase } from '../../application/use-cases/create-follow-up.usecase';
 import { DeleteFollowUpUseCase } from '../../application/use-cases/delete-follow-up.usecase';
 import { GetFollowUpUseCase } from '../../application/use-cases/get-follow-up.usecase';
@@ -54,9 +55,9 @@ export class FollowUpsController {
   ): Promise<FollowUpResponseDto[]> {
     const followUps =
       await this.listFollowUpsByCustomerUseCase.execute(customerId);
-    const lookups = await this.relationLookupService.load({
-      customerIds: followUps.map((followUp) => followUp.customerId),
-    });
+    const lookups = await this.relationLookupService.load(
+      collectFollowUpRelationIds(followUps),
+    );
     return FollowUpMapper.toResponseDtoList(followUps, lookups);
   }
 
@@ -69,9 +70,9 @@ export class FollowUpsController {
     const followUps = await this.listUpcomingFollowUpsUseCase.execute(
       query.days ?? 7,
     );
-    const lookups = await this.relationLookupService.load({
-      customerIds: followUps.map((followUp) => followUp.customerId),
-    });
+    const lookups = await this.relationLookupService.load(
+      collectFollowUpRelationIds(followUps),
+    );
     return FollowUpMapper.toResponseDtoList(followUps, lookups);
   }
 
@@ -82,9 +83,9 @@ export class FollowUpsController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<FollowUpResponseDto> {
     const followUp = await this.getFollowUpUseCase.execute(id);
-    const lookups = await this.relationLookupService.load({
-      customerIds: [followUp.customerId],
-    });
+    const lookups = await this.relationLookupService.load(
+      collectFollowUpRelationIds([followUp]),
+    );
     return FollowUpMapper.toResponseDto(followUp, lookups);
   }
 
@@ -96,7 +97,10 @@ export class FollowUpsController {
       ...dto,
       plannedDate: new Date(dto.plannedDate),
     });
-    return FollowUpMapper.toResponseDto(followUp);
+    const lookups = await this.relationLookupService.load(
+      collectFollowUpRelationIds([followUp]),
+    );
+    return FollowUpMapper.toResponseDto(followUp, lookups);
   }
 
   @Patch(':id')
@@ -110,7 +114,10 @@ export class FollowUpsController {
       ...dto,
       plannedDate: dto.plannedDate ? new Date(dto.plannedDate) : undefined,
     });
-    return FollowUpMapper.toResponseDto(followUp);
+    const lookups = await this.relationLookupService.load(
+      collectFollowUpRelationIds([followUp]),
+    );
+    return FollowUpMapper.toResponseDto(followUp, lookups);
   }
 
   @Delete(':id')

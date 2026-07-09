@@ -8,6 +8,7 @@ export class FollowUp extends BaseEntity<string> {
     public readonly customerId: string,
     public readonly plannedDate: Date,
     public readonly status: FollowUpStatus,
+    public readonly zoneId: string | null,
   ) {
     super(id, createdAt);
   }

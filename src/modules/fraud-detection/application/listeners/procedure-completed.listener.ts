@@ -31,8 +31,8 @@ export class ProcedureCompletedListener {
 
     const message =
       difference > 0
-        ? `Faktiki atış sayı bəyan edilən sayı ${difference} vahid üstələyir (prosedur: ${event.procedureId})`
-        : `Faktiki atış sayı bəyan edilən sayıdan ${Math.abs(difference)} vahid azdır (prosedur: ${event.procedureId})`;
+        ? `Faktiki atış sayı bəyan edilən sayı ${difference} vahid üstələyir`
+        : `Faktiki atış sayı bəyan edilən sayıdan ${Math.abs(difference)} vahid azdır`;
 
     this.eventPublisher.publish(
       new FraudDetectedEvent(event.procedureId, event.customerId, message),
