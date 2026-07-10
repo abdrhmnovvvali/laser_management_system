@@ -20,6 +20,7 @@ export interface IFollowUpRepository {
   findAllByCustomer(customerId: string): Promise<FollowUp[]>;
   findById(id: string): Promise<FollowUp | null>;
   findUpcoming(days: number): Promise<FollowUp[]>;
+  findByStatus(status: FollowUpStatus): Promise<FollowUp[]>;
   create(data: CreateFollowUpData): Promise<FollowUp>;
   update(id: string, data: UpdateFollowUpData): Promise<FollowUp>;
   delete(id: string): Promise<void>;

@@ -6,6 +6,7 @@ import { SupabaseNotificationWriter } from '../infrastructure/persistence/supaba
 import { BirthdayFoundListener } from '../application/listeners/birthday-found.listener';
 import { FollowUpDueListener } from '../application/listeners/follow-up-due.listener';
 import { FraudDetectedListener } from '../application/listeners/fraud-detected.listener';
+import { NotificationFacade } from '../application/notification.facade';
 import { ListNotificationsUseCase } from '../application/use-cases/list-notifications.usecase';
 import { MarkNotificationAsReadUseCase } from '../application/use-cases/mark-notification-as-read.usecase';
 import { NotificationsController } from './controllers/notifications.controller';
@@ -13,6 +14,7 @@ import { NotificationsController } from './controllers/notifications.controller'
 @Module({
   controllers: [NotificationsController],
   providers: [
+    NotificationFacade,
     ListNotificationsUseCase,
     MarkNotificationAsReadUseCase,
     FraudDetectedListener,
@@ -24,5 +26,6 @@ import { NotificationsController } from './controllers/notifications.controller'
     },
     { provide: NOTIFICATION_WRITER, useClass: SupabaseNotificationWriter },
   ],
+  exports: [NotificationFacade],
 })
 export class NotificationsModule {}

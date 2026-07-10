@@ -47,6 +47,10 @@ export class CustomerFacade {
     return customers.length;
   }
 
+  async list(filters: CustomerFilters = {}): Promise<Customer[]> {
+    return this.listCustomersUseCase.execute(filters);
+  }
+
   async resolveNames(
     customerIds: Iterable<string | null | undefined>,
   ): Promise<Map<string, string>> {

@@ -68,6 +68,17 @@ export class SupabaseFollowUpRepository implements IFollowUpRepository {
     return rows.map((row) => FollowUpPersistenceMapper.toDomain(row));
   }
 
+  async findByStatus(status: FollowUpStatus): Promise<FollowUp[]> {
+    const response = await this.supabase
+      .from(TABLE)
+      .select('*')
+      .eq('status', status)
+      .order('planned_date', { ascending: true });
+
+    const rows = unwrap<FollowUpRow[]>(response) ?? [];
+    return rows.map((row) => FollowUpPersistenceMapper.toDomain(row));
+  }
+
   async create(data: CreateFollowUpData): Promise<FollowUp> {
     const response = await this.supabase
       .from(TABLE)

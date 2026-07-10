@@ -11,6 +11,7 @@ import { CreateFollowUpUseCase } from '../application/use-cases/create-follow-up
 import { DeleteFollowUpUseCase } from '../application/use-cases/delete-follow-up.usecase';
 import { GetFollowUpUseCase } from '../application/use-cases/get-follow-up.usecase';
 import { ListFollowUpsByCustomerUseCase } from '../application/use-cases/list-follow-ups-by-customer.usecase';
+import { ListFollowUpsByStatusUseCase } from '../application/use-cases/list-follow-ups-by-status.usecase';
 import { ListUpcomingFollowUpsUseCase } from '../application/use-cases/list-upcoming-follow-ups.usecase';
 import { NotifyDueFollowUpsUseCase } from '../application/use-cases/notify-due-follow-ups.usecase';
 import { UpdateFollowUpUseCase } from '../application/use-cases/update-follow-up.usecase';
@@ -22,6 +23,7 @@ import { FollowUpsController } from './controllers/follow-ups.controller';
   providers: [
     ListFollowUpsByCustomerUseCase,
     ListUpcomingFollowUpsUseCase,
+    ListFollowUpsByStatusUseCase,
     GetFollowUpUseCase,
     CreateFollowUpUseCase,
     UpdateFollowUpUseCase,

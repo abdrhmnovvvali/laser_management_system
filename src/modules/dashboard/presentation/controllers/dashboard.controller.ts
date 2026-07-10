@@ -21,7 +21,7 @@ export class DashboardController {
   @Get('summary')
   @ApiOperation({
     summary:
-      'Aylıq gəlir, müştəri sayı və digər aggregate göstəricilər (yalnız oxuma)',
+      'Admin dashboard — KPI-lar, problemlər, filial üzrə statistika və alert-lər',
   })
   @ApiResponse({ status: 200, type: DashboardSummaryResponseDto })
   async getSummary(
