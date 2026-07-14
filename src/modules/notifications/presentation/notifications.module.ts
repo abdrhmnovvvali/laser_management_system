@@ -7,14 +7,20 @@ import { BirthdayFoundListener } from '../application/listeners/birthday-found.l
 import { FollowUpDueListener } from '../application/listeners/follow-up-due.listener';
 import { FraudDetectedListener } from '../application/listeners/fraud-detected.listener';
 import { NotificationFacade } from '../application/notification.facade';
+import { NotificationRealtimeService } from '../application/notification-realtime.service';
 import { ListNotificationsUseCase } from '../application/use-cases/list-notifications.usecase';
 import { MarkNotificationAsReadUseCase } from '../application/use-cases/mark-notification-as-read.usecase';
 import { NotificationsController } from './controllers/notifications.controller';
+import { NotificationWsAuthService } from './realtime/notification-ws-auth.service';
+import { NotificationsGateway } from './realtime/notifications.gateway';
 
 @Module({
   controllers: [NotificationsController],
   providers: [
     NotificationFacade,
+    NotificationRealtimeService,
+    NotificationWsAuthService,
+    NotificationsGateway,
     ListNotificationsUseCase,
     MarkNotificationAsReadUseCase,
     FraudDetectedListener,
