@@ -57,11 +57,11 @@ export class DevicesController {
     const lookups = await this.relationLookupService.load({
       branchIds: devices.map((device) => device.branchId),
     });
-    return DeviceMapper.toResponseDtoList(devices, lookups);
+    return DeviceMapper.toListDtoList(devices, lookups);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'ID üzrə cihaz məlumatı' })
+  @ApiOperation({ summary: 'ID üzrə cihaz məlumatı (translations daxil)' })
   @ApiResponse({ status: 200, type: DeviceResponseDto })
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
@@ -70,7 +70,7 @@ export class DevicesController {
     const lookups = await this.relationLookupService.load({
       branchIds: [device.branchId],
     });
-    return DeviceMapper.toResponseDto(device, lookups);
+    return DeviceMapper.toDetailDto(device, lookups);
   }
 
   @Roles(Role.ADMIN)
@@ -79,7 +79,7 @@ export class DevicesController {
   @ApiResponse({ status: 201, type: DeviceResponseDto })
   async create(@Body() dto: CreateDeviceDto): Promise<DeviceResponseDto> {
     const device = await this.createDeviceUseCase.execute(dto);
-    return DeviceMapper.toResponseDto(device);
+    return DeviceMapper.toDetailDto(device);
   }
 
   @Roles(Role.ADMIN)
@@ -91,7 +91,7 @@ export class DevicesController {
     @Body() dto: UpdateDeviceDto,
   ): Promise<DeviceResponseDto> {
     const device = await this.updateDeviceUseCase.execute(id, dto);
-    return DeviceMapper.toResponseDto(device);
+    return DeviceMapper.toDetailDto(device);
   }
 
   @Roles(Role.ADMIN)

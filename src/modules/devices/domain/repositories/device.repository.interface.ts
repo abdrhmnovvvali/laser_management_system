@@ -1,16 +1,22 @@
+import { Locale } from '../../../../shared/i18n/locale.enum';
 import { Device } from '../entities/device.entity';
 
 export const DEVICE_REPOSITORY = Symbol('IDeviceRepository');
 
+export interface DeviceTranslationInput {
+  locale: Locale;
+  type: string;
+}
+
 export interface CreateDeviceData {
   branchId: string;
-  type: string;
   shotCounter?: number;
+  translations: DeviceTranslationInput[];
 }
 
 export interface UpdateDeviceData {
-  type?: string;
   shotCounter?: number;
+  translations?: DeviceTranslationInput[];
 }
 
 export interface IDeviceRepository {

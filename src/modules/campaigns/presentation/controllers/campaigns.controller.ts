@@ -52,7 +52,7 @@ export class CampaignsController {
     const lookups = await this.relationLookupService.load({
       zoneIds: campaigns.flatMap((campaign) => campaign.zoneIds),
     });
-    return CampaignMapper.toResponseDtoList(campaigns, lookups);
+    return CampaignMapper.toListDtoList(campaigns, lookups);
   }
 
   @Get('active')
@@ -63,11 +63,11 @@ export class CampaignsController {
     const lookups = await this.relationLookupService.load({
       zoneIds: campaigns.flatMap((campaign) => campaign.zoneIds),
     });
-    return CampaignMapper.toResponseDtoList(campaigns, lookups);
+    return CampaignMapper.toListDtoList(campaigns, lookups);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'ID üzrə kampaniya məlumatı' })
+  @ApiOperation({ summary: 'ID üzrə kampaniya məlumatı (translations daxil)' })
   @ApiResponse({ status: 200, type: CampaignResponseDto })
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
@@ -76,7 +76,7 @@ export class CampaignsController {
     const lookups = await this.relationLookupService.load({
       zoneIds: campaign.zoneIds,
     });
-    return CampaignMapper.toResponseDto(campaign, lookups);
+    return CampaignMapper.toDetailDto(campaign, lookups);
   }
 
   @Roles(Role.ADMIN)
@@ -89,7 +89,7 @@ export class CampaignsController {
       startDate: new Date(dto.startDate),
       endDate: new Date(dto.endDate),
     });
-    return CampaignMapper.toResponseDto(campaign);
+    return CampaignMapper.toDetailDto(campaign);
   }
 
   @Roles(Role.ADMIN)
@@ -105,7 +105,7 @@ export class CampaignsController {
       startDate: dto.startDate ? new Date(dto.startDate) : undefined,
       endDate: dto.endDate ? new Date(dto.endDate) : undefined,
     });
-    return CampaignMapper.toResponseDto(campaign);
+    return CampaignMapper.toDetailDto(campaign);
   }
 
   @Roles(Role.ADMIN)

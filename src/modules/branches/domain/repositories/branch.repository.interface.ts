@@ -1,15 +1,20 @@
+import { Locale } from '../../../../shared/i18n/locale.enum';
 import { Branch } from '../entities/branch.entity';
 
 export const BRANCH_REPOSITORY = Symbol('IBranchRepository');
 
-export interface CreateBranchData {
+export interface BranchTranslationInput {
+  locale: Locale;
   name: string;
   address?: string | null;
 }
 
+export interface CreateBranchData {
+  translations: BranchTranslationInput[];
+}
+
 export interface UpdateBranchData {
-  name?: string;
-  address?: string | null;
+  translations?: BranchTranslationInput[];
 }
 
 export interface IBranchRepository {

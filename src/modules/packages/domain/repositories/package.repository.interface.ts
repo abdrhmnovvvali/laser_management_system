@@ -1,17 +1,23 @@
+import { Locale } from '../../../../shared/i18n/locale.enum';
 import { Package } from '../entities/package.entity';
 
 export const PACKAGE_REPOSITORY = Symbol('IPackageRepository');
 
-export interface CreatePackageData {
+export interface PackageTranslationInput {
+  locale: Locale;
   name: string;
+}
+
+export interface CreatePackageData {
   price: number;
   zoneIds: string[];
+  translations: PackageTranslationInput[];
 }
 
 export interface UpdatePackageData {
-  name?: string;
   price?: number;
   zoneIds?: string[];
+  translations?: PackageTranslationInput[];
 }
 
 export interface IPackageRepository {

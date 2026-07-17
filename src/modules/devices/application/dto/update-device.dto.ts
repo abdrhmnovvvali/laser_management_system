@@ -1,16 +1,27 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsOptional, IsString, Min, MinLength } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsInt,
+  IsOptional,
+  Min,
+  ValidateNested,
+} from 'class-validator';
+import { DeviceTranslationInputDto } from '../../../../shared/i18n/dto/translation-input.dto';
 
 export class UpdateDeviceDto {
-  @ApiProperty({ example: 'Alexandrite Laser', required: false })
-  @IsOptional()
-  @IsString()
-  @MinLength(2)
-  type?: string;
-
-  @ApiProperty({ example: 120, required: false })
+  @ApiPropertyOptional({ example: 120 })
   @IsOptional()
   @IsInt()
   @Min(0)
   shotCounter?: number;
+
+  @ApiPropertyOptional({ type: [DeviceTranslationInputDto] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(3)
+  @ValidateNested({ each: true })
+  @Type(() => DeviceTranslationInputDto)
+  translations?: DeviceTranslationInputDto[];
 }

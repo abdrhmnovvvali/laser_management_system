@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EntityNotFoundException } from '../../../../shared/kernel/domain.exception';
+import { requireAllLocales } from '../../../../shared/i18n/translation.util';
 import { ZONE_REPOSITORY } from '../../domain/repositories/zone.repository.interface';
 import type {
   IZoneRepository,
@@ -18,6 +19,9 @@ export class UpdateZoneUseCase {
     const existing = await this.zoneRepository.findById(id);
     if (!existing) {
       throw new EntityNotFoundException('Zone', id);
+    }
+    if (data.translations) {
+      requireAllLocales(data.translations);
     }
     return this.zoneRepository.update(id, data);
   }

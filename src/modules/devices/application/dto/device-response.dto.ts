@@ -1,4 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { DeviceTranslationResponseDto } from '../../../../shared/i18n/dto/translation-response.dto';
 
 export class DeviceResponseDto {
   @ApiProperty()
@@ -10,7 +11,7 @@ export class DeviceResponseDto {
   @ApiProperty({ nullable: true, description: 'Filialın adı' })
   branchName: string | null;
 
-  @ApiProperty()
+  @ApiProperty({ description: 'Aktiv dilə uyğun tip (Accept-Language)' })
   type: string;
 
   @ApiProperty()
@@ -18,4 +19,10 @@ export class DeviceResponseDto {
 
   @ApiProperty()
   createdAt: Date;
+
+  @ApiPropertyOptional({
+    type: [DeviceTranslationResponseDto],
+    description: 'Yalnız detail/edit cavabında qaytarılır',
+  })
+  translations?: DeviceTranslationResponseDto[];
 }

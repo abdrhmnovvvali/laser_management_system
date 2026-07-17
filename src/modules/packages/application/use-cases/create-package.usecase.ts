@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { BusinessRuleViolationException } from '../../../../shared/kernel/domain.exception';
+import { requireAllLocales } from '../../../../shared/i18n/translation.util';
 import { ZoneFacade } from '../../../zones/application/zone.facade';
 import { PACKAGE_REPOSITORY } from '../../domain/repositories/package.repository.interface';
 import type {
@@ -17,6 +18,7 @@ export class CreatePackageUseCase {
   ) {}
 
   async execute(data: CreatePackageData): Promise<Package> {
+    requireAllLocales(data.translations);
     const zones = await this.zoneFacade.getByIds(data.zoneIds);
     if (zones.length !== data.zoneIds.length) {
       throw new BusinessRuleViolationException(

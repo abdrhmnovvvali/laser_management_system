@@ -1,16 +1,22 @@
+import { Locale } from '../../../../shared/i18n/locale.enum';
 import { Zone } from '../entities/zone.entity';
 
 export const ZONE_REPOSITORY = Symbol('IZoneRepository');
 
-export interface CreateZoneData {
+export interface ZoneTranslationInput {
+  locale: Locale;
   name: string;
+}
+
+export interface CreateZoneData {
   deviceId: string;
   price: number;
+  translations: ZoneTranslationInput[];
 }
 
 export interface UpdateZoneData {
-  name?: string;
   price?: number;
+  translations?: ZoneTranslationInput[];
 }
 
 export interface IZoneRepository {

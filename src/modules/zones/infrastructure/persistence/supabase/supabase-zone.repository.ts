@@ -10,6 +10,7 @@ import {
   CreateZoneData,
   IZoneRepository,
   UpdateZoneData,
+  ZoneTranslationInput,
 } from '../../../domain/repositories/zone.repository.interface';
 import {
   ZonePersistenceMapper,
@@ -17,6 +18,8 @@ import {
 } from '../../mappers/zone-persistence.mapper';
 
 const TABLE = 'zones';
+const TRANSLATIONS_TABLE = 'zone_translations';
+const SELECT_WITH_TRANSLATIONS = '*, zone_translations(locale, name)';
 
 @Injectable()
 export class SupabaseZoneRepository implements IZoneRepository {
@@ -27,7 +30,7 @@ export class SupabaseZoneRepository implements IZoneRepository {
   async findAll(deviceId?: string): Promise<Zone[]> {
     let query = this.supabase
       .from(TABLE)
-      .select('*')
+      .select(SELECT_WITH_TRANSLATIONS)
       .order('created_at', { ascending: false });
 
     if (deviceId) {
@@ -42,7 +45,7 @@ export class SupabaseZoneRepository implements IZoneRepository {
   async findById(id: string): Promise<Zone | null> {
     const response = await this.supabase
       .from(TABLE)
-      .select('*')
+      .select(SELECT_WITH_TRANSLATIONS)
       .eq('id', id)
       .maybeSingle();
 
@@ -54,13 +57,18 @@ export class SupabaseZoneRepository implements IZoneRepository {
     if (ids.length === 0) {
       return [];
     }
-    const response = await this.supabase.from(TABLE).select('*').in('id', ids);
+    const response = await this.supabase
+      .from(TABLE)
+      .select(SELECT_WITH_TRANSLATIONS)
+      .in('id', ids);
     const rows = unwrap<ZoneRow[]>(response) ?? [];
     return rows.map((row) => ZonePersistenceMapper.toDomain(row));
   }
 
   async findByNames(names: string[]): Promise<Zone[]> {
-    const normalized = [...new Set(names.map((name) => name.trim()).filter(Boolean))];
+    const normalized = [
+      ...new Set(names.map((name) => name.trim()).filter(Boolean)),
+    ];
     if (normalized.length === 0) {
       return [];
     }
@@ -69,34 +77,81 @@ export class SupabaseZoneRepository implements IZoneRepository {
       .map((name) => `name.ilike.%${name}%`)
       .join(',');
 
-    const response = await this.supabase.from(TABLE).select('*').or(orConditions);
-    const rows = unwrap<ZoneRow[]>(response) ?? [];
-    return rows.map((row) => ZonePersistenceMapper.toDomain(row));
+    const translationResponse = await this.supabase
+      .from(TRANSLATIONS_TABLE)
+      .select('zone_id')
+      .or(orConditions);
+
+    const translationRows =
+      unwrap<Array<{ zone_id: string }>>(translationResponse) ?? [];
+    const zoneIds = [...new Set(translationRows.map((row) => row.zone_id))];
+    if (zoneIds.length === 0) {
+      return [];
+    }
+
+    return this.findByIds(zoneIds);
   }
 
   async create(data: CreateZoneData): Promise<Zone> {
     const response = await this.supabase
       .from(TABLE)
-      .insert({ name: data.name, device_id: data.deviceId, price: data.price })
-      .select('*')
+      .insert({ device_id: data.deviceId, price: data.price })
+      .select('id')
       .single();
 
-    return ZonePersistenceMapper.toDomain(unwrapOrThrow<ZoneRow>(response));
+    const created = unwrapOrThrow<{ id: string }>(response);
+    await this.replaceTranslations(created.id, data.translations);
+    const zone = await this.findById(created.id);
+    if (!zone) {
+      throw new Error('Zone create sonrası tapılmadı');
+    }
+    return zone;
   }
 
   async update(id: string, data: UpdateZoneData): Promise<Zone> {
-    const response = await this.supabase
-      .from(TABLE)
-      .update(data)
-      .eq('id', id)
-      .select('*')
-      .single();
+    if (data.price !== undefined) {
+      const response = await this.supabase
+        .from(TABLE)
+        .update({ price: data.price })
+        .eq('id', id)
+        .select('id')
+        .single();
+      unwrapOrThrow(response);
+    }
 
-    return ZonePersistenceMapper.toDomain(unwrapOrThrow<ZoneRow>(response));
+    if (data.translations) {
+      await this.replaceTranslations(id, data.translations);
+    }
+
+    const zone = await this.findById(id);
+    if (!zone) {
+      throw new Error('Zone update sonrası tapılmadı');
+    }
+    return zone;
   }
 
   async delete(id: string): Promise<void> {
     const response = await this.supabase.from(TABLE).delete().eq('id', id);
     unwrap(response);
+  }
+
+  private async replaceTranslations(
+    zoneId: string,
+    translations: ZoneTranslationInput[],
+  ): Promise<void> {
+    const deleteResponse = await this.supabase
+      .from(TRANSLATIONS_TABLE)
+      .delete()
+      .eq('zone_id', zoneId);
+    unwrap(deleteResponse);
+
+    const insertResponse = await this.supabase.from(TRANSLATIONS_TABLE).insert(
+      translations.map((item) => ({
+        zone_id: zoneId,
+        locale: item.locale,
+        name: item.name,
+      })),
+    );
+    unwrap(insertResponse);
   }
 }

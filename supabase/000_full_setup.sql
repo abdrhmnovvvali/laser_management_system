@@ -9,8 +9,6 @@
 -- Filiallar (branches)
 create table if not exists public.branches (
   id uuid primary key default gen_random_uuid(),
-  name text not null,
-  address text,
   created_at timestamptz not null default now()
 );
 
@@ -18,12 +16,24 @@ comment on table public.branches is 'Klinikanın filialları';
 
 alter table public.branches enable row level security;
 
+create table if not exists public.branch_translations (
+  branch_id uuid not null references public.branches(id) on delete cascade,
+  locale text not null check (locale in ('az', 'en', 'ru')),
+  name text not null,
+  address text,
+  primary key (branch_id, locale)
+);
+
+create index if not exists idx_branch_translations_locale
+  on public.branch_translations(locale);
+
+alter table public.branch_translations enable row level security;
+
 -- ---- migrations/0002_create_devices.sql ----
 -- Cihazlar (devices)
 create table if not exists public.devices (
   id uuid primary key default gen_random_uuid(),
   branch_id uuid not null references public.branches(id) on delete cascade,
-  type text not null,
   shot_counter bigint not null default 0,
   created_at timestamptz not null default now()
 );
@@ -33,6 +43,18 @@ create index if not exists idx_devices_branch_id on public.devices(branch_id);
 comment on table public.devices is 'Filiallara bağlı lazer cihazları və atış sayğacı';
 
 alter table public.devices enable row level security;
+
+create table if not exists public.device_translations (
+  device_id uuid not null references public.devices(id) on delete cascade,
+  locale text not null check (locale in ('az', 'en', 'ru')),
+  type text not null,
+  primary key (device_id, locale)
+);
+
+create index if not exists idx_device_translations_locale
+  on public.device_translations(locale);
+
+alter table public.device_translations enable row level security;
 
 -- ---- migrations/0003_create_profiles.sql ----
 -- Profiles: auth.users cədvəlini rol və filial məlumatı ilə genişləndirir
@@ -75,7 +97,6 @@ alter table public.customers enable row level security;
 -- Nahiyələr (zones) — cihaz üzrə qiymət matrisası
 create table if not exists public.zones (
   id uuid primary key default gen_random_uuid(),
-  name text not null,
   device_id uuid not null references public.devices(id) on delete cascade,
   price numeric(10, 2) not null check (price >= 0),
   created_at timestamptz not null default now()
@@ -87,11 +108,25 @@ comment on table public.zones is 'Bədən nahiyələri və cihaz üzrə qiymətl
 
 alter table public.zones enable row level security;
 
+create table if not exists public.zone_translations (
+  zone_id uuid not null references public.zones(id) on delete cascade,
+  locale text not null check (locale in ('az', 'en', 'ru')),
+  name text not null,
+  primary key (zone_id, locale)
+);
+
+create index if not exists idx_zone_translations_locale
+  on public.zone_translations(locale);
+
+create index if not exists idx_zone_translations_name
+  on public.zone_translations(name);
+
+alter table public.zone_translations enable row level security;
+
 -- ---- migrations/0006_create_packages.sql ----
 -- Paketlər (packages) — zonaların birləşməsi + endirimli qiymət
 create table if not exists public.packages (
   id uuid primary key default gen_random_uuid(),
-  name text not null,
   price numeric(10, 2) not null check (price >= 0),
   created_at timestamptz not null default now()
 );
@@ -99,6 +134,18 @@ create table if not exists public.packages (
 comment on table public.packages is 'Bir neçə nahiyəni birləşdirən endirimli paketlər';
 
 alter table public.packages enable row level security;
+
+create table if not exists public.package_translations (
+  package_id uuid not null references public.packages(id) on delete cascade,
+  locale text not null check (locale in ('az', 'en', 'ru')),
+  name text not null,
+  primary key (package_id, locale)
+);
+
+create index if not exists idx_package_translations_locale
+  on public.package_translations(locale);
+
+alter table public.package_translations enable row level security;
 
 -- ---- migrations/0007_create_package_zones.sql ----
 -- package_zones: paket <-> zona many-to-many əlaqəsi
@@ -157,8 +204,6 @@ alter table public.procedure_zones enable row level security;
 -- Kampaniyalar (campaigns)
 create table if not exists public.campaigns (
   id uuid primary key default gen_random_uuid(),
-  name text not null,
-  description text,
   discount_type text not null check (discount_type in ('percentage', 'fixed')),
   discount_value numeric(10, 2) not null check (discount_value >= 0),
   start_date date not null,
@@ -172,6 +217,19 @@ create index if not exists idx_campaigns_date_range on public.campaigns(start_da
 comment on table public.campaigns is 'Endirim kampaniyaları';
 
 alter table public.campaigns enable row level security;
+
+create table if not exists public.campaign_translations (
+  campaign_id uuid not null references public.campaigns(id) on delete cascade,
+  locale text not null check (locale in ('az', 'en', 'ru')),
+  name text not null,
+  description text,
+  primary key (campaign_id, locale)
+);
+
+create index if not exists idx_campaign_translations_locale
+  on public.campaign_translations(locale);
+
+alter table public.campaign_translations enable row level security;
 
 -- ---- migrations/0020_create_campaign_zones.sql ----
 -- campaign_zones: kampaniya <-> zona many-to-many əlaqəsi
@@ -505,6 +563,10 @@ where
 grant select on public.todays_birthdays_view to authenticated;
 grant select on public.todays_birthdays_view to service_role;
 
+-- ---- migrations/0025_create_catalog_translations.sql ----
+-- (Translation cədvəlləri yuxarıda parent cədvəllərlə birlikdə yaradılır.
+--  Mövcud DB-lər üçün ayrıca 0025 migration faylına baxın.)
+
 -- ============ 2) RLS POLICY-LƏRİ ============
 
 -- ---- policies/branches_policies.sql ----
@@ -524,6 +586,21 @@ for all
 using (public.is_admin())
 with check (public.is_admin());
 
+-- ---- policies/branch_translations_policies.sql ----
+create policy "branch_translations_select"
+on public.branch_translations
+for select
+using (
+  public.is_admin()
+  or branch_id = public.current_user_branch_id()
+);
+
+create policy "branch_translations_admin_write"
+on public.branch_translations
+for all
+using (public.is_admin())
+with check (public.is_admin());
+
 -- ---- policies/devices_policies.sql ----
 -- devices: admin bütün cihazları idarə edir, filial işçisi yalnız öz filialının cihazlarını görür.
 
@@ -537,6 +614,25 @@ using (
 
 create policy "devices_admin_write"
 on public.devices
+for all
+using (public.is_admin())
+with check (public.is_admin());
+
+-- ---- policies/device_translations_policies.sql ----
+create policy "device_translations_select"
+on public.device_translations
+for select
+using (
+  public.is_admin()
+  or exists (
+    select 1 from public.devices d
+    where d.id = device_translations.device_id
+      and d.branch_id = public.current_user_branch_id()
+  )
+);
+
+create policy "device_translations_admin_write"
+on public.device_translations
 for all
 using (public.is_admin())
 with check (public.is_admin());
@@ -613,6 +709,26 @@ for all
 using (public.is_admin())
 with check (public.is_admin());
 
+-- ---- policies/zone_translations_policies.sql ----
+create policy "zone_translations_select"
+on public.zone_translations
+for select
+using (
+  public.is_admin()
+  or exists (
+    select 1 from public.zones z
+    join public.devices d on d.id = z.device_id
+    where z.id = zone_translations.zone_id
+      and d.branch_id = public.current_user_branch_id()
+  )
+);
+
+create policy "zone_translations_admin_write"
+on public.zone_translations
+for all
+using (public.is_admin())
+with check (public.is_admin());
+
 -- ---- policies/packages_policies.sql ----
 -- packages: filial-spesifik deyil — bütün autentifikasiya olunmuş istifadəçilər
 -- oxuya bilər, yalnız admin dəyişiklik edə bilər.
@@ -624,6 +740,18 @@ using (auth.role() = 'authenticated');
 
 create policy "packages_admin_write"
 on public.packages
+for all
+using (public.is_admin())
+with check (public.is_admin());
+
+-- ---- policies/package_translations_policies.sql ----
+create policy "package_translations_select"
+on public.package_translations
+for select
+using (auth.role() = 'authenticated');
+
+create policy "package_translations_admin_write"
+on public.package_translations
 for all
 using (public.is_admin())
 with check (public.is_admin());
@@ -740,6 +868,18 @@ using (auth.role() = 'authenticated');
 
 create policy "campaigns_admin_write"
 on public.campaigns
+for all
+using (public.is_admin())
+with check (public.is_admin());
+
+-- ---- policies/campaign_translations_policies.sql ----
+create policy "campaign_translations_select"
+on public.campaign_translations
+for select
+using (auth.role() = 'authenticated');
+
+create policy "campaign_translations_admin_write"
+on public.campaign_translations
 for all
 using (public.is_admin())
 with check (public.is_admin());

@@ -45,17 +45,17 @@ export class BranchesController {
   @ApiResponse({ status: 200, type: [BranchResponseDto] })
   async findAll(): Promise<BranchResponseDto[]> {
     const branches = await this.listBranchesUseCase.execute();
-    return BranchMapper.toResponseDtoList(branches);
+    return BranchMapper.toListDtoList(branches);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'ID üzrə filial məlumatı' })
+  @ApiOperation({ summary: 'ID üzrə filial məlumatı (translations daxil)' })
   @ApiResponse({ status: 200, type: BranchResponseDto })
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<BranchResponseDto> {
     const branch = await this.getBranchUseCase.execute(id);
-    return BranchMapper.toResponseDto(branch);
+    return BranchMapper.toDetailDto(branch);
   }
 
   @Roles(Role.ADMIN)
@@ -64,7 +64,7 @@ export class BranchesController {
   @ApiResponse({ status: 201, type: BranchResponseDto })
   async create(@Body() dto: CreateBranchDto): Promise<BranchResponseDto> {
     const branch = await this.createBranchUseCase.execute(dto);
-    return BranchMapper.toResponseDto(branch);
+    return BranchMapper.toDetailDto(branch);
   }
 
   @Roles(Role.ADMIN)
@@ -76,7 +76,7 @@ export class BranchesController {
     @Body() dto: UpdateBranchDto,
   ): Promise<BranchResponseDto> {
     const branch = await this.updateBranchUseCase.execute(id, dto);
-    return BranchMapper.toResponseDto(branch);
+    return BranchMapper.toDetailDto(branch);
   }
 
   @Roles(Role.ADMIN)

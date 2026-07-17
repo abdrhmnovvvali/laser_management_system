@@ -1,26 +1,31 @@
+import { Locale } from '../../../../shared/i18n/locale.enum';
 import { Campaign } from '../entities/campaign.entity';
 import { DiscountType } from '../entities/discount-type.enum';
 
 export const CAMPAIGN_REPOSITORY = Symbol('ICampaignRepository');
 
-export interface CreateCampaignData {
+export interface CampaignTranslationInput {
+  locale: Locale;
   name: string;
   description?: string | null;
+}
+
+export interface CreateCampaignData {
   discountType: DiscountType;
   discountValue: number;
   startDate: Date;
   endDate: Date;
   zoneIds: string[];
+  translations: CampaignTranslationInput[];
 }
 
 export interface UpdateCampaignData {
-  name?: string;
-  description?: string | null;
   discountType?: DiscountType;
   discountValue?: number;
   startDate?: Date;
   endDate?: Date;
   zoneIds?: string[];
+  translations?: CampaignTranslationInput[];
 }
 
 export interface ICampaignRepository {

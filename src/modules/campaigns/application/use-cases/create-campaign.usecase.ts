@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { BusinessRuleViolationException } from '../../../../shared/kernel/domain.exception';
+import { requireAllLocales } from '../../../../shared/i18n/translation.util';
 import { ZoneFacade } from '../../../zones/application/zone.facade';
 import { CAMPAIGN_REPOSITORY } from '../../domain/repositories/campaign.repository.interface';
 import type {
@@ -17,6 +18,8 @@ export class CreateCampaignUseCase {
   ) {}
 
   async execute(data: CreateCampaignData): Promise<Campaign> {
+    requireAllLocales(data.translations);
+
     if (data.endDate < data.startDate) {
       throw new BusinessRuleViolationException(
         'endDate startDate-dan əvvəl ola bilməz',

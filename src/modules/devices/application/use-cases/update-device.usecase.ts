@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EntityNotFoundException } from '../../../../shared/kernel/domain.exception';
+import { requireAllLocales } from '../../../../shared/i18n/translation.util';
 import { DEVICE_REPOSITORY } from '../../domain/repositories/device.repository.interface';
 import type {
   IDeviceRepository,
@@ -18,6 +19,9 @@ export class UpdateDeviceUseCase {
     const existing = await this.deviceRepository.findById(id);
     if (!existing) {
       throw new EntityNotFoundException('Device', id);
+    }
+    if (data.translations) {
+      requireAllLocales(data.translations);
     }
     return this.deviceRepository.update(id, data);
   }

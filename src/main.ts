@@ -23,7 +23,7 @@ async function bootstrap() {
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Lazer Epilyasiya Mərkəzi API')
     .setDescription(
-      'Filial, cihaz, müştəri, prosedur, kampaniya və bildiriş idarəetməsi üçün backend API',
+      'Filial, cihaz, müştəri, prosedur, kampaniya və bildiriş idarəetməsi üçün backend API. Dil seçimi: Accept-Language (az|en|ru), default az.',
     )
     .setVersion('1.0')
     .addBearerAuth(
@@ -34,6 +34,17 @@ async function bootstrap() {
       },
       'bearerAuth',
     )
+    .addGlobalParameters({
+      name: 'Accept-Language',
+      in: 'header',
+      required: false,
+      description: 'Cavab dili: az | en | ru (default: az)',
+      schema: {
+        type: 'string',
+        enum: ['az', 'en', 'ru'],
+        default: 'az',
+      },
+    })
     .build();
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup(swaggerPath, app, document);

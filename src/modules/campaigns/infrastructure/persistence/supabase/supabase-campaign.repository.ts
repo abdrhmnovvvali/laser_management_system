@@ -7,6 +7,7 @@ import {
 } from '../../../../../shared/supabase/supabase-response.util';
 import { Campaign } from '../../../domain/entities/campaign.entity';
 import {
+  CampaignTranslationInput,
   CreateCampaignData,
   ICampaignRepository,
   UpdateCampaignData,
@@ -17,15 +18,13 @@ import {
 } from '../../mappers/campaign-persistence.mapper';
 
 const TABLE = 'campaigns';
+const TRANSLATIONS_TABLE = 'campaign_translations';
 const JUNCTION_TABLE = 'campaign_zones';
+const SELECT_WITH_RELATIONS =
+  '*, campaign_translations(locale, name, description), campaign_zones(zone_id)';
 
 function toDateOnly(date: Date): string {
   return date.toISOString().slice(0, 10);
-}
-
-interface CampaignZoneLinkRow {
-  campaign_id: string;
-  zone_id: string;
 }
 
 @Injectable()
@@ -37,69 +36,62 @@ export class SupabaseCampaignRepository implements ICampaignRepository {
   async findAll(): Promise<Campaign[]> {
     const response = await this.supabase
       .from(TABLE)
-      .select('*')
+      .select(SELECT_WITH_RELATIONS)
       .order('start_date', { ascending: false });
 
     const rows = unwrap<CampaignRow[]>(response) ?? [];
-    return this.mapRowsWithZones(rows);
+    return rows.map((row) => CampaignPersistenceMapper.toDomain(row));
   }
 
   async findActive(onDate: Date): Promise<Campaign[]> {
     const dateOnly = toDateOnly(onDate);
     const response = await this.supabase
       .from(TABLE)
-      .select('*')
+      .select(SELECT_WITH_RELATIONS)
       .lte('start_date', dateOnly)
       .gte('end_date', dateOnly)
       .order('start_date', { ascending: false });
 
     const rows = unwrap<CampaignRow[]>(response) ?? [];
-    return this.mapRowsWithZones(rows);
+    return rows.map((row) => CampaignPersistenceMapper.toDomain(row));
   }
 
   async findById(id: string): Promise<Campaign | null> {
     const response = await this.supabase
       .from(TABLE)
-      .select('*')
+      .select(SELECT_WITH_RELATIONS)
       .eq('id', id)
       .maybeSingle();
 
     const row = unwrap<CampaignRow>(response);
-    if (!row) {
-      return null;
-    }
-
-    const zoneIdsByCampaign = await this.fetchZoneIdsByCampaignIds([row.id]);
-    return CampaignPersistenceMapper.toDomain(
-      row,
-      zoneIdsByCampaign.get(row.id) ?? [],
-    );
+    return row ? CampaignPersistenceMapper.toDomain(row) : null;
   }
 
   async create(data: CreateCampaignData): Promise<Campaign> {
     const response = await this.supabase
       .from(TABLE)
       .insert({
-        name: data.name,
-        description: data.description ?? null,
         discount_type: data.discountType,
         discount_value: data.discountValue,
         start_date: toDateOnly(data.startDate),
         end_date: toDateOnly(data.endDate),
       })
-      .select('*')
+      .select('id')
       .single();
 
-    const created = unwrapOrThrow<CampaignRow>(response);
+    const created = unwrapOrThrow<{ id: string }>(response);
+    await this.replaceTranslations(created.id, data.translations);
     await this.replaceZoneLinks(created.id, data.zoneIds);
 
-    return CampaignPersistenceMapper.toDomain(created, data.zoneIds);
+    const campaign = await this.findById(created.id);
+    if (!campaign) {
+      throw new Error('Campaign create sonrası tapılmadı');
+    }
+    return campaign;
   }
 
   async update(id: string, data: UpdateCampaignData): Promise<Campaign> {
     const payload: Record<string, unknown> = {};
-    if (data.name !== undefined) payload.name = data.name;
-    if (data.description !== undefined) payload.description = data.description;
     if (data.discountType !== undefined)
       payload.discount_type = data.discountType;
     if (data.discountValue !== undefined)
@@ -112,15 +104,25 @@ export class SupabaseCampaignRepository implements ICampaignRepository {
       const response = await this.supabase
         .from(TABLE)
         .update(payload)
-        .eq('id', id);
-      unwrap(response);
+        .eq('id', id)
+        .select('id')
+        .single();
+      unwrapOrThrow(response);
+    }
+
+    if (data.translations) {
+      await this.replaceTranslations(id, data.translations);
     }
 
     if (data.zoneIds) {
       await this.replaceZoneLinks(id, data.zoneIds);
     }
 
-    return this.findById(id) as Promise<Campaign>;
+    const campaign = await this.findById(id);
+    if (!campaign) {
+      throw new Error('Campaign update sonrası tapılmadı');
+    }
+    return campaign;
   }
 
   async delete(id: string): Promise<void> {
@@ -128,40 +130,25 @@ export class SupabaseCampaignRepository implements ICampaignRepository {
     unwrap(response);
   }
 
-  private async mapRowsWithZones(rows: CampaignRow[]): Promise<Campaign[]> {
-    const zoneIdsByCampaign = await this.fetchZoneIdsByCampaignIds(
-      rows.map((row) => row.id),
+  private async replaceTranslations(
+    campaignId: string,
+    translations: CampaignTranslationInput[],
+  ): Promise<void> {
+    const deleteResponse = await this.supabase
+      .from(TRANSLATIONS_TABLE)
+      .delete()
+      .eq('campaign_id', campaignId);
+    unwrap(deleteResponse);
+
+    const insertResponse = await this.supabase.from(TRANSLATIONS_TABLE).insert(
+      translations.map((item) => ({
+        campaign_id: campaignId,
+        locale: item.locale,
+        name: item.name,
+        description: item.description ?? null,
+      })),
     );
-
-    return rows.map((row) =>
-      CampaignPersistenceMapper.toDomain(
-        row,
-        zoneIdsByCampaign.get(row.id) ?? [],
-      ),
-    );
-  }
-
-  private async fetchZoneIdsByCampaignIds(
-    campaignIds: string[],
-  ): Promise<Map<string, string[]>> {
-    const zoneIdsByCampaign = new Map<string, string[]>();
-    if (campaignIds.length === 0) {
-      return zoneIdsByCampaign;
-    }
-
-    const response = await this.supabase
-      .from(JUNCTION_TABLE)
-      .select('campaign_id, zone_id')
-      .in('campaign_id', campaignIds);
-
-    const links = unwrap<CampaignZoneLinkRow[]>(response) ?? [];
-    for (const link of links) {
-      const existing = zoneIdsByCampaign.get(link.campaign_id) ?? [];
-      existing.push(link.zone_id);
-      zoneIdsByCampaign.set(link.campaign_id, existing);
-    }
-
-    return zoneIdsByCampaign;
+    unwrap(insertResponse);
   }
 
   private async replaceZoneLinks(

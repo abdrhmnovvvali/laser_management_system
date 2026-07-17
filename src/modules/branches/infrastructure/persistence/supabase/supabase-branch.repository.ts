@@ -7,6 +7,7 @@ import {
 } from '../../../../../shared/supabase/supabase-response.util';
 import { Branch } from '../../../domain/entities/branch.entity';
 import {
+  BranchTranslationInput,
   CreateBranchData,
   IBranchRepository,
   UpdateBranchData,
@@ -17,6 +18,9 @@ import {
 } from '../../mappers/branch-persistence.mapper';
 
 const TABLE = 'branches';
+const TRANSLATIONS_TABLE = 'branch_translations';
+const SELECT_WITH_TRANSLATIONS =
+  '*, branch_translations(locale, name, address)';
 
 @Injectable()
 export class SupabaseBranchRepository implements IBranchRepository {
@@ -27,7 +31,7 @@ export class SupabaseBranchRepository implements IBranchRepository {
   async findAll(): Promise<Branch[]> {
     const response = await this.supabase
       .from(TABLE)
-      .select('*')
+      .select(SELECT_WITH_TRANSLATIONS)
       .order('created_at', { ascending: false });
 
     const rows = unwrap<BranchRow[]>(response) ?? [];
@@ -37,7 +41,7 @@ export class SupabaseBranchRepository implements IBranchRepository {
   async findById(id: string): Promise<Branch | null> {
     const response = await this.supabase
       .from(TABLE)
-      .select('*')
+      .select(SELECT_WITH_TRANSLATIONS)
       .eq('id', id)
       .maybeSingle();
 
@@ -48,26 +52,54 @@ export class SupabaseBranchRepository implements IBranchRepository {
   async create(data: CreateBranchData): Promise<Branch> {
     const response = await this.supabase
       .from(TABLE)
-      .insert({ name: data.name, address: data.address ?? null })
-      .select('*')
+      .insert({})
+      .select('id')
       .single();
 
-    return BranchPersistenceMapper.toDomain(unwrapOrThrow<BranchRow>(response));
+    const created = unwrapOrThrow<{ id: string }>(response);
+    await this.replaceTranslations(created.id, data.translations);
+    const branch = await this.findById(created.id);
+    if (!branch) {
+      throw new Error('Branch create sonrası tapılmadı');
+    }
+    return branch;
   }
 
   async update(id: string, data: UpdateBranchData): Promise<Branch> {
-    const response = await this.supabase
-      .from(TABLE)
-      .update(data)
-      .eq('id', id)
-      .select('*')
-      .single();
+    if (data.translations) {
+      await this.replaceTranslations(id, data.translations);
+    }
 
-    return BranchPersistenceMapper.toDomain(unwrapOrThrow<BranchRow>(response));
+    const branch = await this.findById(id);
+    if (!branch) {
+      throw new Error('Branch update sonrası tapılmadı');
+    }
+    return branch;
   }
 
   async delete(id: string): Promise<void> {
     const response = await this.supabase.from(TABLE).delete().eq('id', id);
     unwrap(response);
+  }
+
+  private async replaceTranslations(
+    branchId: string,
+    translations: BranchTranslationInput[],
+  ): Promise<void> {
+    const deleteResponse = await this.supabase
+      .from(TRANSLATIONS_TABLE)
+      .delete()
+      .eq('branch_id', branchId);
+    unwrap(deleteResponse);
+
+    const insertResponse = await this.supabase.from(TRANSLATIONS_TABLE).insert(
+      translations.map((item) => ({
+        branch_id: branchId,
+        locale: item.locale,
+        name: item.name,
+        address: item.address ?? null,
+      })),
+    );
+    unwrap(insertResponse);
   }
 }

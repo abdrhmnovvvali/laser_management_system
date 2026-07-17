@@ -1,29 +1,19 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
   IsDateString,
   IsEnum,
   IsNumber,
-  IsOptional,
-  IsString,
   IsUUID,
   Min,
-  MinLength,
+  ValidateNested,
 } from 'class-validator';
+import { CampaignTranslationInputDto } from '../../../../shared/i18n/dto/translation-input.dto';
 import { DiscountType } from '../../domain/entities/discount-type.enum';
 
 export class CreateCampaignDto {
-  @ApiProperty({ example: 'Yay Endirimi' })
-  @IsString()
-  @MinLength(2)
-  name: string;
-
-  @ApiProperty({ example: 'Seçilmiş nahiyələrdə 20% endirim', required: false })
-  @IsOptional()
-  @IsString()
-  description?: string;
-
   @ApiProperty({ enum: DiscountType, example: DiscountType.PERCENTAGE })
   @IsEnum(DiscountType)
   discountType: DiscountType;
@@ -50,4 +40,11 @@ export class CreateCampaignDto {
   @ArrayMinSize(1)
   @IsUUID('4', { each: true })
   zoneIds: string[];
+
+  @ApiProperty({ type: [CampaignTranslationInputDto] })
+  @IsArray()
+  @ArrayMinSize(3)
+  @ValidateNested({ each: true })
+  @Type(() => CampaignTranslationInputDto)
+  translations: CampaignTranslationInputDto[];
 }

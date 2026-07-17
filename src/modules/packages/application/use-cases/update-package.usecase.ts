@@ -3,6 +3,7 @@ import {
   BusinessRuleViolationException,
   EntityNotFoundException,
 } from '../../../../shared/kernel/domain.exception';
+import { requireAllLocales } from '../../../../shared/i18n/translation.util';
 import { ZoneFacade } from '../../../zones/application/zone.facade';
 import { PACKAGE_REPOSITORY } from '../../domain/repositories/package.repository.interface';
 import type {
@@ -23,6 +24,10 @@ export class UpdatePackageUseCase {
     const existing = await this.packageRepository.findById(id);
     if (!existing) {
       throw new EntityNotFoundException('Package', id);
+    }
+
+    if (data.translations) {
+      requireAllLocales(data.translations);
     }
 
     if (data.zoneIds) {

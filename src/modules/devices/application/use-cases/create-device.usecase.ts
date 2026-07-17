@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { BusinessRuleViolationException } from '../../../../shared/kernel/domain.exception';
+import { requireAllLocales } from '../../../../shared/i18n/translation.util';
 import { BranchFacade } from '../../../branches/application/branch.facade';
 import { DEVICE_REPOSITORY } from '../../domain/repositories/device.repository.interface';
 import type {
@@ -17,6 +18,7 @@ export class CreateDeviceUseCase {
   ) {}
 
   async execute(data: CreateDeviceData): Promise<Device> {
+    requireAllLocales(data.translations);
     const branchExists = await this.branchFacade.exists(data.branchId);
     if (!branchExists) {
       throw new BusinessRuleViolationException(
