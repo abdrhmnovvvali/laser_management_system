@@ -63,14 +63,10 @@ export class ZonesController {
     const lookups = await this.relationLookupService.load({
       deviceIds: result.items.map((zone) => zone.deviceId),
     });
-<<<<<<< HEAD
     return createPaginatedResponseDto(
       result,
-      ZoneMapper.toResponseDtoList(result.items, lookups),
+      ZoneMapper.toListDtoList(result.items, lookups),
     );
-=======
-    return ZoneMapper.toListDtoList(zones, lookups);
->>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
   }
 
   @Get(':id')

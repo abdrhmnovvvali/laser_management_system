@@ -61,14 +61,10 @@ export class PackagesController {
     const lookups = await this.relationLookupService.load({
       zoneIds: result.items.flatMap((pkg) => pkg.zoneIds),
     });
-<<<<<<< HEAD
     return createPaginatedResponseDto(
       result,
-      PackageMapper.toResponseDtoList(result.items, lookups),
+      PackageMapper.toListDtoList(result.items, lookups),
     );
-=======
-    return PackageMapper.toListDtoList(packages, lookups);
->>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
   }
 
   @Get(':id')

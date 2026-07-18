@@ -53,20 +53,13 @@ export class BranchesController {
 
   @Get()
   @ApiOperation({ summary: 'Bütün filialların siyahısı' })
-<<<<<<< HEAD
   @ApiResponse({ status: 200, type: PaginatedBranchesResponseDto })
   async findAll(@Query() query: PaginationQueryDto) {
     const result = await this.listBranchesUseCase.execute(query);
     return createPaginatedResponseDto(
       result,
-      BranchMapper.toResponseDtoList(result.items),
+      BranchMapper.toListDtoList(result.items),
     );
-=======
-  @ApiResponse({ status: 200, type: [BranchResponseDto] })
-  async findAll(): Promise<BranchResponseDto[]> {
-    const branches = await this.listBranchesUseCase.execute();
-    return BranchMapper.toListDtoList(branches);
->>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
   }
 
   @Get(':id')

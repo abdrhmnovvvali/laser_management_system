@@ -63,14 +63,10 @@ export class CampaignsController {
     const lookups = await this.relationLookupService.load({
       zoneIds: result.items.flatMap((campaign) => campaign.zoneIds),
     });
-<<<<<<< HEAD
     return createPaginatedResponseDto(
       result,
-      CampaignMapper.toResponseDtoList(result.items, lookups),
+      CampaignMapper.toListDtoList(result.items, lookups),
     );
-=======
-    return CampaignMapper.toListDtoList(campaigns, lookups);
->>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
   }
 
   @Get('active')
@@ -81,14 +77,10 @@ export class CampaignsController {
     const lookups = await this.relationLookupService.load({
       zoneIds: result.items.flatMap((campaign) => campaign.zoneIds),
     });
-<<<<<<< HEAD
     return createPaginatedResponseDto(
       result,
-      CampaignMapper.toResponseDtoList(result.items, lookups),
+      CampaignMapper.toListDtoList(result.items, lookups),
     );
-=======
-    return CampaignMapper.toListDtoList(campaigns, lookups);
->>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
   }
 
   @Get(':id')

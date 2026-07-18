@@ -15,15 +15,8 @@ export interface PackageRow {
   id: string;
   price: number;
   created_at: string;
-<<<<<<< HEAD
-  package_zones?: { zone_id: string }[] | null;
-}
-
-export class PackagePersistenceMapper {
-  static toDomain(row: PackageRow, zoneIds?: string[]): Package {
-=======
   package_translations?: PackageTranslationRow[] | null;
-  package_zones: { zone_id: string }[] | null;
+  package_zones?: { zone_id: string }[] | null;
 }
 
 export class PackagePersistenceMapper {
@@ -35,18 +28,13 @@ export class PackagePersistenceMapper {
       name: item.name,
     }));
 
->>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
     return new Package(
       row.id,
       new Date(row.created_at),
       pickLocalizedName(translations, LocaleContext.getLocale()),
       Number(row.price),
-<<<<<<< HEAD
-      zoneIds ?? (row.package_zones ?? []).map((pz) => pz.zone_id),
-=======
       (row.package_zones ?? []).map((pz) => pz.zone_id),
       translations,
->>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
     );
   }
 }

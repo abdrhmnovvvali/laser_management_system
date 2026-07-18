@@ -14,11 +14,8 @@ import type { PaginatedResult } from '../../../../../shared/pagination/paginatio
 import { Device } from '../../../domain/entities/device.entity';
 import {
   CreateDeviceData,
-<<<<<<< HEAD
   DeviceListOptions,
-=======
   DeviceTranslationInput,
->>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
   IDeviceRepository,
   UpdateDeviceData,
 } from '../../../domain/repositories/device.repository.interface';
@@ -40,11 +37,7 @@ export class SupabaseDeviceRepository implements IDeviceRepository {
   async findAll(options?: DeviceListOptions): Promise<PaginatedResult<Device>> {
     let query = this.supabase
       .from(TABLE)
-<<<<<<< HEAD
-      .select('*', { count: 'exact' })
-=======
-      .select(SELECT_WITH_TRANSLATIONS)
->>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
+      .select(SELECT_WITH_TRANSLATIONS, { count: 'exact' })
       .order('created_at', { ascending: false });
 
     if (options?.branchId) {

@@ -13,11 +13,8 @@ import {
 import type { PaginatedResult } from '../../../../../shared/pagination/pagination.types';
 import { Campaign } from '../../../domain/entities/campaign.entity';
 import {
-<<<<<<< HEAD
   CampaignListOptions,
-=======
   CampaignTranslationInput,
->>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
   CreateCampaignData,
   ICampaignRepository,
   UpdateCampaignData,
@@ -48,8 +45,7 @@ export class SupabaseCampaignRepository implements ICampaignRepository {
   ): Promise<PaginatedResult<Campaign>> {
     let query = this.supabase
       .from(TABLE)
-<<<<<<< HEAD
-      .select('*', { count: 'exact' })
+      .select(SELECT_WITH_RELATIONS, { count: 'exact' })
       .order('start_date', { ascending: false });
 
     if (options?.pagination) {
@@ -60,17 +56,10 @@ export class SupabaseCampaignRepository implements ICampaignRepository {
     const response = await query;
     const { rows, total } = readPaginatedRows<CampaignRow>(response);
     return createPaginatedResult(
-      await this.mapRowsWithZones(rows),
+      rows.map((row) => CampaignPersistenceMapper.toDomain(row)),
       total,
       options?.pagination,
     );
-=======
-      .select(SELECT_WITH_RELATIONS)
-      .order('start_date', { ascending: false });
-
-    const rows = unwrap<CampaignRow[]>(response) ?? [];
-    return rows.map((row) => CampaignPersistenceMapper.toDomain(row));
->>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
   }
 
   async findActive(
@@ -80,16 +69,11 @@ export class SupabaseCampaignRepository implements ICampaignRepository {
     const dateOnly = toDateOnly(onDate);
     let query = this.supabase
       .from(TABLE)
-<<<<<<< HEAD
-      .select('*', { count: 'exact' })
-=======
-      .select(SELECT_WITH_RELATIONS)
->>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
+      .select(SELECT_WITH_RELATIONS, { count: 'exact' })
       .lte('start_date', dateOnly)
       .gte('end_date', dateOnly)
       .order('start_date', { ascending: false });
 
-<<<<<<< HEAD
     if (options?.pagination) {
       const { from, to } = toOffset(options.pagination);
       query = query.range(from, to);
@@ -98,14 +82,10 @@ export class SupabaseCampaignRepository implements ICampaignRepository {
     const response = await query;
     const { rows, total } = readPaginatedRows<CampaignRow>(response);
     return createPaginatedResult(
-      await this.mapRowsWithZones(rows),
+      rows.map((row) => CampaignPersistenceMapper.toDomain(row)),
       total,
       options?.pagination,
     );
-=======
-    const rows = unwrap<CampaignRow[]>(response) ?? [];
-    return rows.map((row) => CampaignPersistenceMapper.toDomain(row));
->>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
   }
 
   async findById(id: string): Promise<Campaign | null> {

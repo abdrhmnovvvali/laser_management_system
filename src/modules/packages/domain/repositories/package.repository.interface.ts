@@ -1,8 +1,8 @@
-<<<<<<< HEAD
-import { PaginatedResult, PaginationParams } from '../../../../shared/pagination/pagination.types';
-=======
 import { Locale } from '../../../../shared/i18n/locale.enum';
->>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
+import {
+  PaginatedResult,
+  PaginationParams,
+} from '../../../../shared/pagination/pagination.types';
 import { Package } from '../entities/package.entity';
 
 export const PACKAGE_REPOSITORY = Symbol('IPackageRepository');

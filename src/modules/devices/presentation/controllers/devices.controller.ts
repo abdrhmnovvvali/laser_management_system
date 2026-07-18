@@ -63,14 +63,10 @@ export class DevicesController {
     const lookups = await this.relationLookupService.load({
       branchIds: result.items.map((device) => device.branchId),
     });
-<<<<<<< HEAD
     return createPaginatedResponseDto(
       result,
-      DeviceMapper.toResponseDtoList(result.items, lookups),
+      DeviceMapper.toListDtoList(result.items, lookups),
     );
-=======
-    return DeviceMapper.toListDtoList(devices, lookups);
->>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
   }
 
   @Get(':id')

@@ -45,7 +45,11 @@ export class CustomerFacade {
   }
 
   async list(filters: CustomerFilters = {}): Promise<Customer[]> {
-    return this.listCustomersUseCase.execute(filters);
+    const result = await this.customerRepository.findAll({
+      ...filters,
+      pagination: undefined,
+    });
+    return result.items;
   }
 
   async resolveNames(

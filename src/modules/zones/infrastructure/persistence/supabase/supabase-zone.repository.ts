@@ -16,11 +16,8 @@ import {
   CreateZoneData,
   IZoneRepository,
   UpdateZoneData,
-<<<<<<< HEAD
   ZoneListOptions,
-=======
   ZoneTranslationInput,
->>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
 } from '../../../domain/repositories/zone.repository.interface';
 import {
   ZonePersistenceMapper,
@@ -40,11 +37,7 @@ export class SupabaseZoneRepository implements IZoneRepository {
   async findAll(options?: ZoneListOptions): Promise<PaginatedResult<Zone>> {
     let query = this.supabase
       .from(TABLE)
-<<<<<<< HEAD
-      .select('*', { count: 'exact' })
-=======
-      .select(SELECT_WITH_TRANSLATIONS)
->>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
+      .select(SELECT_WITH_TRANSLATIONS, { count: 'exact' })
       .order('created_at', { ascending: false });
 
     if (options?.deviceId) {

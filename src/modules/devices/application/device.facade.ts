@@ -25,7 +25,11 @@ export class DeviceFacade {
   }
 
   async listAll(branchId?: string): Promise<Device[]> {
-    return this.listDevicesUseCase.execute(branchId);
+    const result = await this.listDevicesUseCase.execute(
+      { branchId },
+      { skipPagination: true },
+    );
+    return result.items;
   }
 
   async incrementShotCounter(id: string, byAmount: number): Promise<Device> {

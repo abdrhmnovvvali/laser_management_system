@@ -10,6 +10,9 @@ export class NotificationFacade {
   ) {}
 
   async list(filters: NotificationFilters = {}): Promise<Notification[]> {
-    return this.listNotificationsUseCase.execute(filters);
+    const result = await this.listNotificationsUseCase.execute(filters, {
+      skipPagination: true,
+    });
+    return result.items;
   }
 }

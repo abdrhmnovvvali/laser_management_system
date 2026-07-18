@@ -15,11 +15,8 @@ import { Package } from '../../../domain/entities/package.entity';
 import {
   CreatePackageData,
   IPackageRepository,
-<<<<<<< HEAD
   PackageListOptions,
-=======
   PackageTranslationInput,
->>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
   UpdatePackageData,
 } from '../../../domain/repositories/package.repository.interface';
 import {
@@ -33,11 +30,6 @@ const JUNCTION_TABLE = 'package_zones';
 const SELECT_WITH_RELATIONS =
   '*, package_translations(locale, name), package_zones(zone_id)';
 
-interface PackageZoneLinkRow {
-  package_id: string;
-  zone_id: string;
-}
-
 @Injectable()
 export class SupabasePackageRepository implements IPackageRepository {
   constructor(
@@ -49,11 +41,7 @@ export class SupabasePackageRepository implements IPackageRepository {
   ): Promise<PaginatedResult<Package>> {
     let query = this.supabase
       .from(TABLE)
-<<<<<<< HEAD
-      .select('*', { count: 'exact' })
-=======
-      .select(SELECT_WITH_RELATIONS)
->>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
+      .select(SELECT_WITH_RELATIONS, { count: 'exact' })
       .order('created_at', { ascending: false });
 
     if (options?.pagination) {
@@ -64,7 +52,7 @@ export class SupabasePackageRepository implements IPackageRepository {
     const response = await query;
     const { rows, total } = readPaginatedRows<PackageRow>(response);
     return createPaginatedResult(
-      await this.mapRowsWithZones(rows),
+      rows.map((row) => PackagePersistenceMapper.toDomain(row)),
       total,
       options?.pagination,
     );
@@ -143,42 +131,6 @@ export class SupabasePackageRepository implements IPackageRepository {
     unwrap(response);
   }
 
-<<<<<<< HEAD
-  private async mapRowsWithZones(rows: PackageRow[]): Promise<Package[]> {
-    const zoneIdsByPackage = await this.fetchZoneIdsByPackageIds(
-      rows.map((row) => row.id),
-    );
-
-    return rows.map((row) =>
-      PackagePersistenceMapper.toDomain(
-        row,
-        zoneIdsByPackage.get(row.id) ?? [],
-      ),
-    );
-  }
-
-  private async fetchZoneIdsByPackageIds(
-    packageIds: string[],
-  ): Promise<Map<string, string[]>> {
-    const zoneIdsByPackage = new Map<string, string[]>();
-    if (packageIds.length === 0) {
-      return zoneIdsByPackage;
-    }
-
-    const response = await this.supabase
-      .from(JUNCTION_TABLE)
-      .select('package_id, zone_id')
-      .in('package_id', packageIds);
-
-    const links = unwrap<PackageZoneLinkRow[]>(response) ?? [];
-    for (const link of links) {
-      const existing = zoneIdsByPackage.get(link.package_id) ?? [];
-      existing.push(link.zone_id);
-      zoneIdsByPackage.set(link.package_id, existing);
-    }
-
-    return zoneIdsByPackage;
-=======
   private async replaceTranslations(
     packageId: string,
     translations: PackageTranslationInput[],
@@ -197,7 +149,6 @@ export class SupabasePackageRepository implements IPackageRepository {
       })),
     );
     unwrap(insertResponse);
->>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
   }
 
   private async replaceZoneLinks(

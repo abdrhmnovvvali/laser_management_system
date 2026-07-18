@@ -57,57 +57,30 @@ export class FollowUpsController {
 
   @Get()
   @ApiOperation({ summary: 'Müştərinin planlaşdırılan vizitlərinin siyahısı' })
-<<<<<<< HEAD
   @ApiResponse({ status: 200, type: PaginatedFollowUpsResponseDto })
   async findAllByCustomer(@Query() query: ListFollowUpsQueryDto) {
     const result = await this.listFollowUpsByCustomerUseCase.execute(query);
-    const lookups = await this.relationLookupService.load({
-      customerIds: result.items.map((followUp) => followUp.customerId),
-    });
+    const lookups = await this.relationLookupService.load(
+      collectFollowUpRelationIds(result.items),
+    );
     return createPaginatedResponseDto(
       result,
       FollowUpMapper.toResponseDtoList(result.items, lookups),
     );
-=======
-  @ApiResponse({ status: 200, type: [FollowUpResponseDto] })
-  async findAllByCustomer(
-    @Query('customerId', ParseUUIDPipe) customerId: string,
-  ): Promise<FollowUpResponseDto[]> {
-    const followUps =
-      await this.listFollowUpsByCustomerUseCase.execute(customerId);
-    const lookups = await this.relationLookupService.load(
-      collectFollowUpRelationIds(followUps),
-    );
-    return FollowUpMapper.toResponseDtoList(followUps, lookups);
->>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
   }
 
   @Get('upcoming')
   @ApiOperation({ summary: 'Yaxınlaşan xatırlatmalar (gün sayına görə)' })
-<<<<<<< HEAD
   @ApiResponse({ status: 200, type: PaginatedFollowUpsResponseDto })
   async findUpcoming(@Query() query: UpcomingFollowUpsQueryDto) {
     const result = await this.listUpcomingFollowUpsUseCase.execute(query);
-    const lookups = await this.relationLookupService.load({
-      customerIds: result.items.map((followUp) => followUp.customerId),
-    });
+    const lookups = await this.relationLookupService.load(
+      collectFollowUpRelationIds(result.items),
+    );
     return createPaginatedResponseDto(
       result,
       FollowUpMapper.toResponseDtoList(result.items, lookups),
     );
-=======
-  @ApiResponse({ status: 200, type: [FollowUpResponseDto] })
-  async findUpcoming(
-    @Query() query: UpcomingFollowUpsQueryDto,
-  ): Promise<FollowUpResponseDto[]> {
-    const followUps = await this.listUpcomingFollowUpsUseCase.execute(
-      query.days ?? 7,
-    );
-    const lookups = await this.relationLookupService.load(
-      collectFollowUpRelationIds(followUps),
-    );
-    return FollowUpMapper.toResponseDtoList(followUps, lookups);
->>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
   }
 
   @Get(':id')
