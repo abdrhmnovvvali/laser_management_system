@@ -1,17 +1,26 @@
+<<<<<<< HEAD
 import { PaginatedResult, PaginationParams } from '../../../../shared/pagination/pagination.types';
+=======
+import { Locale } from '../../../../shared/i18n/locale.enum';
+>>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
 import { Device } from '../entities/device.entity';
 
 export const DEVICE_REPOSITORY = Symbol('IDeviceRepository');
 
+export interface DeviceTranslationInput {
+  locale: Locale;
+  type: string;
+}
+
 export interface CreateDeviceData {
   branchId: string;
-  type: string;
   shotCounter?: number;
+  translations: DeviceTranslationInput[];
 }
 
 export interface UpdateDeviceData {
-  type?: string;
   shotCounter?: number;
+  translations?: DeviceTranslationInput[];
 }
 
 export interface DeviceListOptions {

@@ -14,7 +14,11 @@ import type { PaginatedResult } from '../../../../../shared/pagination/paginatio
 import { Device } from '../../../domain/entities/device.entity';
 import {
   CreateDeviceData,
+<<<<<<< HEAD
   DeviceListOptions,
+=======
+  DeviceTranslationInput,
+>>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
   IDeviceRepository,
   UpdateDeviceData,
 } from '../../../domain/repositories/device.repository.interface';
@@ -24,6 +28,8 @@ import {
 } from '../../mappers/device-persistence.mapper';
 
 const TABLE = 'devices';
+const TRANSLATIONS_TABLE = 'device_translations';
+const SELECT_WITH_TRANSLATIONS = '*, device_translations(locale, type)';
 
 @Injectable()
 export class SupabaseDeviceRepository implements IDeviceRepository {
@@ -34,7 +40,11 @@ export class SupabaseDeviceRepository implements IDeviceRepository {
   async findAll(options?: DeviceListOptions): Promise<PaginatedResult<Device>> {
     let query = this.supabase
       .from(TABLE)
+<<<<<<< HEAD
       .select('*', { count: 'exact' })
+=======
+      .select(SELECT_WITH_TRANSLATIONS)
+>>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
       .order('created_at', { ascending: false });
 
     if (options?.branchId) {
@@ -57,7 +67,7 @@ export class SupabaseDeviceRepository implements IDeviceRepository {
   async findById(id: string): Promise<Device | null> {
     const response = await this.supabase
       .from(TABLE)
-      .select('*')
+      .select(SELECT_WITH_TRANSLATIONS)
       .eq('id', id)
       .maybeSingle();
 
@@ -70,7 +80,10 @@ export class SupabaseDeviceRepository implements IDeviceRepository {
       return [];
     }
 
-    const response = await this.supabase.from(TABLE).select('*').in('id', ids);
+    const response = await this.supabase
+      .from(TABLE)
+      .select(SELECT_WITH_TRANSLATIONS)
+      .in('id', ids);
     const rows = unwrap<DeviceRow[]>(response) ?? [];
     return rows.map((row) => DevicePersistenceMapper.toDomain(row));
   }
@@ -80,28 +93,40 @@ export class SupabaseDeviceRepository implements IDeviceRepository {
       .from(TABLE)
       .insert({
         branch_id: data.branchId,
-        type: data.type,
         shot_counter: data.shotCounter ?? 0,
       })
-      .select('*')
+      .select('id')
       .single();
 
-    return DevicePersistenceMapper.toDomain(unwrapOrThrow<DeviceRow>(response));
+    const created = unwrapOrThrow<{ id: string }>(response);
+    await this.replaceTranslations(created.id, data.translations);
+    const device = await this.findById(created.id);
+    if (!device) {
+      throw new Error('Device create sonrası tapılmadı');
+    }
+    return device;
   }
 
   async update(id: string, data: UpdateDeviceData): Promise<Device> {
-    const payload: Record<string, unknown> = {};
-    if (data.type !== undefined) payload.type = data.type;
-    if (data.shotCounter !== undefined) payload.shot_counter = data.shotCounter;
+    if (data.shotCounter !== undefined) {
+      const response = await this.supabase
+        .from(TABLE)
+        .update({ shot_counter: data.shotCounter })
+        .eq('id', id)
+        .select('id')
+        .single();
+      unwrapOrThrow(response);
+    }
 
-    const response = await this.supabase
-      .from(TABLE)
-      .update(payload)
-      .eq('id', id)
-      .select('*')
-      .single();
+    if (data.translations) {
+      await this.replaceTranslations(id, data.translations);
+    }
 
-    return DevicePersistenceMapper.toDomain(unwrapOrThrow<DeviceRow>(response));
+    const device = await this.findById(id);
+    if (!device) {
+      throw new Error('Device update sonrası tapılmadı');
+    }
+    return device;
   }
 
   async incrementShotCounter(id: string, byAmount: number): Promise<Device> {
@@ -109,12 +134,37 @@ export class SupabaseDeviceRepository implements IDeviceRepository {
       p_device_id: id,
       p_amount: byAmount,
     });
+    unwrapOrThrow(response);
 
-    return DevicePersistenceMapper.toDomain(unwrapOrThrow<DeviceRow>(response));
+    const device = await this.findById(id);
+    if (!device) {
+      throw new Error('Device shot counter yeniləmə sonrası tapılmadı');
+    }
+    return device;
   }
 
   async delete(id: string): Promise<void> {
     const response = await this.supabase.from(TABLE).delete().eq('id', id);
     unwrap(response);
+  }
+
+  private async replaceTranslations(
+    deviceId: string,
+    translations: DeviceTranslationInput[],
+  ): Promise<void> {
+    const deleteResponse = await this.supabase
+      .from(TRANSLATIONS_TABLE)
+      .delete()
+      .eq('device_id', deviceId);
+    unwrap(deleteResponse);
+
+    const insertResponse = await this.supabase.from(TRANSLATIONS_TABLE).insert(
+      translations.map((item) => ({
+        device_id: deviceId,
+        locale: item.locale,
+        type: item.type,
+      })),
+    );
+    unwrap(insertResponse);
   }
 }

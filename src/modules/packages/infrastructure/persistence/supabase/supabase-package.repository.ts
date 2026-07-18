@@ -15,7 +15,11 @@ import { Package } from '../../../domain/entities/package.entity';
 import {
   CreatePackageData,
   IPackageRepository,
+<<<<<<< HEAD
   PackageListOptions,
+=======
+  PackageTranslationInput,
+>>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
   UpdatePackageData,
 } from '../../../domain/repositories/package.repository.interface';
 import {
@@ -24,8 +28,10 @@ import {
 } from '../../mappers/package-persistence.mapper';
 
 const TABLE = 'packages';
+const TRANSLATIONS_TABLE = 'package_translations';
 const JUNCTION_TABLE = 'package_zones';
-const SELECT_WITH_ZONES = '*, package_zones(zone_id)';
+const SELECT_WITH_RELATIONS =
+  '*, package_translations(locale, name), package_zones(zone_id)';
 
 interface PackageZoneLinkRow {
   package_id: string;
@@ -43,7 +49,11 @@ export class SupabasePackageRepository implements IPackageRepository {
   ): Promise<PaginatedResult<Package>> {
     let query = this.supabase
       .from(TABLE)
+<<<<<<< HEAD
       .select('*', { count: 'exact' })
+=======
+      .select(SELECT_WITH_RELATIONS)
+>>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
       .order('created_at', { ascending: false });
 
     if (options?.pagination) {
@@ -63,7 +73,7 @@ export class SupabasePackageRepository implements IPackageRepository {
   async findById(id: string): Promise<Package | null> {
     const response = await this.supabase
       .from(TABLE)
-      .select(SELECT_WITH_ZONES)
+      .select(SELECT_WITH_RELATIONS)
       .eq('id', id)
       .maybeSingle();
 
@@ -78,7 +88,7 @@ export class SupabasePackageRepository implements IPackageRepository {
 
     const response = await this.supabase
       .from(TABLE)
-      .select(SELECT_WITH_ZONES)
+      .select(SELECT_WITH_RELATIONS)
       .in('id', ids);
     const rows = unwrap<PackageRow[]>(response) ?? [];
     return rows.map((row) => PackagePersistenceMapper.toDomain(row));
@@ -87,34 +97,45 @@ export class SupabasePackageRepository implements IPackageRepository {
   async create(data: CreatePackageData): Promise<Package> {
     const insertResponse = await this.supabase
       .from(TABLE)
-      .insert({ name: data.name, price: data.price })
-      .select('*')
+      .insert({ price: data.price })
+      .select('id')
       .single();
 
     const created = unwrapOrThrow<{ id: string }>(insertResponse);
+    await this.replaceTranslations(created.id, data.translations);
     await this.replaceZoneLinks(created.id, data.zoneIds);
 
-    return this.findById(created.id) as Promise<Package>;
+    const pkg = await this.findById(created.id);
+    if (!pkg) {
+      throw new Error('Package create sonrası tapılmadı');
+    }
+    return pkg;
   }
 
   async update(id: string, data: UpdatePackageData): Promise<Package> {
-    const payload: Record<string, unknown> = {};
-    if (data.name !== undefined) payload.name = data.name;
-    if (data.price !== undefined) payload.price = data.price;
-
-    if (Object.keys(payload).length > 0) {
+    if (data.price !== undefined) {
       const response = await this.supabase
         .from(TABLE)
-        .update(payload)
-        .eq('id', id);
-      unwrap(response);
+        .update({ price: data.price })
+        .eq('id', id)
+        .select('id')
+        .single();
+      unwrapOrThrow(response);
+    }
+
+    if (data.translations) {
+      await this.replaceTranslations(id, data.translations);
     }
 
     if (data.zoneIds) {
       await this.replaceZoneLinks(id, data.zoneIds);
     }
 
-    return this.findById(id) as Promise<Package>;
+    const pkg = await this.findById(id);
+    if (!pkg) {
+      throw new Error('Package update sonrası tapılmadı');
+    }
+    return pkg;
   }
 
   async delete(id: string): Promise<void> {
@@ -122,6 +143,7 @@ export class SupabasePackageRepository implements IPackageRepository {
     unwrap(response);
   }
 
+<<<<<<< HEAD
   private async mapRowsWithZones(rows: PackageRow[]): Promise<Package[]> {
     const zoneIdsByPackage = await this.fetchZoneIdsByPackageIds(
       rows.map((row) => row.id),
@@ -156,6 +178,26 @@ export class SupabasePackageRepository implements IPackageRepository {
     }
 
     return zoneIdsByPackage;
+=======
+  private async replaceTranslations(
+    packageId: string,
+    translations: PackageTranslationInput[],
+  ): Promise<void> {
+    const deleteResponse = await this.supabase
+      .from(TRANSLATIONS_TABLE)
+      .delete()
+      .eq('package_id', packageId);
+    unwrap(deleteResponse);
+
+    const insertResponse = await this.supabase.from(TRANSLATIONS_TABLE).insert(
+      translations.map((item) => ({
+        package_id: packageId,
+        locale: item.locale,
+        name: item.name,
+      })),
+    );
+    unwrap(insertResponse);
+>>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
   }
 
   private async replaceZoneLinks(

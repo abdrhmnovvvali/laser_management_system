@@ -1,18 +1,27 @@
+<<<<<<< HEAD
 import { PaginatedResult, PaginationParams } from '../../../../shared/pagination/pagination.types';
+=======
+import { Locale } from '../../../../shared/i18n/locale.enum';
+>>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
 import { Package } from '../entities/package.entity';
 
 export const PACKAGE_REPOSITORY = Symbol('IPackageRepository');
 
-export interface CreatePackageData {
+export interface PackageTranslationInput {
+  locale: Locale;
   name: string;
+}
+
+export interface CreatePackageData {
   price: number;
   zoneIds: string[];
+  translations: PackageTranslationInput[];
 }
 
 export interface UpdatePackageData {
-  name?: string;
   price?: number;
   zoneIds?: string[];
+  translations?: PackageTranslationInput[];
 }
 
 export interface PackageListOptions {

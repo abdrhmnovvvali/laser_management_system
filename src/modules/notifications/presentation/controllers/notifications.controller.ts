@@ -20,8 +20,10 @@ import { RelationLookupService } from '../../../../shared/relations/relation-loo
 import { ListNotificationsUseCase } from '../../application/use-cases/list-notifications.usecase';
 import { MarkNotificationAsReadUseCase } from '../../application/use-cases/mark-notification-as-read.usecase';
 import { ListNotificationsQueryDto } from '../../application/dto/list-notifications-query.dto';
+import { NotificationRealtimeInfoDto } from '../../application/dto/notification-realtime-info.dto';
 import { NotificationResponseDto } from '../../application/dto/notification-response.dto';
 import { NotificationMapper } from '../../application/mappers/notification.mapper';
+import { NOTIFICATION_CREATED_EVENT } from '../realtime/notification-realtime.constants';
 
 const PaginatedNotificationsResponseDto = createPaginatedResponseDtoClass(
   NotificationResponseDto,
@@ -50,6 +52,24 @@ export class NotificationsController {
       result,
       NotificationMapper.toResponseDtoList(result.items, lookups),
     );
+  }
+
+  @Get('realtime')
+  @ApiOperation({
+    summary:
+      'Notification WebSocket (Socket.IO) bağlantı məlumatı — REST deyil, Socket.IO ilə işləyir',
+  })
+  @ApiResponse({ status: 200, type: NotificationRealtimeInfoDto })
+  getRealtimeInfo(): NotificationRealtimeInfoDto {
+    return {
+      protocol: 'socket.io',
+      namespace: '/notifications',
+      path: '/socket.io',
+      createdEvent: NOTIFICATION_CREATED_EVENT,
+      auth: 'auth.token (JWT access token)',
+      clientExample:
+        "io('http://HOST:PORT/notifications', { path: '/socket.io', auth: { token: accessToken } })",
+    };
   }
 
   @Patch(':id/read')

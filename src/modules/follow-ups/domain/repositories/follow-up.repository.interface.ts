@@ -8,11 +8,13 @@ export interface CreateFollowUpData {
   customerId: string;
   plannedDate: Date;
   status?: FollowUpStatus;
+  zoneId?: string;
 }
 
 export interface UpdateFollowUpData {
   plannedDate?: Date;
   status?: FollowUpStatus;
+  zoneId?: string | null;
 }
 
 export interface FollowUpListOptions {
@@ -30,9 +32,14 @@ export interface IFollowUpRepository {
     options: FollowUpListOptions,
   ): Promise<PaginatedResult<FollowUp>>;
   findById(id: string): Promise<FollowUp | null>;
+<<<<<<< HEAD
   findUpcoming(
     options: UpcomingFollowUpListOptions,
   ): Promise<PaginatedResult<FollowUp>>;
+=======
+  findUpcoming(days: number): Promise<FollowUp[]>;
+  findByStatus(status: FollowUpStatus): Promise<FollowUp[]>;
+>>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
   create(data: CreateFollowUpData): Promise<FollowUp>;
   update(id: string, data: UpdateFollowUpData): Promise<FollowUp>;
   delete(id: string): Promise<void>;

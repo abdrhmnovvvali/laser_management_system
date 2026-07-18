@@ -6,6 +6,7 @@ export const NOTIFICATION_WRITER = Symbol('INotificationWriter');
 export interface CreateNotificationData {
   type: NotificationType;
   customerId: string | null;
+  procedureId?: string | null;
   message: string;
 }
 

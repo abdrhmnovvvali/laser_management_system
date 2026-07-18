@@ -63,14 +63,18 @@ export class ZonesController {
     const lookups = await this.relationLookupService.load({
       deviceIds: result.items.map((zone) => zone.deviceId),
     });
+<<<<<<< HEAD
     return createPaginatedResponseDto(
       result,
       ZoneMapper.toResponseDtoList(result.items, lookups),
     );
+=======
+    return ZoneMapper.toListDtoList(zones, lookups);
+>>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'ID üzrə nahiyə məlumatı' })
+  @ApiOperation({ summary: 'ID üzrə nahiyə məlumatı (translations daxil)' })
   @ApiResponse({ status: 200, type: ZoneResponseDto })
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
@@ -79,7 +83,7 @@ export class ZonesController {
     const lookups = await this.relationLookupService.load({
       deviceIds: [zone.deviceId],
     });
-    return ZoneMapper.toResponseDto(zone, lookups);
+    return ZoneMapper.toDetailDto(zone, lookups);
   }
 
   @Roles(Role.ADMIN)
@@ -88,7 +92,7 @@ export class ZonesController {
   @ApiResponse({ status: 201, type: ZoneResponseDto })
   async create(@Body() dto: CreateZoneDto): Promise<ZoneResponseDto> {
     const zone = await this.createZoneUseCase.execute(dto);
-    return ZoneMapper.toResponseDto(zone);
+    return ZoneMapper.toDetailDto(zone);
   }
 
   @Roles(Role.ADMIN)
@@ -100,7 +104,7 @@ export class ZonesController {
     @Body() dto: UpdateZoneDto,
   ): Promise<ZoneResponseDto> {
     const zone = await this.updateZoneUseCase.execute(id, dto);
-    return ZoneMapper.toResponseDto(zone);
+    return ZoneMapper.toDetailDto(zone);
   }
 
   @Roles(Role.ADMIN)

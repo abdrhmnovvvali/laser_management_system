@@ -63,10 +63,14 @@ export class CampaignsController {
     const lookups = await this.relationLookupService.load({
       zoneIds: result.items.flatMap((campaign) => campaign.zoneIds),
     });
+<<<<<<< HEAD
     return createPaginatedResponseDto(
       result,
       CampaignMapper.toResponseDtoList(result.items, lookups),
     );
+=======
+    return CampaignMapper.toListDtoList(campaigns, lookups);
+>>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
   }
 
   @Get('active')
@@ -77,14 +81,18 @@ export class CampaignsController {
     const lookups = await this.relationLookupService.load({
       zoneIds: result.items.flatMap((campaign) => campaign.zoneIds),
     });
+<<<<<<< HEAD
     return createPaginatedResponseDto(
       result,
       CampaignMapper.toResponseDtoList(result.items, lookups),
     );
+=======
+    return CampaignMapper.toListDtoList(campaigns, lookups);
+>>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'ID üzrə kampaniya məlumatı' })
+  @ApiOperation({ summary: 'ID üzrə kampaniya məlumatı (translations daxil)' })
   @ApiResponse({ status: 200, type: CampaignResponseDto })
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
@@ -93,7 +101,7 @@ export class CampaignsController {
     const lookups = await this.relationLookupService.load({
       zoneIds: campaign.zoneIds,
     });
-    return CampaignMapper.toResponseDto(campaign, lookups);
+    return CampaignMapper.toDetailDto(campaign, lookups);
   }
 
   @Roles(Role.ADMIN)
@@ -106,7 +114,7 @@ export class CampaignsController {
       startDate: new Date(dto.startDate),
       endDate: new Date(dto.endDate),
     });
-    return CampaignMapper.toResponseDto(campaign);
+    return CampaignMapper.toDetailDto(campaign);
   }
 
   @Roles(Role.ADMIN)
@@ -122,7 +130,7 @@ export class CampaignsController {
       startDate: dto.startDate ? new Date(dto.startDate) : undefined,
       endDate: dto.endDate ? new Date(dto.endDate) : undefined,
     });
-    return CampaignMapper.toResponseDto(campaign);
+    return CampaignMapper.toDetailDto(campaign);
   }
 
   @Roles(Role.ADMIN)

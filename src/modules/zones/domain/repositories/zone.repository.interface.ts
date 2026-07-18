@@ -1,17 +1,26 @@
+<<<<<<< HEAD
 import { PaginatedResult, PaginationParams } from '../../../../shared/pagination/pagination.types';
+=======
+import { Locale } from '../../../../shared/i18n/locale.enum';
+>>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
 import { Zone } from '../entities/zone.entity';
 
 export const ZONE_REPOSITORY = Symbol('IZoneRepository');
 
-export interface CreateZoneData {
+export interface ZoneTranslationInput {
+  locale: Locale;
   name: string;
+}
+
+export interface CreateZoneData {
   deviceId: string;
   price: number;
+  translations: ZoneTranslationInput[];
 }
 
 export interface UpdateZoneData {
-  name?: string;
   price?: number;
+  translations?: ZoneTranslationInput[];
 }
 
 export interface ZoneListOptions {

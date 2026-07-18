@@ -1,14 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, MinLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import { ArrayMinSize, IsArray, ValidateNested } from 'class-validator';
+import { BranchTranslationInputDto } from '../../../../shared/i18n/dto/translation-input.dto';
 
 export class CreateBranchDto {
-  @ApiProperty({ example: 'Gənclik filialı' })
-  @IsString()
-  @MinLength(2)
-  name: string;
-
-  @ApiProperty({ example: 'Bakı, Gənclik metrosu yaxınlığı', required: false })
-  @IsOptional()
-  @IsString()
-  address?: string;
+  @ApiProperty({ type: [BranchTranslationInputDto] })
+  @IsArray()
+  @ArrayMinSize(3)
+  @ValidateNested({ each: true })
+  @Type(() => BranchTranslationInputDto)
+  translations: BranchTranslationInputDto[];
 }

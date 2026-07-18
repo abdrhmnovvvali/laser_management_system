@@ -19,6 +19,10 @@ export class BranchFacade {
     return this.getBranchUseCase.execute(id);
   }
 
+  async listAll(): Promise<Branch[]> {
+    return this.listBranchesUseCase.execute();
+  }
+
   async exists(branchId: string): Promise<boolean> {
     try {
       await this.getBranchUseCase.execute(branchId);

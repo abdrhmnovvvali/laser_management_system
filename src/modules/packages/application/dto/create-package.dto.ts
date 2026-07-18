@@ -1,20 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
   ArrayMinSize,
   IsArray,
   IsNumber,
-  IsString,
   IsUUID,
   Min,
-  MinLength,
+  ValidateNested,
 } from 'class-validator';
+import { NameTranslationInputDto } from '../../../../shared/i18n/dto/translation-input.dto';
 
 export class CreatePackageDto {
-  @ApiProperty({ example: 'Tam Bədən Paketi' })
-  @IsString()
-  @MinLength(2)
-  name: string;
-
   @ApiProperty({ example: 199.0 })
   @IsNumber()
   @Min(0)
@@ -25,4 +21,11 @@ export class CreatePackageDto {
   @ArrayMinSize(1)
   @IsUUID('4', { each: true })
   zoneIds: string[];
+
+  @ApiProperty({ type: [NameTranslationInputDto] })
+  @IsArray()
+  @ArrayMinSize(3)
+  @ValidateNested({ each: true })
+  @Type(() => NameTranslationInputDto)
+  translations: NameTranslationInputDto[];
 }

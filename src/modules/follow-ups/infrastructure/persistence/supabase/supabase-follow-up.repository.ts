@@ -100,6 +100,17 @@ export class SupabaseFollowUpRepository implements IFollowUpRepository {
     );
   }
 
+  async findByStatus(status: FollowUpStatus): Promise<FollowUp[]> {
+    const response = await this.supabase
+      .from(TABLE)
+      .select('*')
+      .eq('status', status)
+      .order('planned_date', { ascending: true });
+
+    const rows = unwrap<FollowUpRow[]>(response) ?? [];
+    return rows.map((row) => FollowUpPersistenceMapper.toDomain(row));
+  }
+
   async create(data: CreateFollowUpData): Promise<FollowUp> {
     const response = await this.supabase
       .from(TABLE)
@@ -107,6 +118,7 @@ export class SupabaseFollowUpRepository implements IFollowUpRepository {
         customer_id: data.customerId,
         planned_date: toDateOnly(data.plannedDate),
         status: data.status ?? FollowUpStatus.PENDING,
+        zone_id: data.zoneId ?? null,
       })
       .select('*')
       .single();
@@ -122,6 +134,7 @@ export class SupabaseFollowUpRepository implements IFollowUpRepository {
       payload.planned_date = toDateOnly(data.plannedDate);
     }
     if (data.status !== undefined) payload.status = data.status;
+    if (data.zoneId !== undefined) payload.zone_id = data.zoneId;
 
     const response = await this.supabase
       .from(TABLE)

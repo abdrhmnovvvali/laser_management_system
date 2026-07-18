@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { FollowUp } from '../domain/entities/follow-up.entity';
+import { FollowUpStatus } from '../domain/entities/follow-up-status.enum';
+import { ListFollowUpsByStatusUseCase } from './use-cases/list-follow-ups-by-status.usecase';
 import { ListUpcomingFollowUpsUseCase } from './use-cases/list-upcoming-follow-ups.usecase';
 
 /**
@@ -10,6 +12,7 @@ import { ListUpcomingFollowUpsUseCase } from './use-cases/list-upcoming-follow-u
 export class FollowUpFacade {
   constructor(
     private readonly listUpcomingFollowUpsUseCase: ListUpcomingFollowUpsUseCase,
+    private readonly listFollowUpsByStatusUseCase: ListFollowUpsByStatusUseCase,
   ) {}
 
   async listUpcoming(days: number): Promise<FollowUp[]> {
@@ -18,5 +21,9 @@ export class FollowUpFacade {
       { skipPagination: true },
     );
     return result.items;
+  }
+
+  async listByStatus(status: FollowUpStatus): Promise<FollowUp[]> {
+    return this.listFollowUpsByStatusUseCase.execute(status);
   }
 }

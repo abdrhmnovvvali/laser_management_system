@@ -7,7 +7,7 @@ import { Device } from '../../domain/entities/device.entity';
 import { DeviceResponseDto } from '../dto/device-response.dto';
 
 export class DeviceMapper {
-  static toResponseDto(
+  static toListDto(
     device: Device,
     lookups: RelationLookups = EMPTY_RELATION_LOOKUPS,
   ): DeviceResponseDto {
@@ -21,10 +21,22 @@ export class DeviceMapper {
     return dto;
   }
 
-  static toResponseDtoList(
+  static toDetailDto(
+    device: Device,
+    lookups: RelationLookups = EMPTY_RELATION_LOOKUPS,
+  ): DeviceResponseDto {
+    const dto = this.toListDto(device, lookups);
+    dto.translations = device.translations.map((item) => ({
+      locale: item.locale,
+      type: item.type,
+    }));
+    return dto;
+  }
+
+  static toListDtoList(
     devices: Device[],
     lookups: RelationLookups = EMPTY_RELATION_LOOKUPS,
   ): DeviceResponseDto[] {
-    return devices.map((device) => this.toResponseDto(device, lookups));
+    return devices.map((device) => this.toListDto(device, lookups));
   }
 }

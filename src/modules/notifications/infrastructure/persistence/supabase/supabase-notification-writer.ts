@@ -7,6 +7,7 @@ import {
   CreateNotificationData,
   INotificationWriter,
 } from '../../../domain/repositories/notification-writer.interface';
+import { NotificationRealtimeService } from '../../../application/notification-realtime.service';
 import {
   NotificationPersistenceMapper,
   NotificationRow,
@@ -16,17 +17,23 @@ import {
 export class SupabaseNotificationWriter implements INotificationWriter {
   constructor(
     @Inject(SUPABASE_ADMIN_CLIENT) private readonly supabase: SupabaseClient,
+    private readonly notificationRealtimeService: NotificationRealtimeService,
   ) {}
 
   async create(data: CreateNotificationData): Promise<Notification> {
     const response = await this.supabase.rpc('create_notification', {
       p_type: data.type,
       p_customer_id: data.customerId,
+      p_procedure_id: data.procedureId ?? null,
       p_message: data.message,
     });
 
-    return NotificationPersistenceMapper.toDomain(
+    const notification = NotificationPersistenceMapper.toDomain(
       unwrapOrThrow<NotificationRow>(response),
     );
+
+    await this.notificationRealtimeService.broadcastCreated(notification);
+
+    return notification;
   }
 }

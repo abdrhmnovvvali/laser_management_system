@@ -61,14 +61,18 @@ export class PackagesController {
     const lookups = await this.relationLookupService.load({
       zoneIds: result.items.flatMap((pkg) => pkg.zoneIds),
     });
+<<<<<<< HEAD
     return createPaginatedResponseDto(
       result,
       PackageMapper.toResponseDtoList(result.items, lookups),
     );
+=======
+    return PackageMapper.toListDtoList(packages, lookups);
+>>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'ID üzrə paket məlumatı' })
+  @ApiOperation({ summary: 'ID üzrə paket məlumatı (translations daxil)' })
   @ApiResponse({ status: 200, type: PackageResponseDto })
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
@@ -77,7 +81,7 @@ export class PackagesController {
     const lookups = await this.relationLookupService.load({
       zoneIds: pkg.zoneIds,
     });
-    return PackageMapper.toResponseDto(pkg, lookups);
+    return PackageMapper.toDetailDto(pkg, lookups);
   }
 
   @Roles(Role.ADMIN)
@@ -86,7 +90,7 @@ export class PackagesController {
   @ApiResponse({ status: 201, type: PackageResponseDto })
   async create(@Body() dto: CreatePackageDto): Promise<PackageResponseDto> {
     const pkg = await this.createPackageUseCase.execute(dto);
-    return PackageMapper.toResponseDto(pkg);
+    return PackageMapper.toDetailDto(pkg);
   }
 
   @Roles(Role.ADMIN)
@@ -98,7 +102,7 @@ export class PackagesController {
     @Body() dto: UpdatePackageDto,
   ): Promise<PackageResponseDto> {
     const pkg = await this.updatePackageUseCase.execute(id, dto);
-    return PackageMapper.toResponseDto(pkg);
+    return PackageMapper.toDetailDto(pkg);
   }
 
   @Roles(Role.ADMIN)

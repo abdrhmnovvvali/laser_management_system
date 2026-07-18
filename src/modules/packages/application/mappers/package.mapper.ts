@@ -7,7 +7,7 @@ import { Package } from '../../domain/entities/package.entity';
 import { PackageResponseDto } from '../dto/package-response.dto';
 
 export class PackageMapper {
-  static toResponseDto(
+  static toListDto(
     pkg: Package,
     lookups: RelationLookups = EMPTY_RELATION_LOOKUPS,
   ): PackageResponseDto {
@@ -21,10 +21,22 @@ export class PackageMapper {
     return dto;
   }
 
-  static toResponseDtoList(
+  static toDetailDto(
+    pkg: Package,
+    lookups: RelationLookups = EMPTY_RELATION_LOOKUPS,
+  ): PackageResponseDto {
+    const dto = this.toListDto(pkg, lookups);
+    dto.translations = pkg.translations.map((item) => ({
+      locale: item.locale,
+      name: item.name,
+    }));
+    return dto;
+  }
+
+  static toListDtoList(
     packages: Package[],
     lookups: RelationLookups = EMPTY_RELATION_LOOKUPS,
   ): PackageResponseDto[] {
-    return packages.map((pkg) => this.toResponseDto(pkg, lookups));
+    return packages.map((pkg) => this.toListDto(pkg, lookups));
   }
 }

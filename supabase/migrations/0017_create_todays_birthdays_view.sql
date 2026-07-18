@@ -13,5 +13,7 @@ select
 from public.customers
 where
   birth_date is not null
-  and extract(month from birth_date) = extract(month from current_date)
-  and extract(day from birth_date) = extract(day from current_date);
+  and extract(month from birth_date) =
+    extract(month from timezone('Asia/Baku', now())::date)
+  and extract(day from birth_date) =
+    extract(day from timezone('Asia/Baku', now())::date);

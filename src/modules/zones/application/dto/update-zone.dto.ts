@@ -1,22 +1,27 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
+  ArrayMinSize,
+  IsArray,
   IsNumber,
   IsOptional,
-  IsString,
   Min,
-  MinLength,
+  ValidateNested,
 } from 'class-validator';
+import { NameTranslationInputDto } from '../../../../shared/i18n/dto/translation-input.dto';
 
 export class UpdateZoneDto {
-  @ApiProperty({ example: 'Qoltuqaltı', required: false })
-  @IsOptional()
-  @IsString()
-  @MinLength(2)
-  name?: string;
-
-  @ApiProperty({ example: 25.0, required: false })
+  @ApiPropertyOptional({ example: 25.0 })
   @IsOptional()
   @IsNumber()
   @Min(0)
   price?: number;
+
+  @ApiPropertyOptional({ type: [NameTranslationInputDto] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(3)
+  @ValidateNested({ each: true })
+  @Type(() => NameTranslationInputDto)
+  translations?: NameTranslationInputDto[];
 }

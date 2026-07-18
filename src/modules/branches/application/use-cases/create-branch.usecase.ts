@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { requireAllLocales } from '../../../../shared/i18n/translation.util';
 import { BRANCH_REPOSITORY } from '../../domain/repositories/branch.repository.interface';
 import type {
   CreateBranchData,
@@ -14,6 +15,7 @@ export class CreateBranchUseCase {
   ) {}
 
   async execute(data: CreateBranchData): Promise<Branch> {
+    requireAllLocales(data.translations);
     return this.branchRepository.create(data);
   }
 }

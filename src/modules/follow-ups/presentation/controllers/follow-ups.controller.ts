@@ -22,6 +22,7 @@ import {
   createPaginatedResponseDtoClass,
 } from '../../../../shared/dto/paginated-response.dto';
 import { RelationLookupService } from '../../../../shared/relations/relation-lookup.service';
+import { collectFollowUpRelationIds } from '../../../../shared/relations/relation-name.util';
 import { CreateFollowUpUseCase } from '../../application/use-cases/create-follow-up.usecase';
 import { DeleteFollowUpUseCase } from '../../application/use-cases/delete-follow-up.usecase';
 import { GetFollowUpUseCase } from '../../application/use-cases/get-follow-up.usecase';
@@ -56,6 +57,7 @@ export class FollowUpsController {
 
   @Get()
   @ApiOperation({ summary: 'Müştərinin planlaşdırılan vizitlərinin siyahısı' })
+<<<<<<< HEAD
   @ApiResponse({ status: 200, type: PaginatedFollowUpsResponseDto })
   async findAllByCustomer(@Query() query: ListFollowUpsQueryDto) {
     const result = await this.listFollowUpsByCustomerUseCase.execute(query);
@@ -66,10 +68,23 @@ export class FollowUpsController {
       result,
       FollowUpMapper.toResponseDtoList(result.items, lookups),
     );
+=======
+  @ApiResponse({ status: 200, type: [FollowUpResponseDto] })
+  async findAllByCustomer(
+    @Query('customerId', ParseUUIDPipe) customerId: string,
+  ): Promise<FollowUpResponseDto[]> {
+    const followUps =
+      await this.listFollowUpsByCustomerUseCase.execute(customerId);
+    const lookups = await this.relationLookupService.load(
+      collectFollowUpRelationIds(followUps),
+    );
+    return FollowUpMapper.toResponseDtoList(followUps, lookups);
+>>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
   }
 
   @Get('upcoming')
   @ApiOperation({ summary: 'Yaxınlaşan xatırlatmalar (gün sayına görə)' })
+<<<<<<< HEAD
   @ApiResponse({ status: 200, type: PaginatedFollowUpsResponseDto })
   async findUpcoming(@Query() query: UpcomingFollowUpsQueryDto) {
     const result = await this.listUpcomingFollowUpsUseCase.execute(query);
@@ -80,6 +95,19 @@ export class FollowUpsController {
       result,
       FollowUpMapper.toResponseDtoList(result.items, lookups),
     );
+=======
+  @ApiResponse({ status: 200, type: [FollowUpResponseDto] })
+  async findUpcoming(
+    @Query() query: UpcomingFollowUpsQueryDto,
+  ): Promise<FollowUpResponseDto[]> {
+    const followUps = await this.listUpcomingFollowUpsUseCase.execute(
+      query.days ?? 7,
+    );
+    const lookups = await this.relationLookupService.load(
+      collectFollowUpRelationIds(followUps),
+    );
+    return FollowUpMapper.toResponseDtoList(followUps, lookups);
+>>>>>>> 80ddb3102ee20dc76ff001d21e3d31a4df66d599
   }
 
   @Get(':id')
@@ -89,9 +117,9 @@ export class FollowUpsController {
     @Param('id', ParseUUIDPipe) id: string,
   ): Promise<FollowUpResponseDto> {
     const followUp = await this.getFollowUpUseCase.execute(id);
-    const lookups = await this.relationLookupService.load({
-      customerIds: [followUp.customerId],
-    });
+    const lookups = await this.relationLookupService.load(
+      collectFollowUpRelationIds([followUp]),
+    );
     return FollowUpMapper.toResponseDto(followUp, lookups);
   }
 
@@ -103,7 +131,10 @@ export class FollowUpsController {
       ...dto,
       plannedDate: new Date(dto.plannedDate),
     });
-    return FollowUpMapper.toResponseDto(followUp);
+    const lookups = await this.relationLookupService.load(
+      collectFollowUpRelationIds([followUp]),
+    );
+    return FollowUpMapper.toResponseDto(followUp, lookups);
   }
 
   @Patch(':id')
@@ -117,7 +148,10 @@ export class FollowUpsController {
       ...dto,
       plannedDate: dto.plannedDate ? new Date(dto.plannedDate) : undefined,
     });
-    return FollowUpMapper.toResponseDto(followUp);
+    const lookups = await this.relationLookupService.load(
+      collectFollowUpRelationIds([followUp]),
+    );
+    return FollowUpMapper.toResponseDto(followUp, lookups);
   }
 
   @Delete(':id')

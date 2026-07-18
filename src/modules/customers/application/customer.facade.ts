@@ -44,6 +44,10 @@ export class CustomerFacade {
     return this.customerRepository.count(filters);
   }
 
+  async list(filters: CustomerFilters = {}): Promise<Customer[]> {
+    return this.listCustomersUseCase.execute(filters);
+  }
+
   async resolveNames(
     customerIds: Iterable<string | null | undefined>,
   ): Promise<Map<string, string>> {

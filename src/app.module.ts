@@ -7,6 +7,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import configuration from './config/configuration';
 import { validationSchema } from './config/validation.schema';
+import { I18nModule } from './shared/i18n/i18n.module';
 import { RelationsModule } from './shared/relations/relations.module';
 import { SupabaseModule } from './shared/supabase/supabase.module';
 import { EventsModule } from './shared/events/events.module';
@@ -40,6 +41,7 @@ import { PrinterModule } from './modules/printer/presentation/printer.module';
     }),
     EventEmitterModule.forRoot(),
     ScheduleModule.forRoot(),
+    I18nModule,
     RelationsModule,
     SupabaseModule,
     EventsModule,

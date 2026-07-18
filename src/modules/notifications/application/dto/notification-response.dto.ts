@@ -14,6 +14,9 @@ export class NotificationResponseDto {
   @ApiProperty({ nullable: true, description: 'Müştərinin adı soyadı' })
   customerName: string | null;
 
+  @ApiProperty({ nullable: true, description: 'Fraud bildirişi üçün prosedur ID-si' })
+  procedureId: string | null;
+
   @ApiProperty()
   message: string;
 

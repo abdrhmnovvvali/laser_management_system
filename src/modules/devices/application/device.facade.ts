@@ -4,6 +4,7 @@ import { Device } from '../domain/entities/device.entity';
 import { DEVICE_REPOSITORY } from '../domain/repositories/device.repository.interface';
 import type { IDeviceRepository } from '../domain/repositories/device.repository.interface';
 import { GetDeviceUseCase } from './use-cases/get-device.usecase';
+import { ListDevicesUseCase } from './use-cases/list-devices.usecase';
 
 /**
  * Public surface for other modules (e.g. ProcedureModule) that need device
@@ -14,12 +15,17 @@ import { GetDeviceUseCase } from './use-cases/get-device.usecase';
 export class DeviceFacade {
   constructor(
     private readonly getDeviceUseCase: GetDeviceUseCase,
+    private readonly listDevicesUseCase: ListDevicesUseCase,
     @Inject(DEVICE_REPOSITORY)
     private readonly deviceRepository: IDeviceRepository,
   ) {}
 
   async getById(id: string): Promise<Device> {
     return this.getDeviceUseCase.execute(id);
+  }
+
+  async listAll(branchId?: string): Promise<Device[]> {
+    return this.listDevicesUseCase.execute(branchId);
   }
 
   async incrementShotCounter(id: string, byAmount: number): Promise<Device> {

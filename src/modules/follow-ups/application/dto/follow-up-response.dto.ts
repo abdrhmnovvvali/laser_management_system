@@ -17,6 +17,12 @@ export class FollowUpResponseDto {
   @ApiProperty({ enum: FollowUpStatus })
   status: FollowUpStatus;
 
+  @ApiProperty({ nullable: true, description: 'Planlaşdırılan nahiyənin ID-si' })
+  zoneId: string | null;
+
+  @ApiProperty({ nullable: true, description: 'Planlaşdırılan nahiyənin adı' })
+  zoneName: string | null;
+
   @ApiProperty()
   createdAt: Date;
 }

@@ -7,7 +7,7 @@ import { Zone } from '../../domain/entities/zone.entity';
 import { ZoneResponseDto } from '../dto/zone-response.dto';
 
 export class ZoneMapper {
-  static toResponseDto(
+  static toListDto(
     zone: Zone,
     lookups: RelationLookups = EMPTY_RELATION_LOOKUPS,
   ): ZoneResponseDto {
@@ -21,10 +21,22 @@ export class ZoneMapper {
     return dto;
   }
 
-  static toResponseDtoList(
+  static toDetailDto(
+    zone: Zone,
+    lookups: RelationLookups = EMPTY_RELATION_LOOKUPS,
+  ): ZoneResponseDto {
+    const dto = this.toListDto(zone, lookups);
+    dto.translations = zone.translations.map((item) => ({
+      locale: item.locale,
+      name: item.name,
+    }));
+    return dto;
+  }
+
+  static toListDtoList(
     zones: Zone[],
     lookups: RelationLookups = EMPTY_RELATION_LOOKUPS,
   ): ZoneResponseDto[] {
-    return zones.map((zone) => this.toResponseDto(zone, lookups));
+    return zones.map((zone) => this.toListDto(zone, lookups));
   }
 }

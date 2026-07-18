@@ -9,8 +9,6 @@
 -- Filiallar (branches)
 create table if not exists public.branches (
   id uuid primary key default gen_random_uuid(),
-  name text not null,
-  address text,
   created_at timestamptz not null default now()
 );
 
@@ -18,12 +16,24 @@ comment on table public.branches is 'Klinikanın filialları';
 
 alter table public.branches enable row level security;
 
+create table if not exists public.branch_translations (
+  branch_id uuid not null references public.branches(id) on delete cascade,
+  locale text not null check (locale in ('az', 'en', 'ru')),
+  name text not null,
+  address text,
+  primary key (branch_id, locale)
+);
+
+create index if not exists idx_branch_translations_locale
+  on public.branch_translations(locale);
+
+alter table public.branch_translations enable row level security;
+
 -- ---- migrations/0002_create_devices.sql ----
 -- Cihazlar (devices)
 create table if not exists public.devices (
   id uuid primary key default gen_random_uuid(),
   branch_id uuid not null references public.branches(id) on delete cascade,
-  type text not null,
   shot_counter bigint not null default 0,
   created_at timestamptz not null default now()
 );
@@ -33,6 +43,18 @@ create index if not exists idx_devices_branch_id on public.devices(branch_id);
 comment on table public.devices is 'Filiallara bağlı lazer cihazları və atış sayğacı';
 
 alter table public.devices enable row level security;
+
+create table if not exists public.device_translations (
+  device_id uuid not null references public.devices(id) on delete cascade,
+  locale text not null check (locale in ('az', 'en', 'ru')),
+  type text not null,
+  primary key (device_id, locale)
+);
+
+create index if not exists idx_device_translations_locale
+  on public.device_translations(locale);
+
+alter table public.device_translations enable row level security;
 
 -- ---- migrations/0003_create_profiles.sql ----
 -- Profiles: auth.users cədvəlini rol və filial məlumatı ilə genişləndirir
@@ -75,7 +97,6 @@ alter table public.customers enable row level security;
 -- Nahiyələr (zones) — cihaz üzrə qiymət matrisası
 create table if not exists public.zones (
   id uuid primary key default gen_random_uuid(),
-  name text not null,
   device_id uuid not null references public.devices(id) on delete cascade,
   price numeric(10, 2) not null check (price >= 0),
   created_at timestamptz not null default now()
@@ -87,11 +108,25 @@ comment on table public.zones is 'Bədən nahiyələri və cihaz üzrə qiymətl
 
 alter table public.zones enable row level security;
 
+create table if not exists public.zone_translations (
+  zone_id uuid not null references public.zones(id) on delete cascade,
+  locale text not null check (locale in ('az', 'en', 'ru')),
+  name text not null,
+  primary key (zone_id, locale)
+);
+
+create index if not exists idx_zone_translations_locale
+  on public.zone_translations(locale);
+
+create index if not exists idx_zone_translations_name
+  on public.zone_translations(name);
+
+alter table public.zone_translations enable row level security;
+
 -- ---- migrations/0006_create_packages.sql ----
 -- Paketlər (packages) — zonaların birləşməsi + endirimli qiymət
 create table if not exists public.packages (
   id uuid primary key default gen_random_uuid(),
-  name text not null,
   price numeric(10, 2) not null check (price >= 0),
   created_at timestamptz not null default now()
 );
@@ -99,6 +134,18 @@ create table if not exists public.packages (
 comment on table public.packages is 'Bir neçə nahiyəni birləşdirən endirimli paketlər';
 
 alter table public.packages enable row level security;
+
+create table if not exists public.package_translations (
+  package_id uuid not null references public.packages(id) on delete cascade,
+  locale text not null check (locale in ('az', 'en', 'ru')),
+  name text not null,
+  primary key (package_id, locale)
+);
+
+create index if not exists idx_package_translations_locale
+  on public.package_translations(locale);
+
+alter table public.package_translations enable row level security;
 
 -- ---- migrations/0007_create_package_zones.sql ----
 -- package_zones: paket <-> zona many-to-many əlaqəsi
@@ -157,8 +204,6 @@ alter table public.procedure_zones enable row level security;
 -- Kampaniyalar (campaigns)
 create table if not exists public.campaigns (
   id uuid primary key default gen_random_uuid(),
-  name text not null,
-  description text,
   discount_type text not null check (discount_type in ('percentage', 'fixed')),
   discount_value numeric(10, 2) not null check (discount_value >= 0),
   start_date date not null,
@@ -172,6 +217,19 @@ create index if not exists idx_campaigns_date_range on public.campaigns(start_da
 comment on table public.campaigns is 'Endirim kampaniyaları';
 
 alter table public.campaigns enable row level security;
+
+create table if not exists public.campaign_translations (
+  campaign_id uuid not null references public.campaigns(id) on delete cascade,
+  locale text not null check (locale in ('az', 'en', 'ru')),
+  name text not null,
+  description text,
+  primary key (campaign_id, locale)
+);
+
+create index if not exists idx_campaign_translations_locale
+  on public.campaign_translations(locale);
+
+alter table public.campaign_translations enable row level security;
 
 -- ---- migrations/0020_create_campaign_zones.sql ----
 -- campaign_zones: kampaniya <-> zona many-to-many əlaqəsi
@@ -246,12 +304,14 @@ create table if not exists public.follow_ups (
   customer_id uuid not null references public.customers(id) on delete cascade,
   planned_date date not null,
   status text not null default 'pending' check (status in ('pending', 'done', 'missed')),
+  zone_id uuid references public.zones(id) on delete set null,
   created_at timestamptz not null default now()
 );
 
 create index if not exists idx_follow_ups_customer_id on public.follow_ups(customer_id);
 create index if not exists idx_follow_ups_planned_date on public.follow_ups(planned_date);
 create index if not exists idx_follow_ups_status on public.follow_ups(status);
+create index if not exists idx_follow_ups_zone_id on public.follow_ups(zone_id);
 
 comment on table public.follow_ups is 'Müştərilər üçün planlaşdırılan növbəti vizitlər';
 
@@ -263,12 +323,14 @@ create table if not exists public.notifications (
   id uuid primary key default gen_random_uuid(),
   type text not null check (type in ('birthday', 'fraud', 'follow_up')),
   customer_id uuid references public.customers(id) on delete cascade,
+  procedure_id uuid references public.procedures(id) on delete set null,
   message text not null,
   is_read boolean not null default false,
   created_at timestamptz not null default now()
 );
 
 create index if not exists idx_notifications_customer_id on public.notifications(customer_id);
+create index if not exists idx_notifications_procedure_id on public.notifications(procedure_id);
 create index if not exists idx_notifications_type on public.notifications(type);
 create index if not exists idx_notifications_is_read on public.notifications(is_read);
 
@@ -376,8 +438,10 @@ select
 from public.customers
 where
   birth_date is not null
-  and extract(month from birth_date) = extract(month from current_date)
-  and extract(day from birth_date) = extract(day from current_date);
+  and extract(month from birth_date) =
+    extract(month from timezone('Asia/Baku', now())::date)
+  and extract(day from birth_date) =
+    extract(day from timezone('Asia/Baku', now())::date);
 
 -- ---- migrations/0018_create_notification_function.sql ----
 -- Event-driven bildiriş yaratma (fraud, ad günü, follow-up).
@@ -387,6 +451,7 @@ where
 create or replace function public.create_notification(
   p_type text,
   p_customer_id uuid,
+  p_procedure_id uuid,
   p_message text
 )
 returns public.notifications
@@ -401,16 +466,16 @@ begin
     raise exception 'Invalid notification type: %', p_type;
   end if;
 
-  insert into public.notifications (type, customer_id, message, is_read)
-  values (p_type, p_customer_id, p_message, false)
+  insert into public.notifications (type, customer_id, procedure_id, message, is_read)
+  values (p_type, p_customer_id, p_procedure_id, p_message, false)
   returning * into created_notification;
 
   return created_notification;
 end;
 $$;
 
-revoke all on function public.create_notification(text, uuid, text) from public;
-grant execute on function public.create_notification(text, uuid, text) to service_role;
+revoke all on function public.create_notification(text, uuid, uuid, text) from public;
+grant execute on function public.create_notification(text, uuid, uuid, text) to service_role;
 
 -- ---- migrations/0019_add_procedure_loyalty_fields.sql ----
 -- Loyallıq endirimi: hansı nahiyənin pulsuz verildiyini və endirim məbləğini saxlayır.
@@ -426,6 +491,81 @@ comment on column public.procedures.discount_amount is
   'Loyallıq endiriminin məbləği (AZN)';
 comment on column public.procedures.visit_number is
   'Müştərinin bu prosedur üzrə vizit nömrəsi (1, 2, 3, ...)';
+
+-- ---- migrations/0022_add_follow_up_zone_id.sql ----
+-- follow_ups cədvəlinə nahiyə əlavə et
+alter table public.follow_ups
+  add column if not exists zone_id uuid references public.zones(id) on delete set null;
+
+create index if not exists idx_follow_ups_zone_id on public.follow_ups(zone_id);
+
+comment on column public.follow_ups.zone_id is 'Planlaşdırılan nahiyə';
+
+-- ---- migrations/0023_add_notification_procedure_id.sql ----
+-- notifications cədvəlinə fraud üçün prosedur referansı əlavə et
+alter table public.notifications
+  add column if not exists procedure_id uuid references public.procedures(id) on delete set null;
+
+create index if not exists idx_notifications_procedure_id on public.notifications(procedure_id);
+
+comment on column public.notifications.procedure_id is
+  'Fraud bildirişi ilə bağlı prosedurun ID-si';
+
+-- create_notification funksiyasını yeni sahə ilə yenilə
+create or replace function public.create_notification(
+  p_type text,
+  p_customer_id uuid,
+  p_procedure_id uuid,
+  p_message text
+)
+returns public.notifications
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  created_notification public.notifications;
+begin
+  if p_type not in ('birthday', 'fraud', 'follow_up') then
+    raise exception 'Invalid notification type: %', p_type;
+  end if;
+
+  insert into public.notifications (type, customer_id, procedure_id, message, is_read)
+  values (p_type, p_customer_id, p_procedure_id, p_message, false)
+  returning * into created_notification;
+
+  return created_notification;
+end;
+$$;
+
+revoke all on function public.create_notification(text, uuid, uuid, text) from public;
+grant execute on function public.create_notification(text, uuid, uuid, text) to service_role;
+
+-- ---- migrations/0024_update_todays_birthdays_view_timezone.sql ----
+-- Ad günü görünüşünü Bakı vaxt zonasına uyğunlaşdır
+create or replace view public.todays_birthdays_view
+with (security_invoker = true)
+as
+select
+  id,
+  first_name,
+  last_name,
+  branch_id,
+  birth_date
+from public.customers
+where
+  birth_date is not null
+  and extract(month from birth_date) =
+    extract(month from timezone('Asia/Baku', now())::date)
+  and extract(day from birth_date) =
+    extract(day from timezone('Asia/Baku', now())::date);
+
+grant select on public.todays_birthdays_view to authenticated;
+grant select on public.todays_birthdays_view to service_role;
+
+-- ---- migrations/0025_create_catalog_translations.sql ----
+-- (Translation cədvəlləri yuxarıda parent cədvəllərlə birlikdə yaradılır.
+--  Mövcud DB-lər üçün ayrıca 0025 migration faylına baxın.)
 
 -- ============ 2) RLS POLICY-LƏRİ ============
 
@@ -446,6 +586,21 @@ for all
 using (public.is_admin())
 with check (public.is_admin());
 
+-- ---- policies/branch_translations_policies.sql ----
+create policy "branch_translations_select"
+on public.branch_translations
+for select
+using (
+  public.is_admin()
+  or branch_id = public.current_user_branch_id()
+);
+
+create policy "branch_translations_admin_write"
+on public.branch_translations
+for all
+using (public.is_admin())
+with check (public.is_admin());
+
 -- ---- policies/devices_policies.sql ----
 -- devices: admin bütün cihazları idarə edir, filial işçisi yalnız öz filialının cihazlarını görür.
 
@@ -459,6 +614,25 @@ using (
 
 create policy "devices_admin_write"
 on public.devices
+for all
+using (public.is_admin())
+with check (public.is_admin());
+
+-- ---- policies/device_translations_policies.sql ----
+create policy "device_translations_select"
+on public.device_translations
+for select
+using (
+  public.is_admin()
+  or exists (
+    select 1 from public.devices d
+    where d.id = device_translations.device_id
+      and d.branch_id = public.current_user_branch_id()
+  )
+);
+
+create policy "device_translations_admin_write"
+on public.device_translations
 for all
 using (public.is_admin())
 with check (public.is_admin());
@@ -535,6 +709,26 @@ for all
 using (public.is_admin())
 with check (public.is_admin());
 
+-- ---- policies/zone_translations_policies.sql ----
+create policy "zone_translations_select"
+on public.zone_translations
+for select
+using (
+  public.is_admin()
+  or exists (
+    select 1 from public.zones z
+    join public.devices d on d.id = z.device_id
+    where z.id = zone_translations.zone_id
+      and d.branch_id = public.current_user_branch_id()
+  )
+);
+
+create policy "zone_translations_admin_write"
+on public.zone_translations
+for all
+using (public.is_admin())
+with check (public.is_admin());
+
 -- ---- policies/packages_policies.sql ----
 -- packages: filial-spesifik deyil — bütün autentifikasiya olunmuş istifadəçilər
 -- oxuya bilər, yalnız admin dəyişiklik edə bilər.
@@ -546,6 +740,18 @@ using (auth.role() = 'authenticated');
 
 create policy "packages_admin_write"
 on public.packages
+for all
+using (public.is_admin())
+with check (public.is_admin());
+
+-- ---- policies/package_translations_policies.sql ----
+create policy "package_translations_select"
+on public.package_translations
+for select
+using (auth.role() = 'authenticated');
+
+create policy "package_translations_admin_write"
+on public.package_translations
 for all
 using (public.is_admin())
 with check (public.is_admin());
@@ -662,6 +868,18 @@ using (auth.role() = 'authenticated');
 
 create policy "campaigns_admin_write"
 on public.campaigns
+for all
+using (public.is_admin())
+with check (public.is_admin());
+
+-- ---- policies/campaign_translations_policies.sql ----
+create policy "campaign_translations_select"
+on public.campaign_translations
+for select
+using (auth.role() = 'authenticated');
+
+create policy "campaign_translations_admin_write"
+on public.campaign_translations
 for all
 using (public.is_admin())
 with check (public.is_admin());
