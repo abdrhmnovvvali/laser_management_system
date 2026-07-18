@@ -1,3 +1,4 @@
+import { PaginatedResult, PaginationParams } from '../../../../shared/pagination/pagination.types';
 import { Campaign } from '../entities/campaign.entity';
 import { DiscountType } from '../entities/discount-type.enum';
 
@@ -23,9 +24,16 @@ export interface UpdateCampaignData {
   zoneIds?: string[];
 }
 
+export interface CampaignListOptions {
+  pagination?: PaginationParams;
+}
+
 export interface ICampaignRepository {
-  findAll(): Promise<Campaign[]>;
-  findActive(onDate: Date): Promise<Campaign[]>;
+  findAll(options?: CampaignListOptions): Promise<PaginatedResult<Campaign>>;
+  findActive(
+    onDate: Date,
+    options?: CampaignListOptions,
+  ): Promise<PaginatedResult<Campaign>>;
   findById(id: string): Promise<Campaign | null>;
   create(data: CreateCampaignData): Promise<Campaign>;
   update(id: string, data: UpdateCampaignData): Promise<Campaign>;

@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { resolvePagination } from '../../../../shared/pagination/pagination.util';
 import { ZONE_REPOSITORY } from '../../domain/repositories/zone.repository.interface';
 import type { IZoneRepository } from '../../domain/repositories/zone.repository.interface';
-import { Zone } from '../../domain/entities/zone.entity';
+import { ListZonesQueryDto } from '../dto/list-zones-query.dto';
 
 @Injectable()
 export class ListZonesUseCase {
@@ -10,7 +11,15 @@ export class ListZonesUseCase {
     private readonly zoneRepository: IZoneRepository,
   ) {}
 
-  async execute(deviceId?: string): Promise<Zone[]> {
-    return this.zoneRepository.findAll(deviceId);
+  async execute(
+    query: ListZonesQueryDto,
+    options?: { skipPagination?: boolean },
+  ) {
+    return this.zoneRepository.findAll({
+      deviceId: query.deviceId,
+      pagination: options?.skipPagination
+        ? undefined
+        : resolvePagination(query),
+    });
   }
 }

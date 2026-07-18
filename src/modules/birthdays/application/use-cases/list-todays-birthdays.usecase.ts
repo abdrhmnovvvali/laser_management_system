@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { BirthdayCustomer } from '../../domain/entities/birthday-customer.entity';
+import { resolvePagination } from '../../../../shared/pagination/pagination.util';
+import { PaginationQueryDto } from '../../../../shared/dto/pagination-query.dto';
 import { BIRTHDAY_READER } from '../../domain/repositories/birthday-reader.interface';
 import type { IBirthdayReader } from '../../domain/repositories/birthday-reader.interface';
 
@@ -10,7 +11,15 @@ export class ListTodaysBirthdaysUseCase {
     private readonly birthdayReader: IBirthdayReader,
   ) {}
 
-  async execute(): Promise<BirthdayCustomer[]> {
-    return this.birthdayReader.findTodaysBirthdays();
+  async execute(
+    query?: PaginationQueryDto,
+    options?: { skipPagination?: boolean },
+  ) {
+    return this.birthdayReader.findTodaysBirthdays({
+      pagination:
+        options?.skipPagination || !query
+          ? undefined
+          : resolvePagination(query),
+    });
   }
 }

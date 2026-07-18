@@ -12,12 +12,21 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import {
+  createPaginatedResponseDto,
+  createPaginatedResponseDtoClass,
+} from '../../../../shared/dto/paginated-response.dto';
 import { RelationLookupService } from '../../../../shared/relations/relation-lookup.service';
 import { ListNotificationsUseCase } from '../../application/use-cases/list-notifications.usecase';
 import { MarkNotificationAsReadUseCase } from '../../application/use-cases/mark-notification-as-read.usecase';
 import { ListNotificationsQueryDto } from '../../application/dto/list-notifications-query.dto';
 import { NotificationResponseDto } from '../../application/dto/notification-response.dto';
 import { NotificationMapper } from '../../application/mappers/notification.mapper';
+
+const PaginatedNotificationsResponseDto = createPaginatedResponseDtoClass(
+  NotificationResponseDto,
+  'PaginatedNotificationsResponseDto',
+);
 
 @ApiTags('Notifications')
 @ApiBearerAuth('bearerAuth')
@@ -31,15 +40,16 @@ export class NotificationsController {
 
   @Get()
   @ApiOperation({ summary: 'Bildirişlərin siyahısı (oxunma/tip üzrə filtr)' })
-  @ApiResponse({ status: 200, type: [NotificationResponseDto] })
-  async findAll(
-    @Query() query: ListNotificationsQueryDto,
-  ): Promise<NotificationResponseDto[]> {
-    const notifications = await this.listNotificationsUseCase.execute(query);
+  @ApiResponse({ status: 200, type: PaginatedNotificationsResponseDto })
+  async findAll(@Query() query: ListNotificationsQueryDto) {
+    const result = await this.listNotificationsUseCase.execute(query);
     const lookups = await this.relationLookupService.load({
-      customerIds: notifications.map((notification) => notification.customerId),
+      customerIds: result.items.map((notification) => notification.customerId),
     });
-    return NotificationMapper.toResponseDtoList(notifications, lookups);
+    return createPaginatedResponseDto(
+      result,
+      NotificationMapper.toResponseDtoList(result.items, lookups),
+    );
   }
 
   @Patch(':id/read')

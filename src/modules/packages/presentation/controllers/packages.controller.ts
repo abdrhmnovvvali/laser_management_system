@@ -9,6 +9,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -16,6 +17,11 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import {
+  createPaginatedResponseDto,
+  createPaginatedResponseDtoClass,
+} from '../../../../shared/dto/paginated-response.dto';
+import { PaginationQueryDto } from '../../../../shared/dto/pagination-query.dto';
 import { Roles } from '../../../../shared/decorators/roles.decorator';
 import { Role } from '../../../../shared/guards/roles.enum';
 import { RelationLookupService } from '../../../../shared/relations/relation-lookup.service';
@@ -28,6 +34,11 @@ import { CreatePackageDto } from '../../application/dto/create-package.dto';
 import { PackageResponseDto } from '../../application/dto/package-response.dto';
 import { UpdatePackageDto } from '../../application/dto/update-package.dto';
 import { PackageMapper } from '../../application/mappers/package.mapper';
+
+const PaginatedPackagesResponseDto = createPaginatedResponseDtoClass(
+  PackageResponseDto,
+  'PaginatedPackagesResponseDto',
+);
 
 @ApiTags('Packages')
 @ApiBearerAuth('bearerAuth')
@@ -44,13 +55,16 @@ export class PackagesController {
 
   @Get()
   @ApiOperation({ summary: 'Paketlərin siyahısı' })
-  @ApiResponse({ status: 200, type: [PackageResponseDto] })
-  async findAll(): Promise<PackageResponseDto[]> {
-    const packages = await this.listPackagesUseCase.execute();
+  @ApiResponse({ status: 200, type: PaginatedPackagesResponseDto })
+  async findAll(@Query() query: PaginationQueryDto) {
+    const result = await this.listPackagesUseCase.execute(query);
     const lookups = await this.relationLookupService.load({
-      zoneIds: packages.flatMap((pkg) => pkg.zoneIds),
+      zoneIds: result.items.flatMap((pkg) => pkg.zoneIds),
     });
-    return PackageMapper.toResponseDtoList(packages, lookups);
+    return createPaginatedResponseDto(
+      result,
+      PackageMapper.toResponseDtoList(result.items, lookups),
+    );
   }
 
   @Get(':id')

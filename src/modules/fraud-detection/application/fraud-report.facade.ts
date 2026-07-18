@@ -12,6 +12,9 @@ export class FraudReportFacade {
   constructor(private readonly getFraudReportUseCase: GetFraudReportUseCase) {}
 
   async getReport(filters: FraudReportFilters): Promise<FraudReportItem[]> {
-    return this.getFraudReportUseCase.execute(filters);
+    const result = await this.getFraudReportUseCase.execute(filters, {
+      skipPagination: true,
+    });
+    return result.items;
   }
 }

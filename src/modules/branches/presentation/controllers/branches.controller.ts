@@ -9,6 +9,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -16,6 +17,11 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import {
+  createPaginatedResponseDto,
+  createPaginatedResponseDtoClass,
+} from '../../../../shared/dto/paginated-response.dto';
+import { PaginationQueryDto } from '../../../../shared/dto/pagination-query.dto';
 import { Roles } from '../../../../shared/decorators/roles.decorator';
 import { Role } from '../../../../shared/guards/roles.enum';
 import { CreateBranchUseCase } from '../../application/use-cases/create-branch.usecase';
@@ -27,6 +33,11 @@ import { BranchResponseDto } from '../../application/dto/branch-response.dto';
 import { CreateBranchDto } from '../../application/dto/create-branch.dto';
 import { UpdateBranchDto } from '../../application/dto/update-branch.dto';
 import { BranchMapper } from '../../application/mappers/branch.mapper';
+
+const PaginatedBranchesResponseDto = createPaginatedResponseDtoClass(
+  BranchResponseDto,
+  'PaginatedBranchesResponseDto',
+);
 
 @ApiTags('Branches')
 @ApiBearerAuth('bearerAuth')
@@ -42,10 +53,13 @@ export class BranchesController {
 
   @Get()
   @ApiOperation({ summary: 'Bütün filialların siyahısı' })
-  @ApiResponse({ status: 200, type: [BranchResponseDto] })
-  async findAll(): Promise<BranchResponseDto[]> {
-    const branches = await this.listBranchesUseCase.execute();
-    return BranchMapper.toResponseDtoList(branches);
+  @ApiResponse({ status: 200, type: PaginatedBranchesResponseDto })
+  async findAll(@Query() query: PaginationQueryDto) {
+    const result = await this.listBranchesUseCase.execute(query);
+    return createPaginatedResponseDto(
+      result,
+      BranchMapper.toResponseDtoList(result.items),
+    );
   }
 
   @Get(':id')

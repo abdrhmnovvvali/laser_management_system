@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { resolvePagination } from '../../../../shared/pagination/pagination.util';
+import { PaginationQueryDto } from '../../../../shared/dto/pagination-query.dto';
 import { CAMPAIGN_REPOSITORY } from '../../domain/repositories/campaign.repository.interface';
 import type { ICampaignRepository } from '../../domain/repositories/campaign.repository.interface';
-import { Campaign } from '../../domain/entities/campaign.entity';
 
 @Injectable()
 export class ListCampaignsUseCase {
@@ -10,7 +11,15 @@ export class ListCampaignsUseCase {
     private readonly campaignRepository: ICampaignRepository,
   ) {}
 
-  async execute(): Promise<Campaign[]> {
-    return this.campaignRepository.findAll();
+  async execute(
+    query?: PaginationQueryDto,
+    options?: { skipPagination?: boolean },
+  ) {
+    return this.campaignRepository.findAll({
+      pagination:
+        options?.skipPagination || !query
+          ? undefined
+          : resolvePagination(query),
+    });
   }
 }

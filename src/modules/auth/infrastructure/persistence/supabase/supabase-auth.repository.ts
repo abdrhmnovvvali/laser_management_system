@@ -3,14 +3,28 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { SUPABASE_ADMIN_CLIENT } from '../../../../../shared/supabase/supabase.constants';
 import { Role } from '../../../../../shared/guards/roles.enum';
 import { BusinessRuleViolationException } from '../../../../../shared/kernel/domain.exception';
+import { readPaginatedRows } from '../../../../../shared/supabase/supabase-pagination.util';
+import {
+  createPaginatedResult,
+  toOffset,
+} from '../../../../../shared/pagination/pagination.util';
+import type { PaginatedResult } from '../../../../../shared/pagination/pagination.types';
 import { AuthSession } from '../../../domain/entities/auth-session.entity';
 import { StaffUser } from '../../../domain/entities/staff-user.entity';
 import {
   CreateStaffUserInput,
   IAuthRepository,
+  StaffListOptions,
 } from '../../../domain/repositories/auth.repository.interface';
 
-interface ProfileRow {
+interface ProfileListRow {
+  id: string;
+  role: Role;
+  branch_id: string | null;
+  full_name: string | null;
+}
+
+interface ProfileDetailsRow {
   role: Role;
   branch_id: string | null;
   full_name: string | null;
@@ -108,14 +122,24 @@ export class SupabaseAuthRepository implements IAuthRepository {
     );
   }
 
-  async findAllStaffUsers(): Promise<StaffUser[]> {
-    const { data: profiles, error } = await this.supabase
+  async findAllStaffUsers(
+    options?: StaffListOptions,
+  ): Promise<PaginatedResult<StaffUser>> {
+    let query = this.supabase
       .from('profiles')
-      .select('id, role, branch_id, full_name')
+      .select('id, role, branch_id, full_name', { count: 'exact' })
       .order('created_at', { ascending: false });
 
-    if (error || !profiles?.length) {
-      return [];
+    if (options?.pagination) {
+      const { from, to } = toOffset(options.pagination);
+      query = query.range(from, to);
+    }
+
+    const response = await query;
+    const { rows: profiles, total } = readPaginatedRows<ProfileListRow>(response);
+
+    if (profiles.length === 0) {
+      return createPaginatedResult([], total, options?.pagination);
     }
 
     const staffUsers = await Promise.all(
@@ -139,8 +163,12 @@ export class SupabaseAuthRepository implements IAuthRepository {
       }),
     );
 
-    return staffUsers.filter((staffUser): staffUser is StaffUser =>
-      Boolean(staffUser),
+    return createPaginatedResult(
+      staffUsers.filter((staffUser): staffUser is StaffUser =>
+        Boolean(staffUser),
+      ),
+      total,
+      options?.pagination,
     );
   }
 
@@ -189,7 +217,7 @@ export class SupabaseAuthRepository implements IAuthRepository {
   private async fetchProfile(
     userId: string,
     throwOnMissing = true,
-  ): Promise<ProfileRow | null> {
+  ): Promise<ProfileDetailsRow | null> {
     const { data, error } = await this.supabase
       .from('profiles')
       .select('role, branch_id, full_name')

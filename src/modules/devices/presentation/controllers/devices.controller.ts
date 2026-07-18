@@ -14,10 +14,13 @@ import {
 import {
   ApiBearerAuth,
   ApiOperation,
-  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import {
+  createPaginatedResponseDto,
+  createPaginatedResponseDtoClass,
+} from '../../../../shared/dto/paginated-response.dto';
 import { Roles } from '../../../../shared/decorators/roles.decorator';
 import { Role } from '../../../../shared/guards/roles.enum';
 import { RelationLookupService } from '../../../../shared/relations/relation-lookup.service';
@@ -28,8 +31,14 @@ import { ListDevicesUseCase } from '../../application/use-cases/list-devices.use
 import { UpdateDeviceUseCase } from '../../application/use-cases/update-device.usecase';
 import { CreateDeviceDto } from '../../application/dto/create-device.dto';
 import { DeviceResponseDto } from '../../application/dto/device-response.dto';
+import { ListDevicesQueryDto } from '../../application/dto/list-devices-query.dto';
 import { UpdateDeviceDto } from '../../application/dto/update-device.dto';
 import { DeviceMapper } from '../../application/mappers/device.mapper';
+
+const PaginatedDevicesResponseDto = createPaginatedResponseDtoClass(
+  DeviceResponseDto,
+  'PaginatedDevicesResponseDto',
+);
 
 @ApiTags('Devices')
 @ApiBearerAuth('bearerAuth')
@@ -45,19 +54,19 @@ export class DevicesController {
   ) {}
 
   @Get()
-  @ApiQuery({ name: 'branchId', required: false })
   @ApiOperation({
     summary: 'Cihazların siyahısı (filial üzrə filtrlənə bilər)',
   })
-  @ApiResponse({ status: 200, type: [DeviceResponseDto] })
-  async findAll(
-    @Query('branchId') branchId?: string,
-  ): Promise<DeviceResponseDto[]> {
-    const devices = await this.listDevicesUseCase.execute(branchId);
+  @ApiResponse({ status: 200, type: PaginatedDevicesResponseDto })
+  async findAll(@Query() query: ListDevicesQueryDto) {
+    const result = await this.listDevicesUseCase.execute(query);
     const lookups = await this.relationLookupService.load({
-      branchIds: devices.map((device) => device.branchId),
+      branchIds: result.items.map((device) => device.branchId),
     });
-    return DeviceMapper.toResponseDtoList(devices, lookups);
+    return createPaginatedResponseDto(
+      result,
+      DeviceMapper.toResponseDtoList(result.items, lookups),
+    );
   }
 
   @Get(':id')

@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { resolvePagination } from '../../../../shared/pagination/pagination.util';
 import { FOLLOW_UP_REPOSITORY } from '../../domain/repositories/follow-up.repository.interface';
 import type { IFollowUpRepository } from '../../domain/repositories/follow-up.repository.interface';
-import { FollowUp } from '../../domain/entities/follow-up.entity';
+import { UpcomingFollowUpsQueryDto } from '../dto/upcoming-follow-ups-query.dto';
 
 @Injectable()
 export class ListUpcomingFollowUpsUseCase {
@@ -10,7 +11,15 @@ export class ListUpcomingFollowUpsUseCase {
     private readonly followUpRepository: IFollowUpRepository,
   ) {}
 
-  async execute(days: number): Promise<FollowUp[]> {
-    return this.followUpRepository.findUpcoming(days);
+  async execute(
+    query: UpcomingFollowUpsQueryDto,
+    options?: { skipPagination?: boolean },
+  ) {
+    return this.followUpRepository.findUpcoming({
+      days: query.days ?? 7,
+      pagination: options?.skipPagination
+        ? undefined
+        : resolvePagination(query),
+    });
   }
 }

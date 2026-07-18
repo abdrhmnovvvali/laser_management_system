@@ -5,6 +5,12 @@ import {
   unwrap,
   unwrapOrThrow,
 } from '../../../../../shared/supabase/supabase-response.util';
+import { readPaginatedRows } from '../../../../../shared/supabase/supabase-pagination.util';
+import {
+  createPaginatedResult,
+  toOffset,
+} from '../../../../../shared/pagination/pagination.util';
+import type { PaginatedResult } from '../../../../../shared/pagination/pagination.types';
 import { Notification } from '../../../domain/entities/notification.entity';
 import {
   INotificationRepository,
@@ -23,10 +29,12 @@ export class SupabaseNotificationRepository implements INotificationRepository {
     @Inject(SUPABASE_CLIENT) private readonly supabase: SupabaseClient,
   ) {}
 
-  async findAll(filters: NotificationFilters): Promise<Notification[]> {
+  async findAll(
+    filters: NotificationFilters,
+  ): Promise<PaginatedResult<Notification>> {
     let query = this.supabase
       .from(TABLE)
-      .select('*')
+      .select('*', { count: 'exact' })
       .order('created_at', { ascending: false });
 
     if (filters.isRead !== undefined) {
@@ -35,10 +43,18 @@ export class SupabaseNotificationRepository implements INotificationRepository {
     if (filters.type) {
       query = query.eq('type', filters.type);
     }
+    if (filters.pagination) {
+      const { from, to } = toOffset(filters.pagination);
+      query = query.range(from, to);
+    }
 
     const response = await query;
-    const rows = unwrap<NotificationRow[]>(response) ?? [];
-    return rows.map((row) => NotificationPersistenceMapper.toDomain(row));
+    const { rows, total } = readPaginatedRows<NotificationRow>(response);
+    return createPaginatedResult(
+      rows.map((row) => NotificationPersistenceMapper.toDomain(row)),
+      total,
+      filters.pagination,
+    );
   }
 
   async findById(id: string): Promise<Notification | null> {

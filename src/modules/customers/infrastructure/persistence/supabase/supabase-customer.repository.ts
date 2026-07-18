@@ -5,6 +5,12 @@ import {
   unwrap,
   unwrapOrThrow,
 } from '../../../../../shared/supabase/supabase-response.util';
+import { readPaginatedRows } from '../../../../../shared/supabase/supabase-pagination.util';
+import {
+  createPaginatedResult,
+  toOffset,
+} from '../../../../../shared/pagination/pagination.util';
+import type { PaginatedResult } from '../../../../../shared/pagination/pagination.types';
 import { Customer } from '../../../domain/entities/customer.entity';
 import {
   CreateCustomerData,
@@ -37,10 +43,51 @@ export class SupabaseCustomerRepository implements ICustomerRepository {
     @Inject(SUPABASE_CLIENT) private readonly supabase: SupabaseClient,
   ) {}
 
-  async findAll(filters: CustomerFilters): Promise<Customer[]> {
+  async findAll(filters: CustomerFilters): Promise<PaginatedResult<Customer>> {
+    let zoneCustomerIds: string[] | undefined;
+    if (filters.zoneId) {
+      zoneCustomerIds = await this.findCustomerIdsByZone(filters.zoneId);
+      if (zoneCustomerIds.length === 0) {
+        return createPaginatedResult([], 0, filters.pagination);
+      }
+    }
+
+    let query = this.buildListQuery(filters, zoneCustomerIds);
+    if (filters.pagination) {
+      const { from, to } = toOffset(filters.pagination);
+      query = query.range(from, to);
+    }
+
+    const response = await query;
+    const { rows, total } = readPaginatedRows<CustomerRow>(response);
+    return createPaginatedResult(
+      rows.map((row) => CustomerPersistenceMapper.toDomain(row)),
+      total,
+      filters.pagination,
+    );
+  }
+
+  async count(filters: Omit<CustomerFilters, 'pagination'>): Promise<number> {
+    let zoneCustomerIds: string[] | undefined;
+    if (filters.zoneId) {
+      zoneCustomerIds = await this.findCustomerIdsByZone(filters.zoneId);
+      if (zoneCustomerIds.length === 0) {
+        return 0;
+      }
+    }
+
+    const response = await this.buildCountQuery(filters, zoneCustomerIds);
+    unwrap<null>(response);
+    return (response as { count: number | null }).count ?? 0;
+  }
+
+  private buildListQuery(
+    filters: Omit<CustomerFilters, 'pagination'>,
+    zoneCustomerIds?: string[],
+  ) {
     let query = this.supabase
       .from(TABLE)
-      .select('*')
+      .select('*', { count: 'exact' })
       .order('registered_at', { ascending: false });
 
     if (filters.branchId) {
@@ -52,17 +99,35 @@ export class SupabaseCustomerRepository implements ICustomerRepository {
     if (filters.search) {
       query = this.applySearchFilter(query, filters.search);
     }
-    if (filters.zoneId) {
-      const customerIds = await this.findCustomerIdsByZone(filters.zoneId);
-      if (customerIds.length === 0) {
-        return [];
-      }
-      query = query.in('id', customerIds);
+    if (zoneCustomerIds?.length) {
+      query = query.in('id', zoneCustomerIds);
     }
 
-    const response = await query;
-    const rows = unwrap<CustomerRow[]>(response) ?? [];
-    return rows.map((row) => CustomerPersistenceMapper.toDomain(row));
+    return query;
+  }
+
+  private buildCountQuery(
+    filters: Omit<CustomerFilters, 'pagination'>,
+    zoneCustomerIds?: string[],
+  ) {
+    let query = this.supabase
+      .from(TABLE)
+      .select('id', { count: 'exact', head: true });
+
+    if (filters.branchId) {
+      query = query.eq('branch_id', filters.branchId);
+    }
+    if (filters.gender) {
+      query = query.eq('gender', filters.gender);
+    }
+    if (filters.search) {
+      query = this.applySearchFilter(query, filters.search);
+    }
+    if (zoneCustomerIds?.length) {
+      query = query.in('id', zoneCustomerIds);
+    }
+
+    return query;
   }
 
   async findById(id: string): Promise<Customer | null> {

@@ -5,8 +5,15 @@ import {
   unwrap,
   unwrapOrThrow,
 } from '../../../../../shared/supabase/supabase-response.util';
+import { readPaginatedRows } from '../../../../../shared/supabase/supabase-pagination.util';
+import {
+  createPaginatedResult,
+  toOffset,
+} from '../../../../../shared/pagination/pagination.util';
+import type { PaginatedResult } from '../../../../../shared/pagination/pagination.types';
 import { Campaign } from '../../../domain/entities/campaign.entity';
 import {
+  CampaignListOptions,
   CreateCampaignData,
   ICampaignRepository,
   UpdateCampaignData,
@@ -34,27 +41,52 @@ export class SupabaseCampaignRepository implements ICampaignRepository {
     @Inject(SUPABASE_CLIENT) private readonly supabase: SupabaseClient,
   ) {}
 
-  async findAll(): Promise<Campaign[]> {
-    const response = await this.supabase
+  async findAll(
+    options?: CampaignListOptions,
+  ): Promise<PaginatedResult<Campaign>> {
+    let query = this.supabase
       .from(TABLE)
-      .select('*')
+      .select('*', { count: 'exact' })
       .order('start_date', { ascending: false });
 
-    const rows = unwrap<CampaignRow[]>(response) ?? [];
-    return this.mapRowsWithZones(rows);
+    if (options?.pagination) {
+      const { from, to } = toOffset(options.pagination);
+      query = query.range(from, to);
+    }
+
+    const response = await query;
+    const { rows, total } = readPaginatedRows<CampaignRow>(response);
+    return createPaginatedResult(
+      await this.mapRowsWithZones(rows),
+      total,
+      options?.pagination,
+    );
   }
 
-  async findActive(onDate: Date): Promise<Campaign[]> {
+  async findActive(
+    onDate: Date,
+    options?: CampaignListOptions,
+  ): Promise<PaginatedResult<Campaign>> {
     const dateOnly = toDateOnly(onDate);
-    const response = await this.supabase
+    let query = this.supabase
       .from(TABLE)
-      .select('*')
+      .select('*', { count: 'exact' })
       .lte('start_date', dateOnly)
       .gte('end_date', dateOnly)
       .order('start_date', { ascending: false });
 
-    const rows = unwrap<CampaignRow[]>(response) ?? [];
-    return this.mapRowsWithZones(rows);
+    if (options?.pagination) {
+      const { from, to } = toOffset(options.pagination);
+      query = query.range(from, to);
+    }
+
+    const response = await query;
+    const { rows, total } = readPaginatedRows<CampaignRow>(response);
+    return createPaginatedResult(
+      await this.mapRowsWithZones(rows),
+      total,
+      options?.pagination,
+    );
   }
 
   async findById(id: string): Promise<Campaign | null> {

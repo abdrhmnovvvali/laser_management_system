@@ -2,6 +2,12 @@ import { Inject, Injectable } from '@nestjs/common';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { SUPABASE_CLIENT } from '../../../../../shared/supabase/supabase.constants';
 import { unwrap } from '../../../../../shared/supabase/supabase-response.util';
+import { readPaginatedRows } from '../../../../../shared/supabase/supabase-pagination.util';
+import {
+  createPaginatedResult,
+  toOffset,
+} from '../../../../../shared/pagination/pagination.util';
+import type { PaginatedResult } from '../../../../../shared/pagination/pagination.types';
 import { FraudReportItem } from '../../../domain/entities/fraud-report-item.entity';
 import {
   FraudReportFilters,
@@ -22,10 +28,10 @@ export class SupabaseFraudReportRepository implements IFraudReportRepository {
 
   async findMismatches(
     filters: FraudReportFilters,
-  ): Promise<FraudReportItem[]> {
+  ): Promise<PaginatedResult<FraudReportItem>> {
     let query = this.supabase
       .from(VIEW)
-      .select('*')
+      .select('*', { count: 'exact' })
       .order('date', { ascending: false });
 
     if (filters.deviceId) {
@@ -34,9 +40,17 @@ export class SupabaseFraudReportRepository implements IFraudReportRepository {
     if (filters.branchId) {
       query = query.eq('branch_id', filters.branchId);
     }
+    if (filters.pagination) {
+      const { from, to } = toOffset(filters.pagination);
+      query = query.range(from, to);
+    }
 
     const response = await query;
-    const rows = unwrap<FraudReportRow[]>(response) ?? [];
-    return rows.map((row) => FraudReportPersistenceMapper.toDomain(row));
+    const { rows, total } = readPaginatedRows<FraudReportRow>(response);
+    return createPaginatedResult(
+      rows.map((row) => FraudReportPersistenceMapper.toDomain(row)),
+      total,
+      filters.pagination,
+    );
   }
 }

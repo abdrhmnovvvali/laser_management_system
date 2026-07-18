@@ -9,7 +9,6 @@ import type {
 } from '../domain/repositories/customer.repository.interface';
 import { CreateCustomerUseCase } from './use-cases/create-customer.usecase';
 import { GetCustomerUseCase } from './use-cases/get-customer.usecase';
-import { ListCustomersUseCase } from './use-cases/list-customers.usecase';
 
 /**
  * Public surface for other modules (Procedure, Note, FollowUp, ExcelImport,
@@ -20,7 +19,6 @@ export class CustomerFacade {
   constructor(
     private readonly getCustomerUseCase: GetCustomerUseCase,
     private readonly createCustomerUseCase: CreateCustomerUseCase,
-    private readonly listCustomersUseCase: ListCustomersUseCase,
     @Inject(CUSTOMER_REPOSITORY)
     private readonly customerRepository: ICustomerRepository,
   ) {}
@@ -42,9 +40,8 @@ export class CustomerFacade {
     return this.createCustomerUseCase.execute(data);
   }
 
-  async count(filters: CustomerFilters): Promise<number> {
-    const customers = await this.listCustomersUseCase.execute(filters);
-    return customers.length;
+  async count(filters: Omit<CustomerFilters, 'pagination'>): Promise<number> {
+    return this.customerRepository.count(filters);
   }
 
   async resolveNames(

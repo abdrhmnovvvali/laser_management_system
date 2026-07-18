@@ -13,6 +13,9 @@ export class BirthdayFacade {
   ) {}
 
   async listToday(): Promise<BirthdayCustomer[]> {
-    return this.listTodaysBirthdaysUseCase.execute();
+    const result = await this.listTodaysBirthdaysUseCase.execute(undefined, {
+      skipPagination: true,
+    });
+    return result.items;
   }
 }

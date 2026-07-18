@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { resolvePagination } from '../../../../shared/pagination/pagination.util';
+import { PaginationQueryDto } from '../../../../shared/dto/pagination-query.dto';
 import { AUTH_REPOSITORY } from '../../domain/repositories/auth.repository.interface';
 import type { IAuthRepository } from '../../domain/repositories/auth.repository.interface';
-import { StaffUser } from '../../domain/entities/staff-user.entity';
 
 @Injectable()
 export class ListStaffUsersUseCase {
@@ -10,7 +11,9 @@ export class ListStaffUsersUseCase {
     private readonly authRepository: IAuthRepository,
   ) {}
 
-  async execute(): Promise<StaffUser[]> {
-    return this.authRepository.findAllStaffUsers();
+  async execute(query?: PaginationQueryDto) {
+    return this.authRepository.findAllStaffUsers({
+      pagination: query ? resolvePagination(query) : undefined,
+    });
   }
 }

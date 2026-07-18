@@ -14,10 +14,13 @@ import {
 import {
   ApiBearerAuth,
   ApiOperation,
-  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import {
+  createPaginatedResponseDto,
+  createPaginatedResponseDtoClass,
+} from '../../../../shared/dto/paginated-response.dto';
 import { RelationLookupService } from '../../../../shared/relations/relation-lookup.service';
 import { CreateNoteUseCase } from '../../application/use-cases/create-note.usecase';
 import { DeleteNoteUseCase } from '../../application/use-cases/delete-note.usecase';
@@ -25,9 +28,15 @@ import { GetNoteUseCase } from '../../application/use-cases/get-note.usecase';
 import { ListNotesByCustomerUseCase } from '../../application/use-cases/list-notes-by-customer.usecase';
 import { UpdateNoteUseCase } from '../../application/use-cases/update-note.usecase';
 import { CreateNoteDto } from '../../application/dto/create-note.dto';
+import { ListNotesQueryDto } from '../../application/dto/list-notes-query.dto';
 import { NoteResponseDto } from '../../application/dto/note-response.dto';
 import { UpdateNoteDto } from '../../application/dto/update-note.dto';
 import { NoteMapper } from '../../application/mappers/note.mapper';
+
+const PaginatedNotesResponseDto = createPaginatedResponseDtoClass(
+  NoteResponseDto,
+  'PaginatedNotesResponseDto',
+);
 
 @ApiTags('Communication (Notes)')
 @ApiBearerAuth('bearerAuth')
@@ -43,17 +52,17 @@ export class NotesController {
   ) {}
 
   @Get()
-  @ApiQuery({ name: 'customerId', required: true })
   @ApiOperation({ summary: 'Müştərinin kommunikasiya qeydlərinin siyahısı' })
-  @ApiResponse({ status: 200, type: [NoteResponseDto] })
-  async findAllByCustomer(
-    @Query('customerId', ParseUUIDPipe) customerId: string,
-  ): Promise<NoteResponseDto[]> {
-    const notes = await this.listNotesByCustomerUseCase.execute(customerId);
+  @ApiResponse({ status: 200, type: PaginatedNotesResponseDto })
+  async findAllByCustomer(@Query() query: ListNotesQueryDto) {
+    const result = await this.listNotesByCustomerUseCase.execute(query);
     const lookups = await this.relationLookupService.load({
-      customerIds: notes.map((note) => note.customerId),
+      customerIds: result.items.map((note) => note.customerId),
     });
-    return NoteMapper.toResponseDtoList(notes, lookups);
+    return createPaginatedResponseDto(
+      result,
+      NoteMapper.toResponseDtoList(result.items, lookups),
+    );
   }
 
   @Get(':id')

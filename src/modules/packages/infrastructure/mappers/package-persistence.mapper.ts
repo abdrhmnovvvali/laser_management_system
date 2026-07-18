@@ -5,17 +5,17 @@ export interface PackageRow {
   name: string;
   price: number;
   created_at: string;
-  package_zones: { zone_id: string }[] | null;
+  package_zones?: { zone_id: string }[] | null;
 }
 
 export class PackagePersistenceMapper {
-  static toDomain(row: PackageRow): Package {
+  static toDomain(row: PackageRow, zoneIds?: string[]): Package {
     return new Package(
       row.id,
       new Date(row.created_at),
       row.name,
       Number(row.price),
-      (row.package_zones ?? []).map((pz) => pz.zone_id),
+      zoneIds ?? (row.package_zones ?? []).map((pz) => pz.zone_id),
     );
   }
 }

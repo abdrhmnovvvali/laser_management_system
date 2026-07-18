@@ -23,7 +23,8 @@ export class NotifyTodaysBirthdaysUseCase {
   ) {}
 
   async execute(): Promise<number> {
-    const birthdays = await this.birthdayAdminReader.findTodaysBirthdays();
+    const { items: birthdays } =
+      await this.birthdayAdminReader.findTodaysBirthdays();
 
     for (const customer of birthdays) {
       this.eventPublisher.publish(

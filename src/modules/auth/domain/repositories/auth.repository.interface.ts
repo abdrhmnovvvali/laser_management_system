@@ -1,4 +1,5 @@
 import { Role } from '../../../../shared/guards/roles.enum';
+import { PaginatedResult, PaginationParams } from '../../../../shared/pagination/pagination.types';
 import { AuthSession } from '../entities/auth-session.entity';
 import { StaffUser } from '../entities/staff-user.entity';
 
@@ -17,11 +18,15 @@ export interface CreateStaffUserInput {
  * infrastructure/persistence/supabase — the application layer never talks
  * to Supabase directly.
  */
+export interface StaffListOptions {
+  pagination?: PaginationParams;
+}
+
 export interface IAuthRepository {
   signIn(email: string, password: string): Promise<AuthSession>;
   refreshSession(refreshToken: string): Promise<AuthSession>;
   createStaffUser(input: CreateStaffUserInput): Promise<StaffUser>;
-  findAllStaffUsers(): Promise<StaffUser[]>;
+  findAllStaffUsers(options?: StaffListOptions): Promise<PaginatedResult<StaffUser>>;
   findStaffUserById(id: string): Promise<StaffUser | null>;
   countStaffByRole(role: Role): Promise<number>;
   deleteStaffUser(id: string): Promise<void>;
