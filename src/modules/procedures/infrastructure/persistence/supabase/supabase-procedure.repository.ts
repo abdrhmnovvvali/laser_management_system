@@ -5,6 +5,12 @@ import {
   unwrap,
   unwrapOrThrow,
 } from '../../../../../shared/supabase/supabase-response.util';
+import { readPaginatedRows } from '../../../../../shared/supabase/supabase-pagination.util';
+import {
+  createPaginatedResult,
+  toOffset,
+} from '../../../../../shared/pagination/pagination.util';
+import type { PaginatedResult } from '../../../../../shared/pagination/pagination.types';
 import { Procedure } from '../../../domain/entities/procedure.entity';
 import {
   CreateProcedureData,
@@ -21,20 +27,33 @@ const TABLE = 'procedures';
 const JUNCTION_TABLE = 'procedure_zones';
 const SELECT_WITH_ZONES = '*, procedure_zones(zone_id)';
 
+interface ProcedureZoneLinkRow {
+  procedure_id: string;
+  zone_id: string;
+}
+
 @Injectable()
 export class SupabaseProcedureRepository implements IProcedureRepository {
   constructor(
     @Inject(SUPABASE_CLIENT) private readonly supabase: SupabaseClient,
   ) {}
 
-  async findAll(filters: ProcedureFilters): Promise<Procedure[]> {
+  async findAll(filters: ProcedureFilters): Promise<PaginatedResult<Procedure>> {
+    let procedureIds: string[] | undefined;
+    if (filters.zoneIds?.length) {
+      procedureIds = await this.findProcedureIdsByZoneIds(filters.zoneIds);
+      if (procedureIds.length === 0) {
+        return createPaginatedResult([], 0, filters.pagination);
+      }
+    }
+
     const selectClause = filters.branchId
-      ? `${SELECT_WITH_ZONES}, customers!inner(branch_id)`
-      : SELECT_WITH_ZONES;
+      ? '*, customers!inner(branch_id)'
+      : '*';
 
     let query = this.supabase
       .from(TABLE)
-      .select(selectClause)
+      .select(selectClause, { count: 'exact' })
       .order('date', { ascending: false });
 
     if (filters.customerId) {
@@ -52,18 +71,22 @@ export class SupabaseProcedureRepository implements IProcedureRepository {
     if (filters.dateTo) {
       query = query.lte('date', filters.dateTo.toISOString());
     }
-
-    if (filters.zoneIds?.length) {
-      const procedureIds = await this.findProcedureIdsByZoneIds(filters.zoneIds);
-      if (procedureIds.length === 0) {
-        return [];
-      }
+    if (procedureIds?.length) {
       query = query.in('id', procedureIds);
     }
 
+    if (filters.pagination) {
+      const { from, to } = toOffset(filters.pagination);
+      query = query.range(from, to);
+    }
+
     const response = await query;
-    const rows = unwrap<ProcedureRow[]>(response) ?? [];
-    return rows.map((row) => ProcedurePersistenceMapper.toDomain(row));
+    const { rows, total } = readPaginatedRows<ProcedureRow>(response);
+    return createPaginatedResult(
+      await this.mapRowsWithZones(rows),
+      total,
+      filters.pagination,
+    );
   }
 
   async findById(id: string): Promise<Procedure | null> {
@@ -142,6 +165,44 @@ export class SupabaseProcedureRepository implements IProcedureRepository {
   async delete(id: string): Promise<void> {
     const response = await this.supabase.from(TABLE).delete().eq('id', id);
     unwrap(response);
+  }
+
+  private async mapRowsWithZones(rows: ProcedureRow[]): Promise<Procedure[]> {
+    const zoneIdsByProcedure = await this.fetchZoneIdsByProcedureIds(
+      rows.map((row) => row.id),
+    );
+
+    return rows.map((row) =>
+      ProcedurePersistenceMapper.toDomain({
+        ...row,
+        procedure_zones: (zoneIdsByProcedure.get(row.id) ?? []).map(
+          (zoneId) => ({ zone_id: zoneId }),
+        ),
+      }),
+    );
+  }
+
+  private async fetchZoneIdsByProcedureIds(
+    procedureIds: string[],
+  ): Promise<Map<string, string[]>> {
+    const zoneIdsByProcedure = new Map<string, string[]>();
+    if (procedureIds.length === 0) {
+      return zoneIdsByProcedure;
+    }
+
+    const response = await this.supabase
+      .from(JUNCTION_TABLE)
+      .select('procedure_id, zone_id')
+      .in('procedure_id', procedureIds);
+
+    const links = unwrap<ProcedureZoneLinkRow[]>(response) ?? [];
+    for (const link of links) {
+      const existing = zoneIdsByProcedure.get(link.procedure_id) ?? [];
+      existing.push(link.zone_id);
+      zoneIdsByProcedure.set(link.procedure_id, existing);
+    }
+
+    return zoneIdsByProcedure;
   }
 
   private async findProcedureIdsByZoneIds(zoneIds: string[]): Promise<string[]> {

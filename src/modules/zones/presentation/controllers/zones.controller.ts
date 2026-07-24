@@ -14,10 +14,13 @@ import {
 import {
   ApiBearerAuth,
   ApiOperation,
-  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import {
+  createPaginatedResponseDto,
+  createPaginatedResponseDtoClass,
+} from '../../../../shared/dto/paginated-response.dto';
 import { Roles } from '../../../../shared/decorators/roles.decorator';
 import { Role } from '../../../../shared/guards/roles.enum';
 import { RelationLookupService } from '../../../../shared/relations/relation-lookup.service';
@@ -27,9 +30,15 @@ import { GetZoneUseCase } from '../../application/use-cases/get-zone.usecase';
 import { ListZonesUseCase } from '../../application/use-cases/list-zones.usecase';
 import { UpdateZoneUseCase } from '../../application/use-cases/update-zone.usecase';
 import { CreateZoneDto } from '../../application/dto/create-zone.dto';
+import { ListZonesQueryDto } from '../../application/dto/list-zones-query.dto';
 import { UpdateZoneDto } from '../../application/dto/update-zone.dto';
 import { ZoneResponseDto } from '../../application/dto/zone-response.dto';
 import { ZoneMapper } from '../../application/mappers/zone.mapper';
+
+const PaginatedZonesResponseDto = createPaginatedResponseDtoClass(
+  ZoneResponseDto,
+  'PaginatedZonesResponseDto',
+);
 
 @ApiTags('Zones')
 @ApiBearerAuth('bearerAuth')
@@ -45,19 +54,19 @@ export class ZonesController {
   ) {}
 
   @Get()
-  @ApiQuery({ name: 'deviceId', required: false })
   @ApiOperation({
     summary: 'Nahiyələrin siyahısı (cihaz üzrə filtrlənə bilər)',
   })
-  @ApiResponse({ status: 200, type: [ZoneResponseDto] })
-  async findAll(
-    @Query('deviceId') deviceId?: string,
-  ): Promise<ZoneResponseDto[]> {
-    const zones = await this.listZonesUseCase.execute(deviceId);
+  @ApiResponse({ status: 200, type: PaginatedZonesResponseDto })
+  async findAll(@Query() query: ListZonesQueryDto) {
+    const result = await this.listZonesUseCase.execute(query);
     const lookups = await this.relationLookupService.load({
-      deviceIds: zones.map((zone) => zone.deviceId),
+      deviceIds: result.items.map((zone) => zone.deviceId),
     });
-    return ZoneMapper.toListDtoList(zones, lookups);
+    return createPaginatedResponseDto(
+      result,
+      ZoneMapper.toListDtoList(result.items, lookups),
+    );
   }
 
   @Get(':id')

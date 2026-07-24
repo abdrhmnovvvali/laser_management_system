@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsBoolean, IsEnum, IsOptional } from 'class-validator';
+import { PaginationQueryDto } from '../../../../shared/dto/pagination-query.dto';
 import { NotificationType } from '../../domain/entities/notification-type.enum';
 
 function parseBooleanQuery(value: unknown): boolean | undefined {
@@ -16,7 +17,7 @@ function parseBooleanQuery(value: unknown): boolean | undefined {
   return undefined;
 }
 
-export class ListNotificationsQueryDto {
+export class ListNotificationsQueryDto extends PaginationQueryDto {
   @ApiPropertyOptional()
   @IsOptional()
   @Transform(({ value }) => parseBooleanQuery(value))

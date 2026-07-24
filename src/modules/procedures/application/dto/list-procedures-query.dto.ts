@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
 import { IsArray, IsOptional, IsString, IsUUID } from 'class-validator';
+import { PaginationQueryDto } from '../../../../shared/dto/pagination-query.dto';
 
 function parseStringArray(value: unknown): string[] | undefined {
   if (value === undefined || value === null || value === '') {
@@ -21,7 +22,7 @@ function parseStringArray(value: unknown): string[] | undefined {
   return [String(value).trim()].filter(Boolean);
 }
 
-export class ListProceduresQueryDto {
+export class ListProceduresQueryDto extends PaginationQueryDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsUUID()

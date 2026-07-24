@@ -9,6 +9,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -16,6 +17,11 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import {
+  createPaginatedResponseDto,
+  createPaginatedResponseDtoClass,
+} from '../../../../shared/dto/paginated-response.dto';
+import { PaginationQueryDto } from '../../../../shared/dto/pagination-query.dto';
 import { Roles } from '../../../../shared/decorators/roles.decorator';
 import { Role } from '../../../../shared/guards/roles.enum';
 import { RelationLookupService } from '../../../../shared/relations/relation-lookup.service';
@@ -29,6 +35,11 @@ import { CampaignResponseDto } from '../../application/dto/campaign-response.dto
 import { CreateCampaignDto } from '../../application/dto/create-campaign.dto';
 import { UpdateCampaignDto } from '../../application/dto/update-campaign.dto';
 import { CampaignMapper } from '../../application/mappers/campaign.mapper';
+
+const PaginatedCampaignsResponseDto = createPaginatedResponseDtoClass(
+  CampaignResponseDto,
+  'PaginatedCampaignsResponseDto',
+);
 
 @ApiTags('Campaigns')
 @ApiBearerAuth('bearerAuth')
@@ -46,24 +57,30 @@ export class CampaignsController {
 
   @Get()
   @ApiOperation({ summary: 'Bütün kampaniyaların siyahısı' })
-  @ApiResponse({ status: 200, type: [CampaignResponseDto] })
-  async findAll(): Promise<CampaignResponseDto[]> {
-    const campaigns = await this.listCampaignsUseCase.execute();
+  @ApiResponse({ status: 200, type: PaginatedCampaignsResponseDto })
+  async findAll(@Query() query: PaginationQueryDto) {
+    const result = await this.listCampaignsUseCase.execute(query);
     const lookups = await this.relationLookupService.load({
-      zoneIds: campaigns.flatMap((campaign) => campaign.zoneIds),
+      zoneIds: result.items.flatMap((campaign) => campaign.zoneIds),
     });
-    return CampaignMapper.toListDtoList(campaigns, lookups);
+    return createPaginatedResponseDto(
+      result,
+      CampaignMapper.toListDtoList(result.items, lookups),
+    );
   }
 
   @Get('active')
   @ApiOperation({ summary: 'Bugünkü tarixə görə aktiv kampaniyalar' })
-  @ApiResponse({ status: 200, type: [CampaignResponseDto] })
-  async findActive(): Promise<CampaignResponseDto[]> {
-    const campaigns = await this.listActiveCampaignsUseCase.execute();
+  @ApiResponse({ status: 200, type: PaginatedCampaignsResponseDto })
+  async findActive(@Query() query: PaginationQueryDto) {
+    const result = await this.listActiveCampaignsUseCase.execute(query);
     const lookups = await this.relationLookupService.load({
-      zoneIds: campaigns.flatMap((campaign) => campaign.zoneIds),
+      zoneIds: result.items.flatMap((campaign) => campaign.zoneIds),
     });
-    return CampaignMapper.toListDtoList(campaigns, lookups);
+    return createPaginatedResponseDto(
+      result,
+      CampaignMapper.toListDtoList(result.items, lookups),
+    );
   }
 
   @Get(':id')

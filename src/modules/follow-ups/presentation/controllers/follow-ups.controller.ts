@@ -14,10 +14,13 @@ import {
 import {
   ApiBearerAuth,
   ApiOperation,
-  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import {
+  createPaginatedResponseDto,
+  createPaginatedResponseDtoClass,
+} from '../../../../shared/dto/paginated-response.dto';
 import { RelationLookupService } from '../../../../shared/relations/relation-lookup.service';
 import { collectFollowUpRelationIds } from '../../../../shared/relations/relation-name.util';
 import { CreateFollowUpUseCase } from '../../application/use-cases/create-follow-up.usecase';
@@ -28,9 +31,15 @@ import { ListUpcomingFollowUpsUseCase } from '../../application/use-cases/list-u
 import { UpdateFollowUpUseCase } from '../../application/use-cases/update-follow-up.usecase';
 import { CreateFollowUpDto } from '../../application/dto/create-follow-up.dto';
 import { FollowUpResponseDto } from '../../application/dto/follow-up-response.dto';
+import { ListFollowUpsQueryDto } from '../../application/dto/list-follow-ups-query.dto';
 import { UpcomingFollowUpsQueryDto } from '../../application/dto/upcoming-follow-ups-query.dto';
 import { UpdateFollowUpDto } from '../../application/dto/update-follow-up.dto';
 import { FollowUpMapper } from '../../application/mappers/follow-up.mapper';
+
+const PaginatedFollowUpsResponseDto = createPaginatedResponseDtoClass(
+  FollowUpResponseDto,
+  'PaginatedFollowUpsResponseDto',
+);
 
 @ApiTags('FollowUps')
 @ApiBearerAuth('bearerAuth')
@@ -47,33 +56,31 @@ export class FollowUpsController {
   ) {}
 
   @Get()
-  @ApiQuery({ name: 'customerId', required: true })
   @ApiOperation({ summary: 'Müştərinin planlaşdırılan vizitlərinin siyahısı' })
-  @ApiResponse({ status: 200, type: [FollowUpResponseDto] })
-  async findAllByCustomer(
-    @Query('customerId', ParseUUIDPipe) customerId: string,
-  ): Promise<FollowUpResponseDto[]> {
-    const followUps =
-      await this.listFollowUpsByCustomerUseCase.execute(customerId);
+  @ApiResponse({ status: 200, type: PaginatedFollowUpsResponseDto })
+  async findAllByCustomer(@Query() query: ListFollowUpsQueryDto) {
+    const result = await this.listFollowUpsByCustomerUseCase.execute(query);
     const lookups = await this.relationLookupService.load(
-      collectFollowUpRelationIds(followUps),
+      collectFollowUpRelationIds(result.items),
     );
-    return FollowUpMapper.toResponseDtoList(followUps, lookups);
+    return createPaginatedResponseDto(
+      result,
+      FollowUpMapper.toResponseDtoList(result.items, lookups),
+    );
   }
 
   @Get('upcoming')
   @ApiOperation({ summary: 'Yaxınlaşan xatırlatmalar (gün sayına görə)' })
-  @ApiResponse({ status: 200, type: [FollowUpResponseDto] })
-  async findUpcoming(
-    @Query() query: UpcomingFollowUpsQueryDto,
-  ): Promise<FollowUpResponseDto[]> {
-    const followUps = await this.listUpcomingFollowUpsUseCase.execute(
-      query.days ?? 7,
-    );
+  @ApiResponse({ status: 200, type: PaginatedFollowUpsResponseDto })
+  async findUpcoming(@Query() query: UpcomingFollowUpsQueryDto) {
+    const result = await this.listUpcomingFollowUpsUseCase.execute(query);
     const lookups = await this.relationLookupService.load(
-      collectFollowUpRelationIds(followUps),
+      collectFollowUpRelationIds(result.items),
     );
-    return FollowUpMapper.toResponseDtoList(followUps, lookups);
+    return createPaginatedResponseDto(
+      result,
+      FollowUpMapper.toResponseDtoList(result.items, lookups),
+    );
   }
 
   @Get(':id')

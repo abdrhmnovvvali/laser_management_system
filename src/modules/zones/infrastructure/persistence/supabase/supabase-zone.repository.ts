@@ -5,11 +5,18 @@ import {
   unwrap,
   unwrapOrThrow,
 } from '../../../../../shared/supabase/supabase-response.util';
+import { readPaginatedRows } from '../../../../../shared/supabase/supabase-pagination.util';
+import {
+  createPaginatedResult,
+  toOffset,
+} from '../../../../../shared/pagination/pagination.util';
+import type { PaginatedResult } from '../../../../../shared/pagination/pagination.types';
 import { Zone } from '../../../domain/entities/zone.entity';
 import {
   CreateZoneData,
   IZoneRepository,
   UpdateZoneData,
+  ZoneListOptions,
   ZoneTranslationInput,
 } from '../../../domain/repositories/zone.repository.interface';
 import {
@@ -27,19 +34,27 @@ export class SupabaseZoneRepository implements IZoneRepository {
     @Inject(SUPABASE_CLIENT) private readonly supabase: SupabaseClient,
   ) {}
 
-  async findAll(deviceId?: string): Promise<Zone[]> {
+  async findAll(options?: ZoneListOptions): Promise<PaginatedResult<Zone>> {
     let query = this.supabase
       .from(TABLE)
-      .select(SELECT_WITH_TRANSLATIONS)
+      .select(SELECT_WITH_TRANSLATIONS, { count: 'exact' })
       .order('created_at', { ascending: false });
 
-    if (deviceId) {
-      query = query.eq('device_id', deviceId);
+    if (options?.deviceId) {
+      query = query.eq('device_id', options.deviceId);
+    }
+    if (options?.pagination) {
+      const { from, to } = toOffset(options.pagination);
+      query = query.range(from, to);
     }
 
     const response = await query;
-    const rows = unwrap<ZoneRow[]>(response) ?? [];
-    return rows.map((row) => ZonePersistenceMapper.toDomain(row));
+    const { rows, total } = readPaginatedRows<ZoneRow>(response);
+    return createPaginatedResult(
+      rows.map((row) => ZonePersistenceMapper.toDomain(row)),
+      total,
+      options?.pagination,
+    );
   }
 
   async findById(id: string): Promise<Zone | null> {

@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { resolvePagination } from '../../../../shared/pagination/pagination.util';
+import { PaginationQueryDto } from '../../../../shared/dto/pagination-query.dto';
 import { BRANCH_REPOSITORY } from '../../domain/repositories/branch.repository.interface';
 import type { IBranchRepository } from '../../domain/repositories/branch.repository.interface';
-import { Branch } from '../../domain/entities/branch.entity';
 
 @Injectable()
 export class ListBranchesUseCase {
@@ -10,7 +11,9 @@ export class ListBranchesUseCase {
     private readonly branchRepository: IBranchRepository,
   ) {}
 
-  async execute(): Promise<Branch[]> {
-    return this.branchRepository.findAll();
+  async execute(query?: PaginationQueryDto) {
+    return this.branchRepository.findAll({
+      pagination: query ? resolvePagination(query) : undefined,
+    });
   }
 }

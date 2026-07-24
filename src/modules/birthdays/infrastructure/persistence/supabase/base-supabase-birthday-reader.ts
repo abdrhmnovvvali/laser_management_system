@@ -1,7 +1,15 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { unwrap } from '../../../../../shared/supabase/supabase-response.util';
+import { readPaginatedRows } from '../../../../../shared/supabase/supabase-pagination.util';
+import {
+  createPaginatedResult,
+  toOffset,
+} from '../../../../../shared/pagination/pagination.util';
+import type { PaginatedResult } from '../../../../../shared/pagination/pagination.types';
 import { BirthdayCustomer } from '../../../domain/entities/birthday-customer.entity';
-import { IBirthdayReader } from '../../../domain/repositories/birthday-reader.interface';
+import {
+  BirthdayListOptions,
+  IBirthdayReader,
+} from '../../../domain/repositories/birthday-reader.interface';
 import {
   BirthdayPersistenceMapper,
   BirthdayRow,
@@ -16,9 +24,22 @@ const VIEW = 'todays_birthdays_view';
 export abstract class BaseSupabaseBirthdayReader implements IBirthdayReader {
   protected abstract readonly supabase: SupabaseClient;
 
-  async findTodaysBirthdays(): Promise<BirthdayCustomer[]> {
-    const response = await this.supabase.from(VIEW).select('*');
-    const rows = unwrap<BirthdayRow[]>(response) ?? [];
-    return rows.map((row) => BirthdayPersistenceMapper.toDomain(row));
+  async findTodaysBirthdays(
+    options?: BirthdayListOptions,
+  ): Promise<PaginatedResult<BirthdayCustomer>> {
+    let query = this.supabase.from(VIEW).select('*', { count: 'exact' });
+
+    if (options?.pagination) {
+      const { from, to } = toOffset(options.pagination);
+      query = query.range(from, to);
+    }
+
+    const response = await query;
+    const { rows, total } = readPaginatedRows<BirthdayRow>(response);
+    return createPaginatedResult(
+      rows.map((row) => BirthdayPersistenceMapper.toDomain(row)),
+      total,
+      options?.pagination,
+    );
   }
 }

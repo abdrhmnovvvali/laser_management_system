@@ -16,7 +16,7 @@ export interface PackageRow {
   price: number;
   created_at: string;
   package_translations?: PackageTranslationRow[] | null;
-  package_zones: { zone_id: string }[] | null;
+  package_zones?: { zone_id: string }[] | null;
 }
 
 export class PackagePersistenceMapper {

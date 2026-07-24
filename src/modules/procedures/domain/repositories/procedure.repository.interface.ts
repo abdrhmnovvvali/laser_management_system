@@ -1,3 +1,4 @@
+import { PaginatedResult, PaginationParams } from '../../../../shared/pagination/pagination.types';
 import { Procedure } from '../entities/procedure.entity';
 
 export const PROCEDURE_REPOSITORY = Symbol('IProcedureRepository');
@@ -29,10 +30,11 @@ export interface ProcedureFilters {
   dateFrom?: Date;
   dateTo?: Date;
   zoneIds?: string[];
+  pagination?: PaginationParams;
 }
 
 export interface IProcedureRepository {
-  findAll(filters: ProcedureFilters): Promise<Procedure[]>;
+  findAll(filters: ProcedureFilters): Promise<PaginatedResult<Procedure>>;
   findById(id: string): Promise<Procedure | null>;
   countByCustomerId(customerId: string): Promise<number>;
   create(data: CreateProcedureData): Promise<Procedure>;

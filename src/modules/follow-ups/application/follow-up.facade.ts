@@ -16,7 +16,11 @@ export class FollowUpFacade {
   ) {}
 
   async listUpcoming(days: number): Promise<FollowUp[]> {
-    return this.listUpcomingFollowUpsUseCase.execute(days);
+    const result = await this.listUpcomingFollowUpsUseCase.execute(
+      { days },
+      { skipPagination: true },
+    );
+    return result.items;
   }
 
   async listByStatus(status: FollowUpStatus): Promise<FollowUp[]> {

@@ -17,6 +17,10 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import {
+  createPaginatedResponseDto,
+  createPaginatedResponseDtoClass,
+} from '../../../../shared/dto/paginated-response.dto';
 import { RelationLookupService } from '../../../../shared/relations/relation-lookup.service';
 import { CreateCustomerUseCase } from '../../application/use-cases/create-customer.usecase';
 import { DeleteCustomerUseCase } from '../../application/use-cases/delete-customer.usecase';
@@ -28,6 +32,11 @@ import { CustomerResponseDto } from '../../application/dto/customer-response.dto
 import { ListCustomersQueryDto } from '../../application/dto/list-customers-query.dto';
 import { UpdateCustomerDto } from '../../application/dto/update-customer.dto';
 import { CustomerMapper } from '../../application/mappers/customer.mapper';
+
+const PaginatedCustomersResponseDto = createPaginatedResponseDtoClass(
+  CustomerResponseDto,
+  'PaginatedCustomersResponseDto',
+);
 
 @ApiTags('Customers')
 @ApiBearerAuth('bearerAuth')
@@ -46,15 +55,16 @@ export class CustomersController {
   @ApiOperation({
     summary: 'Müştərilərin siyahısı (filial/cins/nahiyə/axtarış üzrə filtr)',
   })
-  @ApiResponse({ status: 200, type: [CustomerResponseDto] })
-  async findAll(
-    @Query() query: ListCustomersQueryDto,
-  ): Promise<CustomerResponseDto[]> {
-    const customers = await this.listCustomersUseCase.execute(query);
+  @ApiResponse({ status: 200, type: PaginatedCustomersResponseDto })
+  async findAll(@Query() query: ListCustomersQueryDto) {
+    const result = await this.listCustomersUseCase.execute(query);
     const lookups = await this.relationLookupService.load({
-      branchIds: customers.map((customer) => customer.branchId),
+      branchIds: result.items.map((customer) => customer.branchId),
     });
-    return CustomerMapper.toResponseDtoList(customers, lookups);
+    return createPaginatedResponseDto(
+      result,
+      CustomerMapper.toResponseDtoList(result.items, lookups),
+    );
   }
 
   @Get(':id')

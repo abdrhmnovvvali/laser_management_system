@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { resolvePagination } from '../../../../shared/pagination/pagination.util';
 import { NOTE_REPOSITORY } from '../../domain/repositories/note.repository.interface';
 import type { INoteRepository } from '../../domain/repositories/note.repository.interface';
-import { Note } from '../../domain/entities/note.entity';
+import { ListNotesQueryDto } from '../dto/list-notes-query.dto';
 
 @Injectable()
 export class ListNotesByCustomerUseCase {
@@ -10,7 +11,15 @@ export class ListNotesByCustomerUseCase {
     private readonly noteRepository: INoteRepository,
   ) {}
 
-  async execute(customerId: string): Promise<Note[]> {
-    return this.noteRepository.findAllByCustomer(customerId);
+  async execute(
+    query: ListNotesQueryDto,
+    options?: { skipPagination?: boolean },
+  ) {
+    return this.noteRepository.findAllByCustomer({
+      customerId: query.customerId,
+      pagination: options?.skipPagination
+        ? undefined
+        : resolvePagination(query),
+    });
   }
 }

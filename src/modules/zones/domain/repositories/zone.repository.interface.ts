@@ -1,4 +1,8 @@
 import { Locale } from '../../../../shared/i18n/locale.enum';
+import {
+  PaginatedResult,
+  PaginationParams,
+} from '../../../../shared/pagination/pagination.types';
 import { Zone } from '../entities/zone.entity';
 
 export const ZONE_REPOSITORY = Symbol('IZoneRepository');
@@ -19,8 +23,13 @@ export interface UpdateZoneData {
   translations?: ZoneTranslationInput[];
 }
 
+export interface ZoneListOptions {
+  deviceId?: string;
+  pagination?: PaginationParams;
+}
+
 export interface IZoneRepository {
-  findAll(deviceId?: string): Promise<Zone[]>;
+  findAll(options?: ZoneListOptions): Promise<PaginatedResult<Zone>>;
   findById(id: string): Promise<Zone | null>;
   findByIds(ids: string[]): Promise<Zone[]>;
   findByNames(names: string[]): Promise<Zone[]>;

@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { resolvePagination } from '../../../../shared/pagination/pagination.util';
+import { PaginationQueryDto } from '../../../../shared/dto/pagination-query.dto';
 import { PACKAGE_REPOSITORY } from '../../domain/repositories/package.repository.interface';
 import type { IPackageRepository } from '../../domain/repositories/package.repository.interface';
-import { Package } from '../../domain/entities/package.entity';
 
 @Injectable()
 export class ListPackagesUseCase {
@@ -10,7 +11,15 @@ export class ListPackagesUseCase {
     private readonly packageRepository: IPackageRepository,
   ) {}
 
-  async execute(): Promise<Package[]> {
-    return this.packageRepository.findAll();
+  async execute(
+    query?: PaginationQueryDto,
+    options?: { skipPagination?: boolean },
+  ) {
+    return this.packageRepository.findAll({
+      pagination:
+        options?.skipPagination || !query
+          ? undefined
+          : resolvePagination(query),
+    });
   }
 }

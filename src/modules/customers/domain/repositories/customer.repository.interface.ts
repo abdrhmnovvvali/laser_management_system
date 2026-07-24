@@ -1,3 +1,4 @@
+import { PaginatedResult, PaginationParams } from '../../../../shared/pagination/pagination.types';
 import { Customer } from '../entities/customer.entity';
 import { Gender } from '../entities/gender.enum';
 
@@ -26,10 +27,12 @@ export interface CustomerFilters {
   gender?: Gender;
   zoneId?: string;
   search?: string;
+  pagination?: PaginationParams;
 }
 
 export interface ICustomerRepository {
-  findAll(filters: CustomerFilters): Promise<Customer[]>;
+  findAll(filters: CustomerFilters): Promise<PaginatedResult<Customer>>;
+  count(filters: Omit<CustomerFilters, 'pagination'>): Promise<number>;
   findById(id: string): Promise<Customer | null>;
   findByIds(ids: string[]): Promise<Customer[]>;
   create(data: CreateCustomerData): Promise<Customer>;

@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { resolvePagination } from '../../../../shared/pagination/pagination.util';
 import { FOLLOW_UP_REPOSITORY } from '../../domain/repositories/follow-up.repository.interface';
 import type { IFollowUpRepository } from '../../domain/repositories/follow-up.repository.interface';
-import { FollowUp } from '../../domain/entities/follow-up.entity';
+import { ListFollowUpsQueryDto } from '../dto/list-follow-ups-query.dto';
 
 @Injectable()
 export class ListFollowUpsByCustomerUseCase {
@@ -10,7 +11,15 @@ export class ListFollowUpsByCustomerUseCase {
     private readonly followUpRepository: IFollowUpRepository,
   ) {}
 
-  async execute(customerId: string): Promise<FollowUp[]> {
-    return this.followUpRepository.findAllByCustomer(customerId);
+  async execute(
+    query: ListFollowUpsQueryDto,
+    options?: { skipPagination?: boolean },
+  ) {
+    return this.followUpRepository.findAllByCustomer({
+      customerId: query.customerId,
+      pagination: options?.skipPagination
+        ? undefined
+        : resolvePagination(query),
+    });
   }
 }

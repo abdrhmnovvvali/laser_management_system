@@ -20,10 +20,17 @@ export class ProcedureFacade {
   }
 
   async listByCustomer(customerId: string): Promise<Procedure[]> {
-    return this.listProceduresUseCase.execute({ customerId });
+    const result = await this.listProceduresUseCase.execute(
+      { customerId },
+      { skipPagination: true },
+    );
+    return result.items;
   }
 
   async list(filters: ProcedureFilters): Promise<Procedure[]> {
-    return this.listProceduresUseCase.execute(filters);
+    const result = await this.listProceduresUseCase.execute(filters, {
+      skipPagination: true,
+    });
+    return result.items;
   }
 }

@@ -12,6 +12,10 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import {
+  createPaginatedResponseDto,
+  createPaginatedResponseDtoClass,
+} from '../../../../shared/dto/paginated-response.dto';
 import { RelationLookupService } from '../../../../shared/relations/relation-lookup.service';
 import { ListNotificationsUseCase } from '../../application/use-cases/list-notifications.usecase';
 import { MarkNotificationAsReadUseCase } from '../../application/use-cases/mark-notification-as-read.usecase';
@@ -20,6 +24,11 @@ import { NotificationRealtimeInfoDto } from '../../application/dto/notification-
 import { NotificationResponseDto } from '../../application/dto/notification-response.dto';
 import { NotificationMapper } from '../../application/mappers/notification.mapper';
 import { NOTIFICATION_CREATED_EVENT } from '../realtime/notification-realtime.constants';
+
+const PaginatedNotificationsResponseDto = createPaginatedResponseDtoClass(
+  NotificationResponseDto,
+  'PaginatedNotificationsResponseDto',
+);
 
 @ApiTags('Notifications')
 @ApiBearerAuth('bearerAuth')
@@ -36,15 +45,16 @@ export class NotificationsController {
     summary:
       'Bildirişlərin siyahısı (oxunma/tip üzrə filtr). message Accept-Language (az|en|ru) üzrə gəlir; translations həmişə 3 dildedir',
   })
-  @ApiResponse({ status: 200, type: [NotificationResponseDto] })
-  async findAll(
-    @Query() query: ListNotificationsQueryDto,
-  ): Promise<NotificationResponseDto[]> {
-    const notifications = await this.listNotificationsUseCase.execute(query);
+  @ApiResponse({ status: 200, type: PaginatedNotificationsResponseDto })
+  async findAll(@Query() query: ListNotificationsQueryDto) {
+    const result = await this.listNotificationsUseCase.execute(query);
     const lookups = await this.relationLookupService.load({
-      customerIds: notifications.map((notification) => notification.customerId),
+      customerIds: result.items.map((notification) => notification.customerId),
     });
-    return NotificationMapper.toResponseDtoList(notifications, lookups);
+    return createPaginatedResponseDto(
+      result,
+      NotificationMapper.toResponseDtoList(result.items, lookups),
+    );
   }
 
   @Get('realtime')

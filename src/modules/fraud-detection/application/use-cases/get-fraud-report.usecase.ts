@@ -1,10 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { FraudReportItem } from '../../domain/entities/fraud-report-item.entity';
+import { resolvePagination } from '../../../../shared/pagination/pagination.util';
 import { FRAUD_REPORT_REPOSITORY } from '../../domain/repositories/fraud-report.repository.interface';
 import type {
   FraudReportFilters,
   IFraudReportRepository,
 } from '../../domain/repositories/fraud-report.repository.interface';
+import { FraudReportQueryDto } from '../dto/fraud-report-query.dto';
 
 @Injectable()
 export class GetFraudReportUseCase {
@@ -13,7 +14,17 @@ export class GetFraudReportUseCase {
     private readonly fraudReportRepository: IFraudReportRepository,
   ) {}
 
-  async execute(filters: FraudReportFilters): Promise<FraudReportItem[]> {
+  async execute(
+    query: FraudReportQueryDto,
+    options?: { skipPagination?: boolean },
+  ) {
+    const filters: FraudReportFilters = {
+      deviceId: query.deviceId,
+      branchId: query.branchId,
+      pagination: options?.skipPagination
+        ? undefined
+        : resolvePagination(query),
+    };
     return this.fraudReportRepository.findMismatches(filters);
   }
 }

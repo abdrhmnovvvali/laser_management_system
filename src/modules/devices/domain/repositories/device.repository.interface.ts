@@ -1,4 +1,8 @@
 import { Locale } from '../../../../shared/i18n/locale.enum';
+import {
+  PaginatedResult,
+  PaginationParams,
+} from '../../../../shared/pagination/pagination.types';
 import { Device } from '../entities/device.entity';
 
 export const DEVICE_REPOSITORY = Symbol('IDeviceRepository');
@@ -19,8 +23,13 @@ export interface UpdateDeviceData {
   translations?: DeviceTranslationInput[];
 }
 
+export interface DeviceListOptions {
+  branchId?: string;
+  pagination?: PaginationParams;
+}
+
 export interface IDeviceRepository {
-  findAll(branchId?: string): Promise<Device[]>;
+  findAll(options?: DeviceListOptions): Promise<PaginatedResult<Device>>;
   findById(id: string): Promise<Device | null>;
   findByIds(ids: string[]): Promise<Device[]>;
   create(data: CreateDeviceData): Promise<Device>;

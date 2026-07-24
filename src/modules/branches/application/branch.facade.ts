@@ -20,7 +20,8 @@ export class BranchFacade {
   }
 
   async listAll(): Promise<Branch[]> {
-    return this.listBranchesUseCase.execute();
+    const result = await this.listBranchesUseCase.execute();
+    return result.items;
   }
 
   async exists(branchId: string): Promise<boolean> {
@@ -41,9 +42,9 @@ export class BranchFacade {
       return new Map();
     }
 
-    const branches = await this.listBranchesUseCase.execute();
+    const result = await this.listBranchesUseCase.execute();
     const names = new Map<string, string>();
-    for (const branch of branches) {
+    for (const branch of result.items) {
       if (uniqueIdsList.includes(branch.id)) {
         names.set(branch.id, branch.name);
       }

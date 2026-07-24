@@ -8,6 +8,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -15,6 +16,11 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import {
+  createPaginatedResponseDto,
+  createPaginatedResponseDtoClass,
+} from '../../../../shared/dto/paginated-response.dto';
+import { PaginationQueryDto } from '../../../../shared/dto/pagination-query.dto';
 import { CurrentUser } from '../../../../shared/decorators/current-user.decorator';
 import { Public } from '../../../../shared/decorators/public.decorator';
 import { Roles } from '../../../../shared/decorators/roles.decorator';
@@ -33,6 +39,11 @@ import { LoginResponseDto } from '../../application/dto/login-response.dto';
 import { RefreshTokenDto } from '../../application/dto/refresh-token.dto';
 import { StaffUserResponseDto } from '../../application/dto/staff-user-response.dto';
 import { AuthMapper } from '../../application/mappers/auth.mapper';
+
+const PaginatedStaffUsersResponseDto = createPaginatedResponseDtoClass(
+  StaffUserResponseDto,
+  'PaginatedStaffUsersResponseDto',
+);
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -96,13 +107,16 @@ export class AuthController {
   @ApiOperation({
     summary: 'Bütün filial işçisi/admin hesablarının siyahısı (yalnız admin)',
   })
-  @ApiResponse({ status: 200, type: [StaffUserResponseDto] })
-  async listStaffUsers(): Promise<StaffUserResponseDto[]> {
-    const staffUsers = await this.listStaffUsersUseCase.execute();
+  @ApiResponse({ status: 200, type: PaginatedStaffUsersResponseDto })
+  async listStaffUsers(@Query() query: PaginationQueryDto) {
+    const result = await this.listStaffUsersUseCase.execute(query);
     const lookups = await this.relationLookupService.load({
-      branchIds: staffUsers.map((staffUser) => staffUser.branchId),
+      branchIds: result.items.map((staffUser) => staffUser.branchId),
     });
-    return AuthMapper.toStaffUserResponseDtoList(staffUsers, lookups);
+    return createPaginatedResponseDto(
+      result,
+      AuthMapper.toStaffUserResponseDtoList(result.items, lookups),
+    );
   }
 
   @ApiBearerAuth('bearerAuth')

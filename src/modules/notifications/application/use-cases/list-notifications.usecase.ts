@@ -1,10 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { resolvePagination } from '../../../../shared/pagination/pagination.util';
 import { NOTIFICATION_REPOSITORY } from '../../domain/repositories/notification.repository.interface';
-import type {
-  INotificationRepository,
-  NotificationFilters,
-} from '../../domain/repositories/notification.repository.interface';
-import { Notification } from '../../domain/entities/notification.entity';
+import type { INotificationRepository } from '../../domain/repositories/notification.repository.interface';
+import { ListNotificationsQueryDto } from '../dto/list-notifications-query.dto';
 
 @Injectable()
 export class ListNotificationsUseCase {
@@ -13,7 +11,16 @@ export class ListNotificationsUseCase {
     private readonly notificationRepository: INotificationRepository,
   ) {}
 
-  async execute(filters: NotificationFilters): Promise<Notification[]> {
-    return this.notificationRepository.findAll(filters);
+  async execute(
+    query: ListNotificationsQueryDto,
+    options?: { skipPagination?: boolean },
+  ) {
+    return this.notificationRepository.findAll({
+      isRead: query.isRead,
+      type: query.type,
+      pagination: options?.skipPagination
+        ? undefined
+        : resolvePagination(query),
+    });
   }
 }

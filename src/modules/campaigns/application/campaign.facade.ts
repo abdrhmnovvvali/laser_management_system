@@ -13,6 +13,9 @@ export class CampaignFacade {
   ) {}
 
   async listActive(): Promise<Campaign[]> {
-    return this.listActiveCampaignsUseCase.execute();
+    const result = await this.listActiveCampaignsUseCase.execute(undefined, {
+      skipPagination: true,
+    });
+    return result.items;
   }
 }

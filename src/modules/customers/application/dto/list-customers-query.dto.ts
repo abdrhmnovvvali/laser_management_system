@@ -1,8 +1,9 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
+import { PaginationQueryDto } from '../../../../shared/dto/pagination-query.dto';
 import { Gender } from '../../domain/entities/gender.enum';
 
-export class ListCustomersQueryDto {
+export class ListCustomersQueryDto extends PaginationQueryDto {
   @ApiPropertyOptional({ description: 'Filial üzrə filtr' })
   @IsOptional()
   @IsUUID()

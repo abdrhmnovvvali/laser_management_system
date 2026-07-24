@@ -1,7 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { resolvePagination } from '../../../../shared/pagination/pagination.util';
 import { DEVICE_REPOSITORY } from '../../domain/repositories/device.repository.interface';
 import type { IDeviceRepository } from '../../domain/repositories/device.repository.interface';
-import { Device } from '../../domain/entities/device.entity';
+import { ListDevicesQueryDto } from '../dto/list-devices-query.dto';
 
 @Injectable()
 export class ListDevicesUseCase {
@@ -10,7 +11,15 @@ export class ListDevicesUseCase {
     private readonly deviceRepository: IDeviceRepository,
   ) {}
 
-  async execute(branchId?: string): Promise<Device[]> {
-    return this.deviceRepository.findAll(branchId);
+  async execute(
+    query: ListDevicesQueryDto,
+    options?: { skipPagination?: boolean },
+  ) {
+    return this.deviceRepository.findAll({
+      branchId: query.branchId,
+      pagination: options?.skipPagination
+        ? undefined
+        : resolvePagination(query),
+    });
   }
 }

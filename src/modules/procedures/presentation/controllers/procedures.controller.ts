@@ -17,6 +17,10 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import {
+  createPaginatedResponseDto,
+  createPaginatedResponseDtoClass,
+} from '../../../../shared/dto/paginated-response.dto';
 import { RelationLookupService } from '../../../../shared/relations/relation-lookup.service';
 import { collectProcedureRelationIds } from '../../../../shared/relations/relation-name.util';
 import { CreateProcedureUseCase } from '../../application/use-cases/create-procedure.usecase';
@@ -29,6 +33,11 @@ import { ListProceduresQueryDto } from '../../application/dto/list-procedures-qu
 import { ProcedureResponseDto } from '../../application/dto/procedure-response.dto';
 import { UpdateProcedureDto } from '../../application/dto/update-procedure.dto';
 import { ProcedureMapper } from '../../application/mappers/procedure.mapper';
+
+const PaginatedProceduresResponseDto = createPaginatedResponseDtoClass(
+  ProcedureResponseDto,
+  'PaginatedProceduresResponseDto',
+);
 
 @ApiTags('Procedures')
 @ApiBearerAuth('bearerAuth')
@@ -48,15 +57,16 @@ export class ProceduresController {
     summary:
       'Prosedurların siyahısı (müştəri/cihaz/nahiyə adı üzrə filtr)',
   })
-  @ApiResponse({ status: 200, type: [ProcedureResponseDto] })
-  async findAll(
-    @Query() query: ListProceduresQueryDto,
-  ): Promise<ProcedureResponseDto[]> {
-    const procedures = await this.listProceduresUseCase.execute(query);
+  @ApiResponse({ status: 200, type: PaginatedProceduresResponseDto })
+  async findAll(@Query() query: ListProceduresQueryDto) {
+    const result = await this.listProceduresUseCase.execute(query);
     const lookups = await this.relationLookupService.load(
-      collectProcedureRelationIds(procedures),
+      collectProcedureRelationIds(result.items),
     );
-    return ProcedureMapper.toResponseDtoList(procedures, lookups);
+    return createPaginatedResponseDto(
+      result,
+      ProcedureMapper.toResponseDtoList(result.items, lookups),
+    );
   }
 
   @Get(':id')
