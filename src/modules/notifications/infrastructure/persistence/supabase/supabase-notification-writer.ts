@@ -8,6 +8,7 @@ import {
   INotificationWriter,
 } from '../../../domain/repositories/notification-writer.interface';
 import { NotificationRealtimeService } from '../../../application/notification-realtime.service';
+import { NotificationMessages } from '../../../application/notification-messages';
 import {
   NotificationPersistenceMapper,
   NotificationRow,
@@ -25,12 +26,17 @@ export class SupabaseNotificationWriter implements INotificationWriter {
       p_type: data.type,
       p_customer_id: data.customerId,
       p_procedure_id: data.procedureId ?? null,
-      p_message: data.message,
+      p_messages: NotificationMessages.toRpcPayload(data.translations),
     });
 
-    const notification = NotificationPersistenceMapper.toDomain(
-      unwrapOrThrow<NotificationRow>(response),
-    );
+    const row = unwrapOrThrow<NotificationRow>(response);
+    const notification = NotificationPersistenceMapper.toDomain({
+      ...row,
+      notification_translations: data.translations.map((item) => ({
+        locale: item.locale,
+        message: item.message,
+      })),
+    });
 
     await this.notificationRealtimeService.broadcastCreated(notification);
 

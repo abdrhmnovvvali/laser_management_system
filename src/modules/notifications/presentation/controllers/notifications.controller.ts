@@ -32,7 +32,10 @@ export class NotificationsController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Bildirişlərin siyahısı (oxunma/tip üzrə filtr)' })
+  @ApiOperation({
+    summary:
+      'Bildirişlərin siyahısı (oxunma/tip üzrə filtr). message Accept-Language (az|en|ru) üzrə gəlir; translations həmişə 3 dildedir',
+  })
   @ApiResponse({ status: 200, type: [NotificationResponseDto] })
   async findAll(
     @Query() query: ListNotificationsQueryDto,

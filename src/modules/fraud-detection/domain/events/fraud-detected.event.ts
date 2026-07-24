@@ -12,7 +12,7 @@ export class FraudDetectedEvent extends DomainEvent {
   constructor(
     public readonly procedureId: string,
     public readonly customerId: string,
-    public readonly message: string,
+    public readonly shotDifference: number,
   ) {
     super();
   }

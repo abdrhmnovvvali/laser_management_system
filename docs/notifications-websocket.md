@@ -142,6 +142,7 @@ Response HTTP `GET /notifications` ilə eyni formattadır:
 
 ```ts
 type NotificationType = 'fraud' | 'follow_up' | 'birthday';
+type Locale = 'az' | 'en' | 'ru';
 
 interface NotificationDto {
   id: string;
@@ -149,7 +150,8 @@ interface NotificationDto {
   customerId: string | null;
   customerName: string | null;
   procedureId: string | null; // əsasən fraud üçün dolu olur
-  message: string;
+  message: string; // WS-də adətən az (default); REST-də Accept-Language-ə uyğun
+  translations: Array<{ locale: Locale; message: string }>; // həmişə az+en+ru
   isRead: boolean; // yeni yaradılanda adətən false
   createdAt: string; // ISO date
 }
@@ -165,6 +167,20 @@ interface NotificationDto {
   "customerName": "Vahid Hesenzade",
   "procedureId": "818d0d68-cf32-4e72-bdcb-2c975565491c",
   "message": "Faktiki atış sayı bəyan edilən sayı 1000 vahid üstələyir",
+  "translations": [
+    {
+      "locale": "az",
+      "message": "Faktiki atış sayı bəyan edilən sayı 1000 vahid üstələyir"
+    },
+    {
+      "locale": "en",
+      "message": "Actual shot count exceeds declared count by 1000"
+    },
+    {
+      "locale": "ru",
+      "message": "Фактическое число выстрелов превышает заявленное на 1000"
+    }
+  ],
   "isRead": false,
   "createdAt": "2026-07-14T11:20:00.000Z"
 }
@@ -173,6 +189,8 @@ interface NotificationDto {
 Qeyd:
 - `type=fraud` olanda `procedureId` ayrı field-dir
 - `message` içində procedure id göndərilmir
+- WS event-də UI dilini `translations`dan seçin (`Accept-Language` socket-də yoxdur)
+- REST `GET /notifications` üçün `Accept-Language: az|en|ru` göndərin — `message` aktiv dilə uyğun gəlir
 
 ---
 

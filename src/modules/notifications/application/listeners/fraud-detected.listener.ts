@@ -4,6 +4,7 @@ import { FraudDetectedEvent } from '../../../fraud-detection/domain/events/fraud
 import { NotificationType } from '../../domain/entities/notification-type.enum';
 import { NOTIFICATION_WRITER } from '../../domain/repositories/notification-writer.interface';
 import type { INotificationWriter } from '../../domain/repositories/notification-writer.interface';
+import { NotificationMessages } from '../notification-messages';
 
 @Injectable()
 export class FraudDetectedListener {
@@ -18,7 +19,7 @@ export class FraudDetectedListener {
       type: NotificationType.FRAUD,
       customerId: event.customerId,
       procedureId: event.procedureId,
-      message: event.message,
+      translations: NotificationMessages.fraud(event.shotDifference),
     });
   }
 }

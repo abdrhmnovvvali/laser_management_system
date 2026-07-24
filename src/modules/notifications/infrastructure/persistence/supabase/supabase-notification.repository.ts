@@ -16,6 +16,8 @@ import {
 } from '../../mappers/notification-persistence.mapper';
 
 const TABLE = 'notifications';
+const SELECT_WITH_TRANSLATIONS =
+  '*, notification_translations(locale, message)';
 
 @Injectable()
 export class SupabaseNotificationRepository implements INotificationRepository {
@@ -26,7 +28,7 @@ export class SupabaseNotificationRepository implements INotificationRepository {
   async findAll(filters: NotificationFilters): Promise<Notification[]> {
     let query = this.supabase
       .from(TABLE)
-      .select('*')
+      .select(SELECT_WITH_TRANSLATIONS)
       .order('created_at', { ascending: false });
 
     if (filters.isRead !== undefined) {
@@ -44,7 +46,7 @@ export class SupabaseNotificationRepository implements INotificationRepository {
   async findById(id: string): Promise<Notification | null> {
     const response = await this.supabase
       .from(TABLE)
-      .select('*')
+      .select(SELECT_WITH_TRANSLATIONS)
       .eq('id', id)
       .maybeSingle();
 
@@ -57,7 +59,7 @@ export class SupabaseNotificationRepository implements INotificationRepository {
       .from(TABLE)
       .update({ is_read: true })
       .eq('id', id)
-      .select('*')
+      .select(SELECT_WITH_TRANSLATIONS)
       .single();
 
     return NotificationPersistenceMapper.toDomain(

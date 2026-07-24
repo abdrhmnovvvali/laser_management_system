@@ -27,10 +27,7 @@ export class NotifyTodaysBirthdaysUseCase {
 
     for (const customer of birthdays) {
       this.eventPublisher.publish(
-        new BirthdayFoundEvent(
-          customer.customerId,
-          `Bu gün ${customer.fullName} adlı müştərinin ad günüdür`,
-        ),
+        new BirthdayFoundEvent(customer.customerId, customer.fullName),
       );
     }
 

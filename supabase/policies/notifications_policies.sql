@@ -48,3 +48,18 @@ create policy "notifications_admin_delete"
 on public.notifications
 for delete
 using (public.is_admin());
+
+-- notification_translations: parent notification ilə eyni görünürlük
+create policy "notification_translations_select"
+on public.notification_translations
+for select
+using (
+  public.is_admin()
+  or exists (
+    select 1
+    from public.notifications n
+    join public.customers c on c.id = n.customer_id
+    where n.id = notification_translations.notification_id
+      and c.branch_id = public.current_user_branch_id()
+  )
+);

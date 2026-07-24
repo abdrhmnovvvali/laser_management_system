@@ -4,6 +4,7 @@ import { BirthdayFoundEvent } from '../../../birthdays/domain/events/birthday-fo
 import { NotificationType } from '../../domain/entities/notification-type.enum';
 import { NOTIFICATION_WRITER } from '../../domain/repositories/notification-writer.interface';
 import type { INotificationWriter } from '../../domain/repositories/notification-writer.interface';
+import { NotificationMessages } from '../notification-messages';
 
 @Injectable()
 export class BirthdayFoundListener {
@@ -17,7 +18,7 @@ export class BirthdayFoundListener {
     await this.notificationWriter.create({
       type: NotificationType.BIRTHDAY,
       customerId: event.customerId,
-      message: event.message,
+      translations: NotificationMessages.birthday(event.customerFullName),
     });
   }
 }

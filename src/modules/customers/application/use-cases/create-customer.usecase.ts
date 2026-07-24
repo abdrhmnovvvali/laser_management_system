@@ -35,7 +35,7 @@ export class CreateCustomerUseCase {
       this.eventPublisher.publish(
         new BirthdayFoundEvent(
           customer.id,
-          `Bu gün ${customer.firstName} ${customer.lastName} adlı müştərinin ad günüdür`,
+          `${customer.firstName} ${customer.lastName}`.trim(),
         ),
       );
     }

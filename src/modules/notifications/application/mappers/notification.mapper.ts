@@ -18,20 +18,28 @@ export class NotificationMapper {
     dto.customerId = notification.customerId;
     dto.customerName = lookupName(lookups.customers, notification.customerId);
     dto.procedureId = notification.procedureId;
-    dto.message = this.toPublicMessage(notification);
+    dto.message = this.toPublicMessage(
+      notification.type,
+      notification.message,
+    );
+    dto.translations = notification.translations.map((item) => ({
+      locale: item.locale,
+      message: this.toPublicMessage(notification.type, item.message),
+    }));
     dto.isRead = notification.isRead;
     dto.createdAt = notification.createdAt;
     return dto;
   }
 
-  private static toPublicMessage(notification: Notification): string {
-    if (notification.type !== NotificationType.FRAUD) {
-      return notification.message;
+  private static toPublicMessage(
+    type: NotificationType,
+    message: string,
+  ): string {
+    if (type !== NotificationType.FRAUD) {
+      return message;
     }
 
-    return notification.message
-      .replace(/\s*\(prosedur:\s*[0-9a-f-]{36}\)$/i, '')
-      .trim();
+    return message.replace(/\s*\(prosedur:\s*[0-9a-f-]{36}\)$/i, '').trim();
   }
 
   static toResponseDtoList(

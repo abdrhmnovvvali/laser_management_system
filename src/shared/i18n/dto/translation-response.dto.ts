@@ -38,3 +38,11 @@ export class CampaignTranslationResponseDto {
   @ApiPropertyOptional({ nullable: true })
   description: string | null;
 }
+
+export class NotificationTranslationResponseDto {
+  @ApiProperty({ enum: Locale })
+  locale: Locale;
+
+  @ApiProperty()
+  message: string;
+}

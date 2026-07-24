@@ -10,7 +10,7 @@ export class BirthdayFoundEvent extends DomainEvent {
 
   constructor(
     public readonly customerId: string,
-    public readonly message: string,
+    public readonly customerFullName: string,
   ) {
     super();
   }

@@ -633,4 +633,30 @@ Create/Update adətən **admin** roluna bağlıdır.
 5. Save zamanı 3 dilli `translations` göndərir
 6. Dil dəyişəndə katalog data-nı refetch edir
 
+---
+
+## 15. Notifications i18n
+
+Bildiriş mesajları da 3 dildə saxlanır (`az` / `en` / `ru`).
+
+| Endpoint / kanal | `message` | `translations` |
+|---|---|---|
+| `GET /notifications` | `Accept-Language`-ə uyğun | həmişə 3 dil |
+| `PATCH /notifications/:id/read` | `Accept-Language`-ə uyğun | həmişə 3 dil |
+| WS `notification.created` | default `az` | UI dilini buradan seç |
+
+Mövcud notificationlar migration zamanı yalnız `az` alır; `en`/`ru` yoxdursa fallback `az`-dır. Yeni yaradılanlar (fraud / birthday / follow_up) hər 3 dildə yazılır.
+
+Frontend:
+
+```ts
+// REST
+headers: { 'Accept-Language': currentLocale }
+
+// WS
+const text =
+  notification.translations.find((t) => t.locale === currentLocale)?.message
+  ?? notification.message;
+```
+
 Bu qədər — frontend bu sənədlə katalog i18n-i tam inteqrasiya edə bilər.

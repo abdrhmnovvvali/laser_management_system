@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { NotificationTranslationResponseDto } from '../../../../shared/i18n/dto/translation-response.dto';
 import { NotificationType } from '../../domain/entities/notification-type.enum';
 
 export class NotificationResponseDto {
@@ -17,8 +18,13 @@ export class NotificationResponseDto {
   @ApiProperty({ nullable: true, description: 'Fraud bildirişi üçün prosedur ID-si' })
   procedureId: string | null;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: 'Accept-Language-ə uyğun lokalizə olunmuş mesaj',
+  })
   message: string;
+
+  @ApiProperty({ type: [NotificationTranslationResponseDto] })
+  translations: NotificationTranslationResponseDto[];
 
   @ApiProperty()
   isRead: boolean;
