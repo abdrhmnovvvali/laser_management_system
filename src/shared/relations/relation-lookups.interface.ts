@@ -6,6 +6,7 @@ export interface RelationLookups {
   customers: NameLookup;
   devices: NameLookup;
   packages: NameLookup;
+  campaigns: NameLookup;
 }
 
 export interface RelationIds {
@@ -14,6 +15,7 @@ export interface RelationIds {
   customerIds?: Iterable<string | null | undefined>;
   deviceIds?: Iterable<string | null | undefined>;
   packageIds?: Iterable<string | null | undefined>;
+  campaignIds?: Iterable<string | null | undefined>;
 }
 
 export const EMPTY_RELATION_LOOKUPS: RelationLookups = {
@@ -22,4 +24,5 @@ export const EMPTY_RELATION_LOOKUPS: RelationLookups = {
   customers: new Map(),
   devices: new Map(),
   packages: new Map(),
+  campaigns: new Map(),
 };

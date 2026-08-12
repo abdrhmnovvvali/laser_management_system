@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsDateString, IsEnum, IsOptional, IsUUID } from 'class-validator';
+import {
+  IsArray,
+  IsDateString,
+  IsEnum,
+  IsOptional,
+  IsUUID,
+} from 'class-validator';
 import { FollowUpStatus } from '../../domain/entities/follow-up-status.enum';
 
 export class CreateFollowUpDto {
@@ -12,13 +18,15 @@ export class CreateFollowUpDto {
   plannedDate: string;
 
   @ApiProperty({
-    example: 'a1b2c3d4-...',
+    example: ['a1b2...', 'c3d4...'],
+    type: [String],
     required: false,
-    description: 'Planlaşdırılan nahiyə',
+    description: 'Planlaşdırılan nahiyələr',
   })
   @IsOptional()
-  @IsUUID()
-  zoneId?: string;
+  @IsArray()
+  @IsUUID('4', { each: true })
+  zoneIds?: string[];
 
   @ApiProperty({
     enum: FollowUpStatus,

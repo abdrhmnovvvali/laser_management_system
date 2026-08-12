@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { CampaignsModule } from '../../campaigns/presentation/campaigns.module';
 import { CustomersModule } from '../../customers/presentation/customers.module';
 import { DevicesModule } from '../../devices/presentation/devices.module';
 import { PackagesModule } from '../../packages/presentation/packages.module';
@@ -14,7 +15,13 @@ import { UpdateProcedureUseCase } from '../application/use-cases/update-procedur
 import { ProceduresController } from './controllers/procedures.controller';
 
 @Module({
-  imports: [CustomersModule, DevicesModule, PackagesModule, ZonesModule],
+  imports: [
+    CustomersModule,
+    DevicesModule,
+    PackagesModule,
+    ZonesModule,
+    CampaignsModule,
+  ],
   controllers: [ProceduresController],
   providers: [
     ListProceduresUseCase,

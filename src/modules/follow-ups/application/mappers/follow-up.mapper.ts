@@ -2,7 +2,7 @@ import {
   EMPTY_RELATION_LOOKUPS,
   RelationLookups,
 } from '../../../../shared/relations/relation-lookups.interface';
-import { lookupName } from '../../../../shared/relations/relation-name.util';
+import { toNamedEntities } from '../../../../shared/relations/relation-name.util';
 import { FollowUp } from '../../domain/entities/follow-up.entity';
 import { FollowUpResponseDto } from '../dto/follow-up-response.dto';
 
@@ -14,11 +14,11 @@ export class FollowUpMapper {
     const dto = new FollowUpResponseDto();
     dto.id = followUp.id;
     dto.customerId = followUp.customerId;
-    dto.customerName = lookupName(lookups.customers, followUp.customerId);
+    dto.customerName = lookups.customers.get(followUp.customerId) ?? null;
     dto.plannedDate = followUp.plannedDate;
     dto.status = followUp.status;
-    dto.zoneId = followUp.zoneId;
-    dto.zoneName = lookupName(lookups.zones, followUp.zoneId);
+    dto.zoneIds = followUp.zoneIds;
+    dto.zones = toNamedEntities(followUp.zoneIds, lookups.zones);
     dto.createdAt = followUp.createdAt;
     return dto;
   }

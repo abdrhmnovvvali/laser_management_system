@@ -23,6 +23,12 @@ export class ProcedureResponseDto {
   @ApiProperty({ nullable: true, description: 'Paketin adı' })
   packageName: string | null;
 
+  @ApiProperty({ nullable: true })
+  campaignId: string | null;
+
+  @ApiProperty({ nullable: true, description: 'Kampaniyanın adı' })
+  campaignName: string | null;
+
   @ApiProperty({ type: [String] })
   zoneIds: string[];
 

@@ -29,6 +29,15 @@ export class CreateProcedureDto {
   packageId?: string;
 
   @ApiProperty({
+    example: 'a1b2c3d4-...',
+    required: false,
+    description: 'İstəyə bağlı kampaniya — aktivdirsə endirim qiymətə tətbiq olunur',
+  })
+  @IsOptional()
+  @IsUUID()
+  campaignId?: string;
+
+  @ApiProperty({
     example: ['a1b2...', 'c3d4...'],
     type: [String],
     required: false,

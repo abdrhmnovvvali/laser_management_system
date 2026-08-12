@@ -26,6 +26,8 @@ import {
 } from '../../mappers/follow-up-persistence.mapper';
 
 const TABLE = 'follow_ups';
+const JUNCTION_TABLE = 'follow_up_zones';
+const SELECT_WITH_ZONES = '*, follow_up_zones(zone_id)';
 
 function toDateOnly(date: Date): string {
   return date.toISOString().slice(0, 10);
@@ -37,14 +39,20 @@ export class SupabaseFollowUpRepository implements IFollowUpRepository {
     @Inject(SUPABASE_CLIENT) private readonly supabase: SupabaseClient,
   ) {}
 
-  async findAllByCustomer(
+  async findAll(
     options: FollowUpListOptions,
   ): Promise<PaginatedResult<FollowUp>> {
     let query = this.supabase
       .from(TABLE)
-      .select('*', { count: 'exact' })
-      .eq('customer_id', options.customerId)
+      .select(SELECT_WITH_ZONES, { count: 'exact' })
       .order('planned_date', { ascending: true });
+
+    if (options.customerId) {
+      query = query.eq('customer_id', options.customerId);
+    }
+    if (options.status) {
+      query = query.eq('status', options.status);
+    }
 
     if (options.pagination) {
       const { from, to } = toOffset(options.pagination);
@@ -63,7 +71,7 @@ export class SupabaseFollowUpRepository implements IFollowUpRepository {
   async findById(id: string): Promise<FollowUp | null> {
     const response = await this.supabase
       .from(TABLE)
-      .select('*')
+      .select(SELECT_WITH_ZONES)
       .eq('id', id)
       .maybeSingle();
 
@@ -80,7 +88,7 @@ export class SupabaseFollowUpRepository implements IFollowUpRepository {
 
     let query = this.supabase
       .from(TABLE)
-      .select('*', { count: 'exact' })
+      .select(SELECT_WITH_ZONES, { count: 'exact' })
       .eq('status', FollowUpStatus.PENDING)
       .gte('planned_date', toDateOnly(today))
       .lte('planned_date', toDateOnly(until))
@@ -103,7 +111,7 @@ export class SupabaseFollowUpRepository implements IFollowUpRepository {
   async findByStatus(status: FollowUpStatus): Promise<FollowUp[]> {
     const response = await this.supabase
       .from(TABLE)
-      .select('*')
+      .select(SELECT_WITH_ZONES)
       .eq('status', status)
       .order('planned_date', { ascending: true });
 
@@ -118,14 +126,18 @@ export class SupabaseFollowUpRepository implements IFollowUpRepository {
         customer_id: data.customerId,
         planned_date: toDateOnly(data.plannedDate),
         status: data.status ?? FollowUpStatus.PENDING,
-        zone_id: data.zoneId ?? null,
       })
-      .select('*')
+      .select('id')
       .single();
 
-    return FollowUpPersistenceMapper.toDomain(
-      unwrapOrThrow<FollowUpRow>(response),
-    );
+    const created = unwrapOrThrow<{ id: string }>(response);
+    await this.replaceZoneLinks(created.id, data.zoneIds ?? []);
+
+    const followUp = await this.findById(created.id);
+    if (!followUp) {
+      throw new Error('Follow-up create sonrası tapılmadı');
+    }
+    return followUp;
   }
 
   async update(id: string, data: UpdateFollowUpData): Promise<FollowUp> {
@@ -134,22 +146,53 @@ export class SupabaseFollowUpRepository implements IFollowUpRepository {
       payload.planned_date = toDateOnly(data.plannedDate);
     }
     if (data.status !== undefined) payload.status = data.status;
-    if (data.zoneId !== undefined) payload.zone_id = data.zoneId;
 
-    const response = await this.supabase
-      .from(TABLE)
-      .update(payload)
-      .eq('id', id)
-      .select('*')
-      .single();
+    if (Object.keys(payload).length > 0) {
+      const response = await this.supabase
+        .from(TABLE)
+        .update(payload)
+        .eq('id', id)
+        .select('id')
+        .single();
+      unwrapOrThrow(response);
+    }
 
-    return FollowUpPersistenceMapper.toDomain(
-      unwrapOrThrow<FollowUpRow>(response),
-    );
+    if (data.zoneIds !== undefined) {
+      await this.replaceZoneLinks(id, data.zoneIds);
+    }
+
+    const followUp = await this.findById(id);
+    if (!followUp) {
+      throw new Error('Follow-up update sonrası tapılmadı');
+    }
+    return followUp;
   }
 
   async delete(id: string): Promise<void> {
     const response = await this.supabase.from(TABLE).delete().eq('id', id);
     unwrap(response);
+  }
+
+  private async replaceZoneLinks(
+    followUpId: string,
+    zoneIds: string[],
+  ): Promise<void> {
+    const deleteResponse = await this.supabase
+      .from(JUNCTION_TABLE)
+      .delete()
+      .eq('follow_up_id', followUpId);
+    unwrap(deleteResponse);
+
+    if (zoneIds.length === 0) {
+      return;
+    }
+
+    const insertResponse = await this.supabase.from(JUNCTION_TABLE).insert(
+      zoneIds.map((zoneId) => ({
+        follow_up_id: followUpId,
+        zone_id: zoneId,
+      })),
+    );
+    unwrap(insertResponse);
   }
 }

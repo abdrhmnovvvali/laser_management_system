@@ -56,7 +56,9 @@ export class FollowUpsController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Müştərinin planlaşdırılan vizitlərinin siyahısı' })
+  @ApiOperation({
+    summary: 'Follow-up siyahısı (istəyə bağlı müştəri/status filtri)',
+  })
   @ApiResponse({ status: 200, type: PaginatedFollowUpsResponseDto })
   async findAllByCustomer(@Query() query: ListFollowUpsQueryDto) {
     const result = await this.listFollowUpsByCustomerUseCase.execute(query);

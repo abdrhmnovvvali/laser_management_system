@@ -27,9 +27,11 @@ export class DashboardController {
   async getSummary(
     @Query() query: DashboardSummaryQueryDto,
   ): Promise<DashboardSummaryResponseDto> {
-    const summary = await this.getDashboardSummaryUseCase.execute(
-      query.branchId,
-    );
+    const summary = await this.getDashboardSummaryUseCase.execute({
+      branchId: query.branchId,
+      dateFrom: query.dateFrom,
+      dateTo: query.dateTo,
+    });
     return DashboardSummaryMapper.toResponseDto(summary);
   }
 }

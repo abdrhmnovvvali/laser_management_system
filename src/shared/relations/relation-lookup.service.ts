@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { BranchFacade } from '../../modules/branches/application/branch.facade';
+import { CampaignFacade } from '../../modules/campaigns/application/campaign.facade';
 import { CustomerFacade } from '../../modules/customers/application/customer.facade';
 import { DeviceFacade } from '../../modules/devices/application/device.facade';
 import { PackageFacade } from '../../modules/packages/application/package.facade';
@@ -18,6 +19,7 @@ export class RelationLookupService {
     private readonly customerFacade: CustomerFacade,
     private readonly deviceFacade: DeviceFacade,
     private readonly packageFacade: PackageFacade,
+    private readonly campaignFacade: CampaignFacade,
   ) {}
 
   async load(ids: RelationIds): Promise<RelationLookups> {
@@ -26,20 +28,23 @@ export class RelationLookupService {
       ids.zoneIds ||
       ids.customerIds ||
       ids.deviceIds ||
-      ids.packageIds;
+      ids.packageIds ||
+      ids.campaignIds;
 
     if (!hasAny) {
       return EMPTY_RELATION_LOOKUPS;
     }
 
-    const [branches, zones, customers, devices, packages] = await Promise.all([
-      this.branchFacade.resolveNames(ids.branchIds ?? []),
-      this.zoneFacade.resolveNames(ids.zoneIds ?? []),
-      this.customerFacade.resolveNames(ids.customerIds ?? []),
-      this.deviceFacade.resolveNames(ids.deviceIds ?? []),
-      this.packageFacade.resolveNames(ids.packageIds ?? []),
-    ]);
+    const [branches, zones, customers, devices, packages, campaigns] =
+      await Promise.all([
+        this.branchFacade.resolveNames(ids.branchIds ?? []),
+        this.zoneFacade.resolveNames(ids.zoneIds ?? []),
+        this.customerFacade.resolveNames(ids.customerIds ?? []),
+        this.deviceFacade.resolveNames(ids.deviceIds ?? []),
+        this.packageFacade.resolveNames(ids.packageIds ?? []),
+        this.campaignFacade.resolveNames(ids.campaignIds ?? []),
+      ]);
 
-    return { branches, zones, customers, devices, packages };
+    return { branches, zones, customers, devices, packages, campaigns };
   }
 }

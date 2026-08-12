@@ -33,6 +33,7 @@ export function collectProcedureRelationIds(
     customerId: string;
     deviceId: string;
     packageId: string | null;
+    campaignId?: string | null;
     zoneIds: string[];
     freeZoneId: string | null;
   }>,
@@ -40,12 +41,14 @@ export function collectProcedureRelationIds(
   customerIds: string[];
   deviceIds: string[];
   packageIds: (string | null | undefined)[];
+  campaignIds: (string | null | undefined)[];
   zoneIds: (string | null | undefined)[];
 } {
   return {
     customerIds: procedures.map((procedure) => procedure.customerId),
     deviceIds: procedures.map((procedure) => procedure.deviceId),
     packageIds: procedures.map((procedure) => procedure.packageId),
+    campaignIds: procedures.map((procedure) => procedure.campaignId),
     zoneIds: procedures.flatMap((procedure) => [
       ...procedure.zoneIds,
       procedure.freeZoneId,
@@ -56,7 +59,7 @@ export function collectProcedureRelationIds(
 export function collectFollowUpRelationIds(
   followUps: Array<{
     customerId: string;
-    zoneId: string | null;
+    zoneIds?: string[];
   }>,
 ): {
   customerIds: string[];
@@ -64,6 +67,6 @@ export function collectFollowUpRelationIds(
 } {
   return {
     customerIds: followUps.map((followUp) => followUp.customerId),
-    zoneIds: followUps.map((followUp) => followUp.zoneId),
+    zoneIds: followUps.flatMap((followUp) => followUp.zoneIds ?? []),
   };
 }

@@ -1,5 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { EntityNotFoundException } from '../../../../shared/kernel/domain.exception';
+import {
+  BusinessRuleViolationException,
+  EntityNotFoundException,
+} from '../../../../shared/kernel/domain.exception';
 import { ZoneFacade } from '../../../zones/application/zone.facade';
 import { FOLLOW_UP_REPOSITORY } from '../../domain/repositories/follow-up.repository.interface';
 import type {
@@ -21,9 +24,24 @@ export class UpdateFollowUpUseCase {
     if (!existing) {
       throw new EntityNotFoundException('FollowUp', id);
     }
-    if (data.zoneId) {
-      await this.zoneFacade.getById(data.zoneId);
+
+    if (data.zoneIds !== undefined) {
+      await this.assertZonesExist(data.zoneIds);
     }
+
     return this.followUpRepository.update(id, data);
+  }
+
+  private async assertZonesExist(zoneIds: string[]): Promise<void> {
+    if (zoneIds.length === 0) {
+      return;
+    }
+
+    const zones = await this.zoneFacade.getByIds(zoneIds);
+    if (zones.length !== zoneIds.length) {
+      throw new BusinessRuleViolationException(
+        'Seçilən nahiyələrdən biri və ya bir neçəsi tapılmadı',
+      );
+    }
   }
 }

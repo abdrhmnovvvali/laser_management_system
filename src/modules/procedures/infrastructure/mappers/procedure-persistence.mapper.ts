@@ -5,6 +5,7 @@ export interface ProcedureRow {
   customer_id: string;
   device_id: string;
   package_id: string | null;
+  campaign_id: string | null;
   date: string;
   declared_shot_count: number;
   actual_shot_count: number;
@@ -32,6 +33,7 @@ export class ProcedurePersistenceMapper {
       row.free_zone_id,
       Number(row.discount_amount ?? 0),
       row.visit_number,
+      row.campaign_id ?? null,
     );
   }
 }

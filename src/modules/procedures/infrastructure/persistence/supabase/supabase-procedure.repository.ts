@@ -65,11 +65,35 @@ export class SupabaseProcedureRepository implements IProcedureRepository {
     if (filters.branchId) {
       query = query.eq('customers.branch_id', filters.branchId);
     }
+    if (filters.packageId) {
+      query = query.eq('package_id', filters.packageId);
+    }
+    if (filters.campaignId) {
+      query = query.eq('campaign_id', filters.campaignId);
+    }
+    if (filters.visitNumber !== undefined) {
+      query = query.eq('visit_number', filters.visitNumber);
+    }
+    if (filters.declaredShotCount !== undefined) {
+      query = query.eq('declared_shot_count', filters.declaredShotCount);
+    }
+    if (filters.actualShotCount !== undefined) {
+      query = query.eq('actual_shot_count', filters.actualShotCount);
+    }
+    if (filters.difference !== undefined) {
+      query = query.eq('shot_count_difference', filters.difference);
+    }
     if (filters.dateFrom) {
       query = query.gte('date', filters.dateFrom.toISOString());
     }
     if (filters.dateTo) {
       query = query.lte('date', filters.dateTo.toISOString());
+    }
+    if (filters.minPrice !== undefined) {
+      query = query.gte('price', filters.minPrice);
+    }
+    if (filters.maxPrice !== undefined) {
+      query = query.lte('price', filters.maxPrice);
     }
     if (procedureIds?.length) {
       query = query.in('id', procedureIds);
@@ -117,6 +141,7 @@ export class SupabaseProcedureRepository implements IProcedureRepository {
         customer_id: data.customerId,
         device_id: data.deviceId,
         package_id: data.packageId,
+        campaign_id: data.campaignId ?? null,
         date: data.date.toISOString(),
         declared_shot_count: data.declaredShotCount,
         actual_shot_count: data.actualShotCount,

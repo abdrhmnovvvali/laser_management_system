@@ -70,6 +70,7 @@ export interface DashboardProblem {
   count: number;
   branchId?: string;
   branchName?: string;
+  threshold?: number;
 }
 
 export class DashboardSummary {

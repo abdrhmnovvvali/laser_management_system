@@ -55,7 +55,7 @@ export class ProceduresController {
   @Get()
   @ApiOperation({
     summary:
-      'Prosedurların siyahısı (müştəri/cihaz/nahiyə adı üzrə filtr)',
+      'Prosedurların siyahısı (müştəri, cihaz, zona, filial, paket, vizit, atış sayı, fərq, tarix, məbləğ filtrləri)',
   })
   @ApiResponse({ status: 200, type: PaginatedProceduresResponseDto })
   async findAll(@Query() query: ListProceduresQueryDto) {
@@ -93,7 +93,10 @@ export class ProceduresController {
       ...dto,
       date: dto.date ? new Date(dto.date) : undefined,
     });
-    return ProcedureMapper.toResponseDto(procedure);
+    const lookups = await this.relationLookupService.load(
+      collectProcedureRelationIds([procedure]),
+    );
+    return ProcedureMapper.toResponseDto(procedure, lookups);
   }
 
   @Patch(':id')

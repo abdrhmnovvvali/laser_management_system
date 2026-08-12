@@ -15,6 +15,7 @@ export class Procedure extends BaseEntity<string> {
     public readonly freeZoneId: string | null = null,
     public readonly discountAmount: number = 0,
     public readonly visitNumber: number | null = null,
+    public readonly campaignId: string | null = null,
   ) {
     super(id, createdAt);
   }

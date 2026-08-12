@@ -26,10 +26,14 @@ import {
 } from '../../domain/entities/dashboard-summary.entity';
 
 const UPCOMING_FOLLOW_UP_WINDOW_DAYS = 7;
-const CRITICAL_FRAUD_DIFFERENCE = 500;
-const WARNING_FRAUD_DIFFERENCE = 100;
-const TOP_FRAUD_CASES_LIMIT = 5;
+const TOP_FRAUD_CASES_LIMIT = 200;
 const TIME_ZONE = 'Asia/Baku';
+
+export interface GetDashboardSummaryInput {
+  branchId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
 
 @Injectable()
 export class GetDashboardSummaryUseCase {
@@ -45,9 +49,14 @@ export class GetDashboardSummaryUseCase {
     private readonly notificationFacade: NotificationFacade,
   ) {}
 
-  async execute(branchId?: string): Promise<DashboardSummary> {
+  async execute(input: GetDashboardSummaryInput = {}): Promise<DashboardSummary> {
+    const { branchId, dateFrom, dateTo } = input;
     const generatedAt = new Date();
-    const { monthStart, monthEnd } = this.currentMonthRange(generatedAt);
+    const { monthStart, monthEnd } = this.resolvePeriodRange(
+      generatedAt,
+      dateFrom,
+      dateTo,
+    );
     const todayKey = this.toDateKey(generatedAt);
 
     const [
@@ -59,7 +68,7 @@ export class GetDashboardSummaryUseCase {
       pendingFollowUps,
       missedFollowUps,
       activeCampaigns,
-      fraudAlerts,
+      fraudAlertsRaw,
       branches,
       devices,
       unreadNotifications,
@@ -81,6 +90,12 @@ export class GetDashboardSummaryUseCase {
       this.deviceFacade.listAll(branchId),
       this.notificationFacade.list({ isRead: false }),
     ]);
+
+    const fraudAlerts = this.filterFraudByPeriod(
+      fraudAlertsRaw,
+      monthStart,
+      monthEnd,
+    );
 
     const customerBranchMap = new Map(
       customers.map((customer) => [customer.id, customer.branchId]),
@@ -207,13 +222,6 @@ export class GetDashboardSummaryUseCase {
     const problems = this.buildProblems({
       fraudAlerts,
       branchNameMap,
-      followUpsOverdue,
-      followUpsMissed: scopedMissedFollowUps,
-      unreadByType,
-      todaysBirthdaysCount: scopedTodaysBirthdays.length,
-      followUpsDueTodayCount: followUpsDueToday.length,
-      followUpsUpcomingCount: followUpsUpcoming.length,
-      activeCampaignsCount: activeCampaigns.length,
     });
 
     const period: DashboardPeriod = {
@@ -273,112 +281,10 @@ export class GetDashboardSummaryUseCase {
   private buildProblems(input: {
     fraudAlerts: FraudReportItem[];
     branchNameMap: Map<string, string>;
-    followUpsOverdue: FollowUp[];
-    followUpsMissed: FollowUp[];
-    unreadByType: {
-      total: number;
-      fraud: number;
-      followUp: number;
-      birthday: number;
-    };
-    todaysBirthdaysCount: number;
-    followUpsDueTodayCount: number;
-    followUpsUpcomingCount: number;
-    activeCampaignsCount: number;
   }): DashboardProblem[] {
     const problems: DashboardProblem[] = [];
-
-    const criticalFraud = input.fraudAlerts.filter(
-      (item) => Math.abs(item.difference) >= CRITICAL_FRAUD_DIFFERENCE,
-    );
-    const warningFraud = input.fraudAlerts.filter(
-      (item) =>
-        Math.abs(item.difference) >= WARNING_FRAUD_DIFFERENCE &&
-        Math.abs(item.difference) < CRITICAL_FRAUD_DIFFERENCE,
-    );
-
-    if (criticalFraud.length > 0) {
-      problems.push({
-        severity: 'critical',
-        type: 'fraud_critical',
-        message: `${criticalFraud.length} prosedurda kritik atış sayı uyğunsuzluğu var (>= ${CRITICAL_FRAUD_DIFFERENCE})`,
-        count: criticalFraud.length,
-      });
-    }
-
-    if (warningFraud.length > 0) {
-      problems.push({
-        severity: 'warning',
-        type: 'fraud_warning',
-        message: `${warningFraud.length} prosedurda atış sayı uyğunsuzluğu var`,
-        count: warningFraud.length,
-      });
-    }
-
-    if (input.followUpsOverdue.length > 0) {
-      problems.push({
-        severity: 'critical',
-        type: 'follow_up_overdue',
-        message: `${input.followUpsOverdue.length} planlaşdırılmış vizit vaxtı keçib, hələ pending statusundadır`,
-        count: input.followUpsOverdue.length,
-      });
-    }
-
-    if (input.followUpsMissed.length > 0) {
-      problems.push({
-        severity: 'warning',
-        type: 'follow_up_missed',
-        message: `${input.followUpsMissed.length} vizit missed statusundadır`,
-        count: input.followUpsMissed.length,
-      });
-    }
-
-    if (input.unreadByType.fraud > 0) {
-      problems.push({
-        severity: 'warning',
-        type: 'unread_fraud_notifications',
-        message: `${input.unreadByType.fraud} oxunmamış fraud bildirişi var`,
-        count: input.unreadByType.fraud,
-      });
-    }
-
-    if (input.unreadByType.followUp > 0) {
-      problems.push({
-        severity: 'info',
-        type: 'unread_follow_up_notifications',
-        message: `${input.unreadByType.followUp} oxunmamış follow-up bildirişi var`,
-        count: input.unreadByType.followUp,
-      });
-    }
-
-    if (input.todaysBirthdaysCount > 0) {
-      problems.push({
-        severity: 'info',
-        type: 'birthdays_today',
-        message: `Bu gün ${input.todaysBirthdaysCount} müştərinin ad günüdür`,
-        count: input.todaysBirthdaysCount,
-      });
-    }
-
-    if (input.followUpsDueTodayCount > 0) {
-      problems.push({
-        severity: 'info',
-        type: 'follow_ups_due_today',
-        message: `Bu gün ${input.followUpsDueTodayCount} planlaşdırılmış vizit var`,
-        count: input.followUpsDueTodayCount,
-      });
-    }
-
-    if (input.followUpsUpcomingCount > 0) {
-      problems.push({
-        severity: 'info',
-        type: 'follow_ups_upcoming',
-        message: `Növbəti 7 gündə ${input.followUpsUpcomingCount} vizit planlaşdırılıb`,
-        count: input.followUpsUpcomingCount,
-      });
-    }
-
     const fraudByBranch = this.groupCountByBranch(input.fraudAlerts);
+
     for (const [branchId, count] of fraudByBranch) {
       if (count > 0) {
         problems.push({
@@ -497,6 +403,28 @@ export class GetDashboardSummaryUseCase {
     );
   }
 
+  private resolvePeriodRange(
+    reference: Date,
+    dateFrom?: string,
+    dateTo?: string,
+  ): {
+    monthStart: Date;
+    monthEnd: Date;
+  } {
+    if (dateFrom || dateTo) {
+      const defaultRange = this.currentMonthRange(reference);
+      const monthStart = dateFrom
+        ? this.parseDateStart(dateFrom)
+        : defaultRange.monthStart;
+      const monthEnd = dateTo
+        ? this.parseDateEnd(dateTo)
+        : defaultRange.monthEnd;
+      return { monthStart, monthEnd };
+    }
+
+    return this.currentMonthRange(reference);
+  }
+
   private currentMonthRange(reference: Date): {
     monthStart: Date;
     monthEnd: Date;
@@ -505,6 +433,30 @@ export class GetDashboardSummaryUseCase {
     const monthStart = new Date(parts.year, parts.month - 1, 1);
     const monthEnd = new Date(parts.year, parts.month, 0, 23, 59, 59, 999);
     return { monthStart, monthEnd };
+  }
+
+  private parseDateStart(value: string): Date {
+    const [year, month, day] = value.split('-').map(Number);
+    return new Date(year, month - 1, day, 0, 0, 0, 0);
+  }
+
+  private parseDateEnd(value: string): Date {
+    const [year, month, day] = value.split('-').map(Number);
+    return new Date(year, month - 1, day, 23, 59, 59, 999);
+  }
+
+  private filterFraudByPeriod(
+    fraudAlerts: FraudReportItem[],
+    periodStart: Date,
+    periodEnd: Date,
+  ): FraudReportItem[] {
+    const startKey = this.toDateKey(periodStart);
+    const endKey = this.toDateKey(periodEnd);
+
+    return fraudAlerts.filter((item) => {
+      const key = this.toDateKey(item.date);
+      return key >= startKey && key <= endKey;
+    });
   }
 
   private isSameDay(left: Date, right: Date): boolean {

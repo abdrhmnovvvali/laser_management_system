@@ -161,6 +161,11 @@ export class DashboardProblemDto {
 
   @ApiPropertyOptional()
   branchName?: string;
+
+  @ApiPropertyOptional({
+    description: 'Fraud threshold kimi əlavə parametr (i18n üçün)',
+  })
+  threshold?: number;
 }
 
 export class DashboardSummaryResponseDto {

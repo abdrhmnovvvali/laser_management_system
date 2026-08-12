@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { BusinessRuleViolationException } from '../../../../shared/kernel/domain.exception';
 import { EVENT_PUBLISHER } from '../../../../shared/events/event-publisher.interface';
 import type { IEventPublisher } from '../../../../shared/events/event-publisher.interface';
+import { CampaignFacade } from '../../../campaigns/application/campaign.facade';
 import { CustomerFacade } from '../../../customers/application/customer.facade';
 import { DeviceFacade } from '../../../devices/application/device.facade';
 import { PackageFacade } from '../../../packages/application/package.facade';
@@ -11,6 +12,7 @@ import { Procedure } from '../../domain/entities/procedure.entity';
 import { ProcedureCompletedEvent } from '../../domain/events/procedure-completed.event';
 import { PROCEDURE_REPOSITORY } from '../../domain/repositories/procedure.repository.interface';
 import type { IProcedureRepository } from '../../domain/repositories/procedure.repository.interface';
+import { calculateCampaignDiscount } from '../../domain/services/campaign-discount.calculator';
 import {
   LoyaltyRewardCalculator,
   type ZonePrice,
@@ -20,6 +22,7 @@ export interface CreateProcedureInput {
   customerId: string;
   deviceId: string;
   packageId?: string;
+  campaignId?: string;
   zoneIds?: string[];
   date?: Date;
   declaredShotCount: number;
@@ -41,6 +44,7 @@ export class CreateProcedureUseCase {
     private readonly deviceFacade: DeviceFacade,
     private readonly packageFacade: PackageFacade,
     private readonly zoneFacade: ZoneFacade,
+    private readonly campaignFacade: CampaignFacade,
     @Inject(EVENT_PUBLISHER)
     private readonly eventPublisher: IEventPublisher,
     private readonly configService: ConfigService,
@@ -53,9 +57,22 @@ export class CreateProcedureUseCase {
     const completedVisitCount = await this.procedureRepository.countByCustomerId(
       input.customerId,
     );
+    const procedureDate = input.date ?? new Date();
     const pricing = await this.resolvePriceAndZones(input);
+
+    const campaignDiscount = input.campaignId
+      ? await this.resolveCampaignDiscount(
+          input.campaignId,
+          pricing.price,
+          pricing.zoneIds,
+          procedureDate,
+        )
+      : 0;
+
+    const priceAfterCampaign = Math.max(0, pricing.price - campaignDiscount);
+
     const loyalty = LoyaltyRewardCalculator.apply(
-      pricing.price,
+      priceAfterCampaign,
       pricing.zones,
       completedVisitCount,
       {
@@ -69,13 +86,14 @@ export class CreateProcedureUseCase {
       customerId: input.customerId,
       deviceId: input.deviceId,
       packageId: input.packageId ?? null,
-      date: input.date ?? new Date(),
+      campaignId: input.campaignId ?? null,
+      date: procedureDate,
       declaredShotCount: input.declaredShotCount,
       actualShotCount: input.actualShotCount,
       price: loyalty.finalPrice,
       zoneIds: pricing.zoneIds,
       freeZoneId: loyalty.freeZoneId,
-      discountAmount: loyalty.discountAmount,
+      discountAmount: campaignDiscount + loyalty.discountAmount,
       visitNumber: loyalty.visitNumber,
     });
 
@@ -96,6 +114,37 @@ export class CreateProcedureUseCase {
     );
 
     return procedure;
+  }
+
+  private async resolveCampaignDiscount(
+    campaignId: string,
+    basePrice: number,
+    procedureZoneIds: string[],
+    procedureDate: Date,
+  ): Promise<number> {
+    const campaign = await this.campaignFacade.getById(campaignId);
+    const procedureDay = procedureDate.toISOString().slice(0, 10);
+    const startDay = campaign.startDate.toISOString().slice(0, 10);
+    const endDay = campaign.endDate.toISOString().slice(0, 10);
+
+    if (procedureDay < startDay || procedureDay > endDay) {
+      throw new BusinessRuleViolationException(
+        'Seçilən kampaniya prosedur tarixində aktiv deyil',
+      );
+    }
+
+    if (campaign.zoneIds.length > 0) {
+      const overlaps = procedureZoneIds.some((zoneId) =>
+        campaign.zoneIds.includes(zoneId),
+      );
+      if (!overlaps) {
+        throw new BusinessRuleViolationException(
+          'Seçilən kampaniya bu prosedurun nahiyələrinə şamil olunmur',
+        );
+      }
+    }
+
+    return calculateCampaignDiscount(basePrice, campaign);
   }
 
   private async resolvePriceAndZones(

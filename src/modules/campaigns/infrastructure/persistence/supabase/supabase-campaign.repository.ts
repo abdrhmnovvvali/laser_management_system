@@ -99,6 +99,19 @@ export class SupabaseCampaignRepository implements ICampaignRepository {
     return row ? CampaignPersistenceMapper.toDomain(row) : null;
   }
 
+  async findByIds(ids: string[]): Promise<Campaign[]> {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const response = await this.supabase
+      .from(TABLE)
+      .select(SELECT_WITH_RELATIONS)
+      .in('id', ids);
+    const rows = unwrap<CampaignRow[]>(response) ?? [];
+    return rows.map((row) => CampaignPersistenceMapper.toDomain(row));
+  }
+
   async create(data: CreateCampaignData): Promise<Campaign> {
     const response = await this.supabase
       .from(TABLE)

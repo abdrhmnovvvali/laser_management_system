@@ -18,12 +18,13 @@ export interface UpdateNoteData {
 }
 
 export interface NoteListOptions {
-  customerId: string;
+  customerId?: string;
+  type?: NoteType;
   pagination?: PaginationParams;
 }
 
 export interface INoteRepository {
-  findAllByCustomer(options: NoteListOptions): Promise<PaginatedResult<Note>>;
+  findAll(options: NoteListOptions): Promise<PaginatedResult<Note>>;
   findById(id: string): Promise<Note | null>;
   create(data: CreateNoteData): Promise<Note>;
   update(id: string, data: UpdateNoteData): Promise<Note>;

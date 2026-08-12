@@ -52,7 +52,9 @@ export class NotesController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: 'Müştərinin kommunikasiya qeydlərinin siyahısı' })
+  @ApiOperation({
+    summary: 'Qeydlərin siyahısı (istəyə bağlı müştəri/növ filtri)',
+  })
   @ApiResponse({ status: 200, type: PaginatedNotesResponseDto })
   async findAllByCustomer(@Query() query: ListNotesQueryDto) {
     const result = await this.listNotesByCustomerUseCase.execute(query);

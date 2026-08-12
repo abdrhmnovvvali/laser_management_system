@@ -43,6 +43,7 @@ export interface ICampaignRepository {
     options?: CampaignListOptions,
   ): Promise<PaginatedResult<Campaign>>;
   findById(id: string): Promise<Campaign | null>;
+  findByIds(ids: string[]): Promise<Campaign[]>;
   create(data: CreateCampaignData): Promise<Campaign>;
   update(id: string, data: UpdateCampaignData): Promise<Campaign>;
   delete(id: string): Promise<void>;

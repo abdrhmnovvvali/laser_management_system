@@ -7,6 +7,7 @@ export interface CreateProcedureData {
   customerId: string;
   deviceId: string;
   packageId: string | null;
+  campaignId?: string | null;
   date: Date;
   declaredShotCount: number;
   actualShotCount: number;
@@ -27,8 +28,16 @@ export interface ProcedureFilters {
   customerId?: string;
   deviceId?: string;
   branchId?: string;
+  packageId?: string;
+  campaignId?: string;
+  visitNumber?: number;
+  declaredShotCount?: number;
+  actualShotCount?: number;
+  difference?: number;
   dateFrom?: Date;
   dateTo?: Date;
+  minPrice?: number;
+  maxPrice?: number;
   zoneIds?: string[];
   pagination?: PaginationParams;
 }

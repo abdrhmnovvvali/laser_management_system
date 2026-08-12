@@ -302,6 +302,17 @@ export interface ListProceduresParams extends PaginationParams {
   customerId?: string;
   deviceId?: string;
   zoneNames?: string[]; // OR məntiqi
+  zoneIds?: string[]; // OR məntiqi
+  branchId?: string;
+  packageId?: string;
+  visitNumber?: number;
+  declaredShotCount?: number;
+  actualShotCount?: number;
+  difference?: number; // actualShotCount - declaredShotCount
+  dateFrom?: string; // ISO date
+  dateTo?: string; // ISO date
+  minPrice?: number;
+  maxPrice?: number;
 }
 
 // --- Dashboard (pagination yoxdur) ---
@@ -656,7 +667,7 @@ export function Pagination({
 | `GET /packages` | `page`, `limit` | `zones[]` enrichment |
 | `GET /campaigns` | `page`, `limit` | |
 | `GET /campaigns/active` | `page`, `limit` | Bugünkü aktiv kampaniyalar |
-| `GET /procedures` | `customerId`, `deviceId`, `zoneNames[]`, `page`, `limit` | `zoneNames` OR məntiqi |
+| `GET /procedures` | `customerId`, `deviceId`, `zoneNames[]`, `zoneIds[]`, `branchId`, `packageId`, `visitNumber`, `declaredShotCount`, `actualShotCount`, `difference`, `dateFrom`, `dateTo`, `minPrice`, `maxPrice`, `page`, `limit` | `zoneNames`/`zoneIds` OR məntiqi; məbləğ və tarix range |
 | `GET /notes` | `customerId` *(mütləq)*, `page`, `limit` | |
 | `GET /follow-ups` | `customerId` *(mütləq)*, `page`, `limit` | |
 | `GET /follow-ups/upcoming` | `days` (default 7), `page`, `limit` | |
@@ -666,18 +677,38 @@ export function Pagination({
 | `GET /branches` | `page`, `limit` | |
 | `GET /auth/staff` | `page`, `limit` | Yalnız `admin` |
 
-### Prosedur zona filtri
+### Prosedur filtrləri
 
 ```http
-GET /procedures?zoneNames=Üz&zoneNames=Qol&page=1&limit=20
+GET /procedures?zoneIds=<uuid1>&zoneIds=<uuid2>&page=1&limit=20
 ```
 
-və ya:
+Zona adları ilə (köhnə API):
 
 ```http
-GET /procedures?zoneNames=Üz,Qol
+GET /procedures?zoneNames=Üz&zoneNames=Qol
 ```
 
+Digər nümunələr:
+
+```http
+GET /procedures?branchId=<uuid>&packageId=<uuid>&visitNumber=3
+GET /procedures?declaredShotCount=100&actualShotCount=120&difference=20
+GET /procedures?dateFrom=2026-01-01&dateTo=2026-01-31&minPrice=50&maxPrice=200
+```
+
+| Parametr | Tip | Təsvir |
+|----------|-----|--------|
+| `zoneIds` | `uuid[]` | Zona ID — OR məntiqi |
+| `zoneNames` | `string[]` | Zona adı — OR məntiqi |
+| `branchId` | `uuid` | Filial (müştəri filialı) |
+| `packageId` | `uuid` | Paket |
+| `visitNumber` | `int` | Vizit nömrəsi |
+| `declaredShotCount` | `int` | Bəyan edilən atış |
+| `actualShotCount` | `int` | Faktiki atış |
+| `difference` | `int` | `actual - declared` |
+| `dateFrom` / `dateTo` | `date` | Tarix aralığı |
+| `minPrice` / `maxPrice` | `number` | Məbləğ aralığı |
 ---
 
 ## 9. Səhifə → API xəritəsi (tövsiyə olunan struktur)
@@ -688,7 +719,7 @@ GET /procedures?zoneNames=Üz,Qol
 | Dashboard | `GET /dashboard/summary` | aggregate statistika |
 | Müştərilər | `GET /customers` | `page`, `limit`, `search`, filtrlər |
 | Müştəri detall | `GET /customers/:id`, `GET /procedures?customerId=`, `GET /notes?customerId=` | |
-| Prosedurlar | `GET /procedures` | `zoneNames`, `deviceId`, pagination |
+| Prosedurlar | `GET /procedures` | zona, filial, paket, vizit, atış, fərq, tarix, məbləğ filtrləri |
 | Cihazlar / Zonalar | `GET /devices`, `GET /zones?deviceId=` | cascade select |
 | Paketlər / Kampaniyalar | `GET /packages`, `GET /campaigns` | form-da `zoneIds`, list-də `zones` |
 | Bildirişlər | `GET /notifications` | `isRead` tab filter |

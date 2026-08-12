@@ -116,6 +116,7 @@ export class DashboardSummaryMapper {
     dto.count = problem.count;
     dto.branchId = problem.branchId;
     dto.branchName = problem.branchName;
+    dto.threshold = problem.threshold;
     return dto;
   }
 }

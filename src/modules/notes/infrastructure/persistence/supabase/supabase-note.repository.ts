@@ -31,14 +31,18 @@ export class SupabaseNoteRepository implements INoteRepository {
     @Inject(SUPABASE_CLIENT) private readonly supabase: SupabaseClient,
   ) {}
 
-  async findAllByCustomer(
-    options: NoteListOptions,
-  ): Promise<PaginatedResult<Note>> {
+  async findAll(options: NoteListOptions): Promise<PaginatedResult<Note>> {
     let query = this.supabase
       .from(TABLE)
       .select('*', { count: 'exact' })
-      .eq('customer_id', options.customerId)
       .order('created_at', { ascending: false });
+
+    if (options.customerId) {
+      query = query.eq('customer_id', options.customerId);
+    }
+    if (options.type) {
+      query = query.eq('type', options.type);
+    }
 
     if (options.pagination) {
       const { from, to } = toOffset(options.pagination);

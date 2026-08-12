@@ -15,8 +15,9 @@ export class ListFollowUpsByCustomerUseCase {
     query: ListFollowUpsQueryDto,
     options?: { skipPagination?: boolean },
   ) {
-    return this.followUpRepository.findAllByCustomer({
+    return this.followUpRepository.findAll({
       customerId: query.customerId,
+      status: query.status,
       pagination: options?.skipPagination
         ? undefined
         : resolvePagination(query),

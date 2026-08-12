@@ -1,4 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { BusinessRuleViolationException } from '../../../../shared/kernel/domain.exception';
 import { EVENT_PUBLISHER } from '../../../../shared/events/event-publisher.interface';
 import type { IEventPublisher } from '../../../../shared/events/event-publisher.interface';
 import { CustomerFacade } from '../../../customers/application/customer.facade';
@@ -25,10 +26,12 @@ export class CreateFollowUpUseCase {
 
   async execute(data: CreateFollowUpData): Promise<FollowUp> {
     await this.customerFacade.getById(data.customerId);
-    if (data.zoneId) {
-      await this.zoneFacade.getById(data.zoneId);
-    }
-    const followUp = await this.followUpRepository.create(data);
+    await this.assertZonesExist(data.zoneIds);
+
+    const followUp = await this.followUpRepository.create({
+      ...data,
+      zoneIds: data.zoneIds ?? [],
+    });
 
     const effectiveStatus = data.status ?? FollowUpStatus.PENDING;
     if (
@@ -41,6 +44,19 @@ export class CreateFollowUpUseCase {
     }
 
     return followUp;
+  }
+
+  private async assertZonesExist(zoneIds?: string[]): Promise<void> {
+    if (!zoneIds?.length) {
+      return;
+    }
+
+    const zones = await this.zoneFacade.getByIds(zoneIds);
+    if (zones.length !== zoneIds.length) {
+      throw new BusinessRuleViolationException(
+        'Seçilən nahiyələrdən biri və ya bir neçəsi tapılmadı',
+      );
+    }
   }
 
   private isDueOnOrBeforeToday(plannedDate: Date): boolean {

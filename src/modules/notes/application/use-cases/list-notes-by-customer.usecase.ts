@@ -15,8 +15,9 @@ export class ListNotesByCustomerUseCase {
     query: ListNotesQueryDto,
     options?: { skipPagination?: boolean },
   ) {
-    return this.noteRepository.findAllByCustomer({
+    return this.noteRepository.findAll({
       customerId: query.customerId,
+      type: query.type,
       pagination: options?.skipPagination
         ? undefined
         : resolvePagination(query),

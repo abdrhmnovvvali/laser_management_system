@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { NamedEntityDto } from '../../../../shared/dto/named-entity.dto';
 import { FollowUpStatus } from '../../domain/entities/follow-up-status.enum';
 
 export class FollowUpResponseDto {
@@ -17,11 +18,14 @@ export class FollowUpResponseDto {
   @ApiProperty({ enum: FollowUpStatus })
   status: FollowUpStatus;
 
-  @ApiProperty({ nullable: true, description: 'Planlaşdırılan nahiyənin ID-si' })
-  zoneId: string | null;
+  @ApiProperty({ type: [String], description: 'Planlaşdırılan nahiyə ID-ləri' })
+  zoneIds: string[];
 
-  @ApiProperty({ nullable: true, description: 'Planlaşdırılan nahiyənin adı' })
-  zoneName: string | null;
+  @ApiProperty({
+    type: [NamedEntityDto],
+    description: 'Planlaşdırılan nahiyələrin id və adları',
+  })
+  zones: NamedEntityDto[];
 
   @ApiProperty()
   createdAt: Date;

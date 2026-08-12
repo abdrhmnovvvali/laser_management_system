@@ -22,6 +22,8 @@ export class ProcedureMapper {
     dto.deviceName = lookupName(lookups.devices, procedure.deviceId);
     dto.packageId = procedure.packageId;
     dto.packageName = lookupName(lookups.packages, procedure.packageId);
+    dto.campaignId = procedure.campaignId;
+    dto.campaignName = lookupName(lookups.campaigns, procedure.campaignId);
     dto.zoneIds = procedure.zoneIds;
     dto.zones = toNamedEntities(procedure.zoneIds, lookups.zones);
     dto.date = procedure.date;
