@@ -5,7 +5,7 @@ import { DevicesModule } from '../../devices/presentation/devices.module';
 import { PackagesModule } from '../../packages/presentation/packages.module';
 import { ZonesModule } from '../../zones/presentation/zones.module';
 import { PROCEDURE_REPOSITORY } from '../domain/repositories/procedure.repository.interface';
-import { SupabaseProcedureRepository } from '../infrastructure/persistence/supabase/supabase-procedure.repository';
+import { PrismaProcedureRepository } from '../infrastructure/persistence/prisma/prisma-procedure.repository';
 import { ProcedureFacade } from '../application/procedure.facade';
 import { CreateProcedureUseCase } from '../application/use-cases/create-procedure.usecase';
 import { DeleteProcedureUseCase } from '../application/use-cases/delete-procedure.usecase';
@@ -30,7 +30,7 @@ import { ProceduresController } from './controllers/procedures.controller';
     UpdateProcedureUseCase,
     DeleteProcedureUseCase,
     ProcedureFacade,
-    { provide: PROCEDURE_REPOSITORY, useClass: SupabaseProcedureRepository },
+    { provide: PROCEDURE_REPOSITORY, useClass: PrismaProcedureRepository },
   ],
   exports: [ProcedureFacade],
 })

@@ -1,0 +1,366 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  branch_staff
+}
+
+enum Gender {
+  female
+  male
+  other
+}
+
+enum Locale {
+  az
+  en
+  ru
+}
+
+enum DiscountType {
+  percentage
+  fixed
+}
+
+enum NoteType {
+  call
+  social
+  in_person
+}
+
+enum FollowUpStatus {
+  pending
+  done
+  missed
+}
+
+enum NotificationType {
+  birthday
+  fraud
+  follow_up
+}
+
+model User {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email            String   @unique
+  passwordHash     String   @map("password_hash")
+  role             Role
+  branchId         String?  @map("branch_id") @db.Uuid
+  fullName         String?  @map("full_name")
+  refreshTokenHash String?  @map("refresh_token_hash")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  branch Branch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+
+  @@index([branchId])
+  @@map("users")
+}
+
+model Branch {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  translations BranchTranslation[]
+  devices      Device[]
+  customers    Customer[]
+  users        User[]
+
+  @@map("branches")
+}
+
+model BranchTranslation {
+  branchId String @map("branch_id") @db.Uuid
+  locale   Locale
+  name     String
+  address  String?
+
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@id([branchId, locale])
+  @@index([locale])
+  @@map("branch_translations")
+}
+
+model Device {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  branchId    String   @map("branch_id") @db.Uuid
+  shotCounter BigInt   @default(0) @map("shot_counter")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  branch       Branch              @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  translations DeviceTranslation[]
+  zones        Zone[]
+  procedures   Procedure[]
+
+  @@index([branchId])
+  @@map("devices")
+}
+
+model DeviceTranslation {
+  deviceId String @map("device_id") @db.Uuid
+  locale   Locale
+  type     String
+
+  device Device @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+
+  @@id([deviceId, locale])
+  @@index([locale])
+  @@map("device_translations")
+}
+
+model Customer {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  firstName    String    @map("first_name")
+  lastName     String    @map("last_name")
+  phone        String?
+  birthDate    DateTime? @map("birth_date") @db.Date
+  gender       Gender?
+  branchId     String    @map("branch_id") @db.Uuid
+  registeredAt DateTime  @default(now()) @map("registered_at") @db.Timestamptz(6)
+
+  branch        Branch         @relation(fields: [branchId], references: [id], onDelete: Restrict)
+  procedures    Procedure[]
+  notes         Note[]
+  followUps     FollowUp[]
+  notifications Notification[]
+
+  @@index([branchId])
+  @@index([phone])
+  @@index([birthDate])
+  @@map("customers")
+}
+
+model Zone {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  deviceId  String   @map("device_id") @db.Uuid
+  price     Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  device            Device            @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  translations      ZoneTranslation[]
+  packageZones      PackageZone[]
+  procedureZones    ProcedureZone[]
+  campaignZones     CampaignZone[]
+  followUpZones     FollowUpZone[]
+  freeForProcedures Procedure[]       @relation("ProcedureFreeZone")
+
+  @@index([deviceId])
+  @@map("zones")
+}
+
+model ZoneTranslation {
+  zoneId String @map("zone_id") @db.Uuid
+  locale Locale
+  name   String
+
+  zone Zone @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+
+  @@id([zoneId, locale])
+  @@index([locale])
+  @@index([name])
+  @@map("zone_translations")
+}
+
+model Package {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  price     Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  translations PackageTranslation[]
+  packageZones PackageZone[]
+  procedures   Procedure[]
+
+  @@map("packages")
+}
+
+model PackageTranslation {
+  packageId String @map("package_id") @db.Uuid
+  locale    Locale
+  name      String
+
+  package Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@id([packageId, locale])
+  @@index([locale])
+  @@map("package_translations")
+}
+
+model PackageZone {
+  packageId String @map("package_id") @db.Uuid
+  zoneId    String @map("zone_id") @db.Uuid
+
+  package Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  zone    Zone    @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+
+  @@id([packageId, zoneId])
+  @@index([zoneId])
+  @@map("package_zones")
+}
+
+model Campaign {
+  id            String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  discountType  DiscountType @map("discount_type")
+  discountValue Decimal      @map("discount_value") @db.Decimal(10, 2)
+  startDate     DateTime     @map("start_date") @db.Date
+  endDate       DateTime     @map("end_date") @db.Date
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  translations  CampaignTranslation[]
+  campaignZones CampaignZone[]
+  procedures    Procedure[]
+
+  @@index([startDate, endDate])
+  @@map("campaigns")
+}
+
+model CampaignTranslation {
+  campaignId  String  @map("campaign_id") @db.Uuid
+  locale      Locale
+  name        String
+  description String?
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@id([campaignId, locale])
+  @@index([locale])
+  @@map("campaign_translations")
+}
+
+model CampaignZone {
+  campaignId String @map("campaign_id") @db.Uuid
+  zoneId     String @map("zone_id") @db.Uuid
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  zone     Zone     @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+
+  @@id([campaignId, zoneId])
+  @@index([zoneId])
+  @@map("campaign_zones")
+}
+
+model Procedure {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customerId          String   @map("customer_id") @db.Uuid
+  deviceId            String   @map("device_id") @db.Uuid
+  packageId           String?  @map("package_id") @db.Uuid
+  campaignId          String?  @map("campaign_id") @db.Uuid
+  date                DateTime @default(now()) @db.Timestamptz(6)
+  declaredShotCount   Int      @map("declared_shot_count")
+  actualShotCount     Int      @map("actual_shot_count")
+  price               Decimal  @db.Decimal(10, 2)
+  freeZoneId          String?  @map("free_zone_id") @db.Uuid
+  discountAmount      Decimal  @default(0) @map("discount_amount") @db.Decimal(10, 2)
+  visitNumber         Int?     @map("visit_number")
+  shotCountDifference Int      @default(dbgenerated("(actual_shot_count - declared_shot_count)")) @map("shot_count_difference")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  customer       Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  device         Device          @relation(fields: [deviceId], references: [id], onDelete: Restrict)
+  package        Package?        @relation(fields: [packageId], references: [id], onDelete: SetNull)
+  campaign       Campaign?       @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  freeZone       Zone?           @relation("ProcedureFreeZone", fields: [freeZoneId], references: [id], onDelete: SetNull)
+  procedureZones ProcedureZone[]
+  notifications  Notification[]
+
+  @@index([customerId])
+  @@index([deviceId])
+  @@index([date])
+  @@index([shotCountDifference])
+  @@index([price])
+  @@index([packageId])
+  @@index([visitNumber])
+  @@index([campaignId])
+  @@map("procedures")
+}
+
+model ProcedureZone {
+  procedureId String @map("procedure_id") @db.Uuid
+  zoneId      String @map("zone_id") @db.Uuid
+
+  procedure Procedure @relation(fields: [procedureId], references: [id], onDelete: Cascade)
+  zone      Zone      @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+
+  @@id([procedureId, zoneId])
+  @@index([zoneId])
+  @@map("procedure_zones")
+}
+
+model Note {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customerId String   @map("customer_id") @db.Uuid
+  type       NoteType
+  content    String
+  outcome    String?
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([customerId])
+  @@map("notes")
+}
+
+model FollowUp {
+  id          String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customerId  String         @map("customer_id") @db.Uuid
+  plannedDate DateTime       @map("planned_date") @db.Date
+  status      FollowUpStatus @default(pending)
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  customer Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  zones    FollowUpZone[]
+
+  @@index([customerId])
+  @@index([plannedDate])
+  @@index([status])
+  @@map("follow_ups")
+}
+
+model FollowUpZone {
+  followUpId String @map("follow_up_id") @db.Uuid
+  zoneId     String @map("zone_id") @db.Uuid
+
+  followUp FollowUp @relation(fields: [followUpId], references: [id], onDelete: Cascade)
+  zone     Zone     @relation(fields: [zoneId], references: [id], onDelete: Restrict)
+
+  @@id([followUpId, zoneId])
+  @@index([zoneId])
+  @@map("follow_up_zones")
+}
+
+model Notification {
+  id          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  type        NotificationType
+  customerId  String?          @map("customer_id") @db.Uuid
+  procedureId String?          @map("procedure_id") @db.Uuid
+  isRead      Boolean          @default(false) @map("is_read")
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  customer     Customer?                  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  procedure    Procedure?                 @relation(fields: [procedureId], references: [id], onDelete: SetNull)
+  translations NotificationTranslation[]
+
+  @@index([customerId])
+  @@index([type])
+  @@index([isRead])
+  @@index([procedureId])
+  @@map("notifications")
+}
+
+model NotificationTranslation {
+  notificationId String @map("notification_id") @db.Uuid
+  locale         Locale
+  message        String
+
+  notification Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@id([notificationId, locale])
+  @@index([locale])
+  @@map("notification_translations")
+}

@@ -1,6 +1,5 @@
 /**
- * Seed script: Supabase Auth-da ilk admin istifadəçisini yaradır və
- * `profiles` cədvəlində uyğun sətri (role='admin') insert edir.
+ * Seed script: Postgres `users` cədvəlində ilk admin istifadəçisini yaradır.
  *
  * İstifadə:
  *   npm run seed:admin -- <email> <password> ["Ad Soyad"]
@@ -8,11 +7,12 @@
  * Nümunə:
  *   npm run seed:admin -- admin@lazer.az StrongPass123! "Baş Admin"
  *
- * Qeyd: .env faylında SUPABASE_URL və SUPABASE_SERVICE_ROLE_KEY dolu olmalıdır.
+ * Qeyd: .env faylında DATABASE_URL dolu olmalıdır.
  */
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
-import { createClient } from '@supabase/supabase-js';
+import { PrismaClient, Role } from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
 function loadEnvFile(): void {
   const envPath = join(__dirname, '..', '.env');
@@ -47,90 +47,54 @@ function loadEnvFile(): void {
 async function main() {
   loadEnvFile();
 
-  const [, , email, password, fullName] = process.argv;
+  const [, , emailArg, password, fullName] = process.argv;
 
-  if (!email || !password) {
+  if (!emailArg || !password) {
     console.error(
       'İstifadə: npm run seed:admin -- <email> <password> ["Ad Soyad"]',
     );
     process.exit(1);
   }
 
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !serviceRoleKey) {
-    console.error(
-      '.env faylında SUPABASE_URL və SUPABASE_SERVICE_ROLE_KEY dolu olmalıdır.',
-    );
+  if (!process.env.DATABASE_URL) {
+    console.error('.env faylında DATABASE_URL dolu olmalıdır.');
     process.exit(1);
   }
 
-  const supabase = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
+  const email = emailArg.toLowerCase();
+  const prisma = new PrismaClient();
 
-  console.log(`Admin istifadəçisi yaradılır: ${email} ...`);
+  try {
+    console.log(`Admin istifadəçisi yaradılır: ${email} ...`);
+    const passwordHash = await bcrypt.hash(password, 12);
 
-  const { data: created, error: createError } =
-    await supabase.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
+    const user = await prisma.user.upsert({
+      where: { email },
+      create: {
+        email,
+        passwordHash,
+        role: Role.admin,
+        branchId: null,
+        fullName: fullName ?? 'Admin',
+      },
+      update: {
+        passwordHash,
+        role: Role.admin,
+        branchId: null,
+        fullName: fullName ?? 'Admin',
+      },
     });
 
-  let userId: string;
-
-  if (createError) {
-    const alreadyExists = createError.message
-      .toLowerCase()
-      .includes('already been registered');
-
-    if (!alreadyExists) {
-      console.error('İstifadəçi yaradıla bilmədi:', createError.message);
-      process.exit(1);
-    }
-
+    console.log('✔ Admin istifadəçisi hazırdır.');
+    console.log(`  Email: ${email}`);
+    console.log(`  Şifrə: ${password}`);
+    console.log(`  User ID: ${user.id}`);
     console.log(
-      'Bu email artıq Supabase Auth-da mövcuddur, profil yenə də yaradılacaq/yenilənəcək.',
+      '\nİndi POST /auth/login ilə bu email/şifrə ilə daxil ola bilərsiniz.',
     );
-
-    const { data: listData, error: listError } =
-      await supabase.auth.admin.listUsers();
-    if (listError) {
-      console.error('İstifadəçi siyahısı alına bilmədi:', listError.message);
-      process.exit(1);
-    }
-
-    const existingUser = listData.users.find((u) => u.email === email);
-    if (!existingUser) {
-      console.error('Mövcud istifadəçi tapılmadı.');
-      process.exit(1);
-    }
-    userId = existingUser.id;
-  } else {
-    userId = created.user.id;
+  } finally {
+    await prisma.$disconnect();
   }
-
-  const { error: profileError } = await supabase.rpc('upsert_profile', {
-    p_id: userId,
-    p_role: 'admin',
-    p_branch_id: null,
-    p_full_name: fullName ?? 'Admin',
-  });
-
-  if (profileError) {
-    console.error('Profil yaradıla bilmədi:', profileError.message);
-    process.exit(1);
-  }
-
-  console.log('✔ Admin istifadəçisi hazırdır.');
-  console.log(`  Email: ${email}`);
-  console.log(`  Şifrə: ${password}`);
-  console.log(`  User ID: ${userId}`);
-  console.log(
-    '\nİndi POST /auth/login ilə bu email/şifrə ilə daxil ola bilərsiniz.',
-  );
 }
 
 main().catch((error) => {

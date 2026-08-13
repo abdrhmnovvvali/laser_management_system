@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { BranchesModule } from '../../branches/presentation/branches.module';
 import { DEVICE_REPOSITORY } from '../domain/repositories/device.repository.interface';
-import { SupabaseDeviceRepository } from '../infrastructure/persistence/supabase/supabase-device.repository';
+import { PrismaDeviceRepository } from '../infrastructure/persistence/prisma/prisma-device.repository';
 import { DeviceFacade } from '../application/device.facade';
 import { CreateDeviceUseCase } from '../application/use-cases/create-device.usecase';
 import { DeleteDeviceUseCase } from '../application/use-cases/delete-device.usecase';
@@ -20,7 +20,7 @@ import { DevicesController } from './controllers/devices.controller';
     UpdateDeviceUseCase,
     DeleteDeviceUseCase,
     DeviceFacade,
-    { provide: DEVICE_REPOSITORY, useClass: SupabaseDeviceRepository },
+    { provide: DEVICE_REPOSITORY, useClass: PrismaDeviceRepository },
   ],
   exports: [DeviceFacade],
 })

@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { DevicesModule } from '../../devices/presentation/devices.module';
 import { ZONE_REPOSITORY } from '../domain/repositories/zone.repository.interface';
-import { SupabaseZoneRepository } from '../infrastructure/persistence/supabase/supabase-zone.repository';
+import { PrismaZoneRepository } from '../infrastructure/persistence/prisma/prisma-zone.repository';
 import { ZoneFacade } from '../application/zone.facade';
 import { CreateZoneUseCase } from '../application/use-cases/create-zone.usecase';
 import { DeleteZoneUseCase } from '../application/use-cases/delete-zone.usecase';
@@ -20,7 +20,7 @@ import { ZonesController } from './controllers/zones.controller';
     UpdateZoneUseCase,
     DeleteZoneUseCase,
     ZoneFacade,
-    { provide: ZONE_REPOSITORY, useClass: SupabaseZoneRepository },
+    { provide: ZONE_REPOSITORY, useClass: PrismaZoneRepository },
   ],
   exports: [ZoneFacade],
 })

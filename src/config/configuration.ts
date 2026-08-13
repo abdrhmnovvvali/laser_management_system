@@ -3,19 +3,14 @@ export interface AppConfig {
   port: number;
 }
 
-export interface SupabaseConfig {
-  url: string;
-  anonKey: string;
-  serviceRoleKey: string;
-}
-
 export interface DatabaseConfig {
-  url?: string;
+  url: string;
 }
 
 export interface JwtConfig {
   secret: string;
   expiresIn: string;
+  refreshExpiresIn: string;
 }
 
 export interface SwaggerConfig {
@@ -37,7 +32,6 @@ export interface LoyaltyConfig {
 
 export interface Configuration {
   app: AppConfig;
-  supabase: SupabaseConfig;
   database: DatabaseConfig;
   jwt: JwtConfig;
   swagger: SwaggerConfig;
@@ -51,17 +45,13 @@ export default (): Configuration => ({
     env: process.env.NODE_ENV ?? 'development',
     port: parseInt(process.env.PORT ?? '3000', 10),
   },
-  supabase: {
-    url: process.env.SUPABASE_URL ?? '',
-    anonKey: process.env.SUPABASE_ANON_KEY ?? '',
-    serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? '',
-  },
   database: {
-    url: process.env.DATABASE_URL,
+    url: process.env.DATABASE_URL ?? '',
   },
   jwt: {
     secret: process.env.JWT_SECRET ?? '',
-    expiresIn: process.env.JWT_EXPIRES_IN ?? '1d',
+    expiresIn: process.env.JWT_EXPIRES_IN ?? '15m',
+    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? '7d',
   },
   swagger: {
     path: process.env.SWAGGER_PATH ?? 'api/docs',

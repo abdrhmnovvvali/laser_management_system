@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { BRANCH_REPOSITORY } from '../domain/repositories/branch.repository.interface';
-import { SupabaseBranchRepository } from '../infrastructure/persistence/supabase/supabase-branch.repository';
+import { PrismaBranchRepository } from '../infrastructure/persistence/prisma/prisma-branch.repository';
 import { BranchFacade } from '../application/branch.facade';
 import { CreateBranchUseCase } from '../application/use-cases/create-branch.usecase';
 import { DeleteBranchUseCase } from '../application/use-cases/delete-branch.usecase';
@@ -18,7 +18,7 @@ import { BranchesController } from './controllers/branches.controller';
     UpdateBranchUseCase,
     DeleteBranchUseCase,
     BranchFacade,
-    { provide: BRANCH_REPOSITORY, useClass: SupabaseBranchRepository },
+    { provide: BRANCH_REPOSITORY, useClass: PrismaBranchRepository },
   ],
   exports: [BranchFacade],
 })

@@ -15,8 +15,8 @@ export interface CreateStaffUserInput {
 
 /**
  * Domain-facing contract for authentication operations. Implemented by
- * infrastructure/persistence/supabase — the application layer never talks
- * to Supabase directly.
+ * infrastructure/persistence/prisma — the application layer never talks
+ * to the database client directly.
  */
 export interface StaffListOptions {
   pagination?: PaginationParams;

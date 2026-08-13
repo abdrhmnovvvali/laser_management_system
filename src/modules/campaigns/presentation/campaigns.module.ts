@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ZonesModule } from '../../zones/presentation/zones.module';
 import { CAMPAIGN_REPOSITORY } from '../domain/repositories/campaign.repository.interface';
-import { SupabaseCampaignRepository } from '../infrastructure/persistence/supabase/supabase-campaign.repository';
+import { PrismaCampaignRepository } from '../infrastructure/persistence/prisma/prisma-campaign.repository';
 import { CampaignFacade } from '../application/campaign.facade';
 import { CreateCampaignUseCase } from '../application/use-cases/create-campaign.usecase';
 import { DeleteCampaignUseCase } from '../application/use-cases/delete-campaign.usecase';
@@ -22,7 +22,7 @@ import { CampaignsController } from './controllers/campaigns.controller';
     UpdateCampaignUseCase,
     DeleteCampaignUseCase,
     CampaignFacade,
-    { provide: CAMPAIGN_REPOSITORY, useClass: SupabaseCampaignRepository },
+    { provide: CAMPAIGN_REPOSITORY, useClass: PrismaCampaignRepository },
   ],
   exports: [CampaignFacade],
 })

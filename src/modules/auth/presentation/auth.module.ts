@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { BranchesModule } from '../../branches/presentation/branches.module';
 import { AUTH_REPOSITORY } from '../domain/repositories/auth.repository.interface';
-import { SupabaseAuthRepository } from '../infrastructure/persistence/supabase/supabase-auth.repository';
+import { PrismaAuthRepository } from '../infrastructure/persistence/prisma/prisma-auth.repository';
 import { CreateStaffUserUseCase } from '../application/use-cases/create-staff-user.usecase';
 import { DeleteStaffUserUseCase } from '../application/use-cases/delete-staff-user.usecase';
 import { ListStaffUsersUseCase } from '../application/use-cases/list-staff-users.usecase';
@@ -18,7 +18,7 @@ import { AuthController } from './controllers/auth.controller';
     CreateStaffUserUseCase,
     ListStaffUsersUseCase,
     DeleteStaffUserUseCase,
-    { provide: AUTH_REPOSITORY, useClass: SupabaseAuthRepository },
+    { provide: AUTH_REPOSITORY, useClass: PrismaAuthRepository },
   ],
 })
 export class AuthModule {}

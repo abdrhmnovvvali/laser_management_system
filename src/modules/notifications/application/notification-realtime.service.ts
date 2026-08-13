@@ -1,21 +1,12 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { SupabaseClient } from '@supabase/supabase-js';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   EMPTY_RELATION_LOOKUPS,
   RelationLookups,
 } from '../../../shared/relations/relation-lookups.interface';
-import { SUPABASE_ADMIN_CLIENT } from '../../../shared/supabase/supabase.constants';
-import { unwrap } from '../../../shared/supabase/supabase-response.util';
+import { PrismaService } from '../../../shared/prisma/prisma.service';
 import { Notification } from '../domain/entities/notification.entity';
 import { NotificationsGateway } from '../presentation/realtime/notifications.gateway';
 import { NotificationMapper } from './mappers/notification.mapper';
-
-interface CustomerBranchRow {
-  id: string;
-  first_name: string;
-  last_name: string;
-  branch_id: string;
-}
 
 @Injectable()
 export class NotificationRealtimeService {
@@ -23,8 +14,7 @@ export class NotificationRealtimeService {
 
   constructor(
     private readonly gateway: NotificationsGateway,
-    @Inject(SUPABASE_ADMIN_CLIENT)
-    private readonly supabaseAdmin: SupabaseClient,
+    private readonly prisma: PrismaService,
   ) {}
 
   async broadcastCreated(notification: Notification): Promise<void> {
@@ -51,23 +41,26 @@ export class NotificationRealtimeService {
       return { branchId: null, lookups: EMPTY_RELATION_LOOKUPS };
     }
 
-    const response = await this.supabaseAdmin
-      .from('customers')
-      .select('id, first_name, last_name, branch_id')
-      .eq('id', customerId)
-      .maybeSingle();
+    const row = await this.prisma.customer.findUnique({
+      where: { id: customerId },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        branchId: true,
+      },
+    });
 
-    const row = unwrap<CustomerBranchRow>(response);
     if (!row) {
       return { branchId: null, lookups: EMPTY_RELATION_LOOKUPS };
     }
 
     return {
-      branchId: row.branch_id,
+      branchId: row.branchId,
       lookups: {
         ...EMPTY_RELATION_LOOKUPS,
         customers: new Map([
-          [row.id, `${row.first_name} ${row.last_name}`.trim()],
+          [row.id, `${row.firstName} ${row.lastName}`.trim()],
         ]),
       },
     };

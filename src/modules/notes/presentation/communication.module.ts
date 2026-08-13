@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { CustomersModule } from '../../customers/presentation/customers.module';
 import { NOTE_REPOSITORY } from '../domain/repositories/note.repository.interface';
-import { SupabaseNoteRepository } from '../infrastructure/persistence/supabase/supabase-note.repository';
+import { PrismaNoteRepository } from '../infrastructure/persistence/prisma/prisma-note.repository';
 import { CreateNoteUseCase } from '../application/use-cases/create-note.usecase';
 import { DeleteNoteUseCase } from '../application/use-cases/delete-note.usecase';
 import { GetNoteUseCase } from '../application/use-cases/get-note.usecase';
@@ -18,7 +18,7 @@ import { NotesController } from './controllers/notes.controller';
     CreateNoteUseCase,
     UpdateNoteUseCase,
     DeleteNoteUseCase,
-    { provide: NOTE_REPOSITORY, useClass: SupabaseNoteRepository },
+    { provide: NOTE_REPOSITORY, useClass: PrismaNoteRepository },
   ],
 })
 export class CommunicationModule {}

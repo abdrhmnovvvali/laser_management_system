@@ -9,9 +9,10 @@ import configuration from './config/configuration';
 import { validationSchema } from './config/validation.schema';
 import { I18nModule } from './shared/i18n/i18n.module';
 import { RelationsModule } from './shared/relations/relations.module';
-import { SupabaseModule } from './shared/supabase/supabase.module';
+import { PrismaModule } from './shared/prisma/prisma.module';
+import { JwtAuthModule } from './shared/auth/jwt-auth.module';
 import { EventsModule } from './shared/events/events.module';
-import { SupabaseAuthGuard } from './shared/guards/supabase-auth.guard';
+import { JwtAuthGuard } from './shared/guards/jwt-auth.guard';
 import { RolesGuard } from './shared/guards/roles.guard';
 import { AllExceptionsFilter } from './shared/filters/all-exceptions.filter';
 import { DomainExceptionFilter } from './shared/filters/domain-exception.filter';
@@ -43,7 +44,8 @@ import { PrinterModule } from './modules/printer/presentation/printer.module';
     ScheduleModule.forRoot(),
     I18nModule,
     RelationsModule,
-    SupabaseModule,
+    PrismaModule,
+    JwtAuthModule,
     EventsModule,
     AuthModule,
     BranchesModule,
@@ -65,7 +67,7 @@ import { PrinterModule } from './modules/printer/presentation/printer.module';
   controllers: [AppController],
   providers: [
     AppService,
-    { provide: APP_GUARD, useClass: SupabaseAuthGuard },
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
     { provide: APP_FILTER, useClass: DomainExceptionFilter },

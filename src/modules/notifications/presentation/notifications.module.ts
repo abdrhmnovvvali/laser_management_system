@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { NOTIFICATION_REPOSITORY } from '../domain/repositories/notification.repository.interface';
 import { NOTIFICATION_WRITER } from '../domain/repositories/notification-writer.interface';
-import { SupabaseNotificationRepository } from '../infrastructure/persistence/supabase/supabase-notification.repository';
-import { SupabaseNotificationWriter } from '../infrastructure/persistence/supabase/supabase-notification-writer';
+import { PrismaNotificationRepository } from '../infrastructure/persistence/prisma/prisma-notification.repository';
+import { PrismaNotificationWriter } from '../infrastructure/persistence/prisma/prisma-notification-writer';
 import { BirthdayFoundListener } from '../application/listeners/birthday-found.listener';
 import { FollowUpDueListener } from '../application/listeners/follow-up-due.listener';
 import { FraudDetectedListener } from '../application/listeners/fraud-detected.listener';
@@ -28,9 +28,9 @@ import { NotificationsGateway } from './realtime/notifications.gateway';
     BirthdayFoundListener,
     {
       provide: NOTIFICATION_REPOSITORY,
-      useClass: SupabaseNotificationRepository,
+      useClass: PrismaNotificationRepository,
     },
-    { provide: NOTIFICATION_WRITER, useClass: SupabaseNotificationWriter },
+    { provide: NOTIFICATION_WRITER, useClass: PrismaNotificationWriter },
   ],
   exports: [NotificationFacade],
 })

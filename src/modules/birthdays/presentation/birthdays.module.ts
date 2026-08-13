@@ -4,8 +4,8 @@ import {
   BIRTHDAY_ADMIN_READER,
   BIRTHDAY_READER,
 } from '../domain/repositories/birthday-reader.interface';
-import { SupabaseBirthdayAdminReader } from '../infrastructure/persistence/supabase/supabase-birthday-admin-reader';
-import { SupabaseBirthdayReader } from '../infrastructure/persistence/supabase/supabase-birthday-reader';
+import { PrismaBirthdayAdminReader } from '../infrastructure/persistence/prisma/prisma-birthday-admin-reader';
+import { PrismaBirthdayReader } from '../infrastructure/persistence/prisma/prisma-birthday-reader';
 import { BirthdayCheckCron } from '../application/cron/birthday-check.cron';
 import { BirthdayFacade } from '../application/birthday.facade';
 import { ListTodaysBirthdaysUseCase } from '../application/use-cases/list-todays-birthdays.usecase';
@@ -20,8 +20,8 @@ import { BirthdaysController } from './controllers/birthdays.controller';
     NotifyTodaysBirthdaysUseCase,
     BirthdayCheckCron,
     BirthdayFacade,
-    { provide: BIRTHDAY_READER, useClass: SupabaseBirthdayReader },
-    { provide: BIRTHDAY_ADMIN_READER, useClass: SupabaseBirthdayAdminReader },
+    { provide: BIRTHDAY_READER, useClass: PrismaBirthdayReader },
+    { provide: BIRTHDAY_ADMIN_READER, useClass: PrismaBirthdayAdminReader },
   ],
   exports: [BirthdayFacade],
 })

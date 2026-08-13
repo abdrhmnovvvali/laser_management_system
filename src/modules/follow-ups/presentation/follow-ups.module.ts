@@ -3,8 +3,8 @@ import { CustomersModule } from '../../customers/presentation/customers.module';
 import { ZonesModule } from '../../zones/presentation/zones.module';
 import { FOLLOW_UP_ADMIN_READER } from '../domain/repositories/follow-up-admin-reader.interface';
 import { FOLLOW_UP_REPOSITORY } from '../domain/repositories/follow-up.repository.interface';
-import { SupabaseFollowUpAdminReader } from '../infrastructure/persistence/supabase/supabase-follow-up-admin-reader';
-import { SupabaseFollowUpRepository } from '../infrastructure/persistence/supabase/supabase-follow-up.repository';
+import { PrismaFollowUpAdminReader } from '../infrastructure/persistence/prisma/prisma-follow-up-admin-reader';
+import { PrismaFollowUpRepository } from '../infrastructure/persistence/prisma/prisma-follow-up.repository';
 import { FollowUpDueCron } from '../application/cron/follow-up-due.cron';
 import { FollowUpFacade } from '../application/follow-up.facade';
 import { CreateFollowUpUseCase } from '../application/use-cases/create-follow-up.usecase';
@@ -31,10 +31,10 @@ import { FollowUpsController } from './controllers/follow-ups.controller';
     NotifyDueFollowUpsUseCase,
     FollowUpDueCron,
     FollowUpFacade,
-    { provide: FOLLOW_UP_REPOSITORY, useClass: SupabaseFollowUpRepository },
+    { provide: FOLLOW_UP_REPOSITORY, useClass: PrismaFollowUpRepository },
     {
       provide: FOLLOW_UP_ADMIN_READER,
-      useClass: SupabaseFollowUpAdminReader,
+      useClass: PrismaFollowUpAdminReader,
     },
   ],
   exports: [FollowUpFacade],

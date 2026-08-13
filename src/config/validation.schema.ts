@@ -6,14 +6,11 @@ export const validationSchema = Joi.object({
     .default('development'),
   PORT: Joi.number().default(3000),
 
-  SUPABASE_URL: Joi.string().uri().required(),
-  SUPABASE_ANON_KEY: Joi.string().required(),
-  SUPABASE_SERVICE_ROLE_KEY: Joi.string().required(),
-
-  DATABASE_URL: Joi.string().optional().allow(''),
+  DATABASE_URL: Joi.string().required(),
 
   JWT_SECRET: Joi.string().required(),
-  JWT_EXPIRES_IN: Joi.string().default('1d'),
+  JWT_EXPIRES_IN: Joi.string().default('15m'),
+  JWT_REFRESH_EXPIRES_IN: Joi.string().default('7d'),
 
   SWAGGER_PATH: Joi.string().default('api/docs'),
 

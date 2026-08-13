@@ -1,23 +1,21 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import { WsException } from '@nestjs/websockets';
-import { SupabaseClient } from '@supabase/supabase-js';
 import { Socket } from 'socket.io';
+import { JwtPayload } from '../../../../shared/auth/jwt-payload.interface';
 import { AuthenticatedUser } from '../../../../shared/guards/authenticated-user.interface';
 import { Role } from '../../../../shared/guards/roles.enum';
-import { SUPABASE_ADMIN_CLIENT } from '../../../../shared/supabase/supabase.constants';
-
-interface ProfileRow {
-  role: Role;
-  branch_id: string | null;
-}
+import { PrismaService } from '../../../../shared/prisma/prisma.service';
 
 @Injectable()
 export class NotificationWsAuthService {
   private readonly logger = new Logger(NotificationWsAuthService.name);
 
   constructor(
-    @Inject(SUPABASE_ADMIN_CLIENT)
-    private readonly supabaseAdmin: SupabaseClient,
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async authenticate(client: Socket): Promise<AuthenticatedUser> {
@@ -26,22 +24,30 @@ export class NotificationWsAuthService {
       throw new WsException('Bearer token tapılmadı');
     }
 
-    const {
-      data: { user },
-      error,
-    } = await this.supabaseAdmin.auth.getUser(token);
-
-    if (error || !user) {
+    let payload: JwtPayload;
+    try {
+      payload = await this.jwtService.verifyAsync<JwtPayload>(token, {
+        secret: this.configService.getOrThrow<string>('jwt.secret'),
+      });
+    } catch {
       throw new WsException('Token yanlış və ya vaxtı bitib');
     }
 
-    const profile = await this.fetchProfile(user.id);
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: { id: true, email: true, role: true, branchId: true },
+    });
+
+    if (!user) {
+      this.logger.warn(`WS istifadəçi tapılmadı: ${payload.sub}`);
+      throw new WsException('İstifadəçi tapılmadı');
+    }
 
     return {
       id: user.id,
       email: user.email,
-      role: profile.role,
-      branchId: profile.branch_id,
+      role: user.role as Role,
+      branchId: user.branchId,
     };
   }
 
@@ -64,20 +70,5 @@ export class NotificationWsAuthService {
     }
 
     return undefined;
-  }
-
-  private async fetchProfile(userId: string): Promise<ProfileRow> {
-    const { data, error } = await this.supabaseAdmin
-      .from('profiles')
-      .select('role, branch_id')
-      .eq('id', userId)
-      .single();
-
-    if (error || !data) {
-      this.logger.warn(`WS profil tapılmadı: ${userId}`);
-      throw new WsException('İstifadəçi profili tapılmadı');
-    }
-
-    return data;
   }
 }
