@@ -25,7 +25,7 @@ echo "==> Restarting PM2"
 if pm2 describe lazer-api >/dev/null 2>&1; then
   pm2 restart lazer-api
 else
-  pm2 start dist/main.js --name lazer-api
+  pm2 start dist/src/main.js --name lazer-api
 fi
 pm2 save
 
