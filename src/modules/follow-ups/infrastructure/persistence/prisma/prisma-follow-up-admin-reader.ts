@@ -27,7 +27,9 @@ export class PrismaFollowUpAdminReader implements IFollowUpAdminReader {
       FollowUpPersistenceMapper.toDomain({
         id: row.id,
         customer_id: row.customerId,
+        device_id: row.deviceId,
         planned_date: row.plannedDate.toISOString(),
+        planned_time: row.plannedTime,
         status: row.status as FollowUpStatus,
         created_at: row.createdAt.toISOString(),
         follow_up_zones: row.zones.map((item) => ({ zone_id: item.zoneId })),

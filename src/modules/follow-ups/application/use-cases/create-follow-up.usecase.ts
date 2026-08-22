@@ -1,9 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { BusinessRuleViolationException } from '../../../../shared/kernel/domain.exception';
 import { EVENT_PUBLISHER } from '../../../../shared/events/event-publisher.interface';
 import type { IEventPublisher } from '../../../../shared/events/event-publisher.interface';
-import { CustomerFacade } from '../../../customers/application/customer.facade';
-import { ZoneFacade } from '../../../zones/application/zone.facade';
 import { FollowUpStatus } from '../../domain/entities/follow-up-status.enum';
 import { FollowUpDueEvent } from '../../domain/events/follow-up-due.event';
 import { FOLLOW_UP_REPOSITORY } from '../../domain/repositories/follow-up.repository.interface';
@@ -12,25 +9,31 @@ import type {
   IFollowUpRepository,
 } from '../../domain/repositories/follow-up.repository.interface';
 import { FollowUp } from '../../domain/entities/follow-up.entity';
+import { FollowUpReservationValidator } from '../services/follow-up-reservation.validator';
 
 @Injectable()
 export class CreateFollowUpUseCase {
   constructor(
     @Inject(FOLLOW_UP_REPOSITORY)
     private readonly followUpRepository: IFollowUpRepository,
-    private readonly customerFacade: CustomerFacade,
-    private readonly zoneFacade: ZoneFacade,
+    private readonly reservationValidator: FollowUpReservationValidator,
     @Inject(EVENT_PUBLISHER)
     private readonly eventPublisher: IEventPublisher,
   ) {}
 
   async execute(data: CreateFollowUpData): Promise<FollowUp> {
-    await this.customerFacade.getById(data.customerId);
-    await this.assertZonesExist(data.zoneIds);
+    await this.reservationValidator.validate({
+      customerId: data.customerId,
+      deviceId: data.deviceId,
+      plannedDate: data.plannedDate,
+      plannedTime: data.plannedTime,
+      zoneIds: data.zoneIds,
+      status: data.status,
+    });
 
     const followUp = await this.followUpRepository.create({
       ...data,
-      zoneIds: data.zoneIds ?? [],
+      zoneIds: data.zoneIds,
     });
 
     const effectiveStatus = data.status ?? FollowUpStatus.PENDING;
@@ -44,19 +47,6 @@ export class CreateFollowUpUseCase {
     }
 
     return followUp;
-  }
-
-  private async assertZonesExist(zoneIds?: string[]): Promise<void> {
-    if (!zoneIds?.length) {
-      return;
-    }
-
-    const zones = await this.zoneFacade.getByIds(zoneIds);
-    if (zones.length !== zoneIds.length) {
-      throw new BusinessRuleViolationException(
-        'Seçilən nahiyələrdən biri və ya bir neçəsi tapılmadı',
-      );
-    }
   }
 
   private isDueOnOrBeforeToday(plannedDate: Date): boolean {

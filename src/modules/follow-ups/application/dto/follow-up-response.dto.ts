@@ -13,7 +13,16 @@ export class FollowUpResponseDto {
   customerName: string | null;
 
   @ApiProperty()
+  deviceId: string;
+
+  @ApiProperty({ nullable: true, description: 'Cihazın adı/tipi' })
+  deviceName: string | null;
+
+  @ApiProperty()
   plannedDate: Date;
+
+  @ApiProperty({ example: '10:30', description: 'Rezervasiya saatı (HH:mm)' })
+  plannedTime: string;
 
   @ApiProperty({ enum: FollowUpStatus })
   status: FollowUpStatus;

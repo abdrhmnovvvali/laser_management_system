@@ -25,10 +25,15 @@ import { RelationLookupService } from '../../../../shared/relations/relation-loo
 import { collectFollowUpRelationIds } from '../../../../shared/relations/relation-name.util';
 import { CreateFollowUpUseCase } from '../../application/use-cases/create-follow-up.usecase';
 import { DeleteFollowUpUseCase } from '../../application/use-cases/delete-follow-up.usecase';
+import { GetAvailableReservationSlotsUseCase } from '../../application/use-cases/get-available-reservation-slots.usecase';
 import { GetFollowUpUseCase } from '../../application/use-cases/get-follow-up.usecase';
 import { ListFollowUpsByCustomerUseCase } from '../../application/use-cases/list-follow-ups-by-customer.usecase';
 import { ListUpcomingFollowUpsUseCase } from '../../application/use-cases/list-upcoming-follow-ups.usecase';
 import { UpdateFollowUpUseCase } from '../../application/use-cases/update-follow-up.usecase';
+import {
+  AvailableReservationSlotsQueryDto,
+  AvailableReservationSlotsResponseDto,
+} from '../../application/dto/available-reservation-slots.dto';
 import { CreateFollowUpDto } from '../../application/dto/create-follow-up.dto';
 import { FollowUpResponseDto } from '../../application/dto/follow-up-response.dto';
 import { ListFollowUpsQueryDto } from '../../application/dto/list-follow-ups-query.dto';
@@ -48,6 +53,7 @@ export class FollowUpsController {
   constructor(
     private readonly listFollowUpsByCustomerUseCase: ListFollowUpsByCustomerUseCase,
     private readonly listUpcomingFollowUpsUseCase: ListUpcomingFollowUpsUseCase,
+    private readonly getAvailableReservationSlotsUseCase: GetAvailableReservationSlotsUseCase,
     private readonly getFollowUpUseCase: GetFollowUpUseCase,
     private readonly createFollowUpUseCase: CreateFollowUpUseCase,
     private readonly updateFollowUpUseCase: UpdateFollowUpUseCase,
@@ -57,7 +63,7 @@ export class FollowUpsController {
 
   @Get()
   @ApiOperation({
-    summary: 'Follow-up siyahısı (istəyə bağlı müştəri/status filtri)',
+    summary: 'Rezervasiya siyahısı (istəyə bağlı müştəri/cihaz/tarix/status filtri)',
   })
   @ApiResponse({ status: 200, type: PaginatedFollowUpsResponseDto })
   async findAllByCustomer(@Query() query: ListFollowUpsQueryDto) {
@@ -71,8 +77,23 @@ export class FollowUpsController {
     );
   }
 
+  @Get('available-slots')
+  @ApiOperation({
+    summary: 'Seçilmiş cihaz və tarix üçün mövcud rezervasiya slotları',
+  })
+  @ApiResponse({ status: 200, type: AvailableReservationSlotsResponseDto })
+  async getAvailableSlots(
+    @Query() query: AvailableReservationSlotsQueryDto,
+  ): Promise<AvailableReservationSlotsResponseDto> {
+    return this.getAvailableReservationSlotsUseCase.execute({
+      deviceId: query.deviceId,
+      date: new Date(query.date),
+      excludeFollowUpId: query.excludeFollowUpId,
+    });
+  }
+
   @Get('upcoming')
-  @ApiOperation({ summary: 'Yaxınlaşan xatırlatmalar (gün sayına görə)' })
+  @ApiOperation({ summary: 'Yaxınlaşan rezervasiyalar (gün sayına görə)' })
   @ApiResponse({ status: 200, type: PaginatedFollowUpsResponseDto })
   async findUpcoming(@Query() query: UpcomingFollowUpsQueryDto) {
     const result = await this.listUpcomingFollowUpsUseCase.execute(query);
@@ -86,7 +107,7 @@ export class FollowUpsController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'ID üzrə xatırlatma məlumatı' })
+  @ApiOperation({ summary: 'ID üzrə rezervasiya məlumatı' })
   @ApiResponse({ status: 200, type: FollowUpResponseDto })
   async findOne(
     @Param('id', ParseUUIDPipe) id: string,
@@ -99,7 +120,7 @@ export class FollowUpsController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Yeni növbəti vizit planlaşdır' })
+  @ApiOperation({ summary: 'Yeni rezervasiya yarat' })
   @ApiResponse({ status: 201, type: FollowUpResponseDto })
   async create(@Body() dto: CreateFollowUpDto): Promise<FollowUpResponseDto> {
     const followUp = await this.createFollowUpUseCase.execute({
@@ -113,7 +134,7 @@ export class FollowUpsController {
   }
 
   @Patch(':id')
-  @ApiOperation({ summary: 'Xatırlatmanı yenilə (tarix/status)' })
+  @ApiOperation({ summary: 'Rezervasiyanı yenilə' })
   @ApiResponse({ status: 200, type: FollowUpResponseDto })
   async update(
     @Param('id', ParseUUIDPipe) id: string,
@@ -131,7 +152,7 @@ export class FollowUpsController {
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Xatırlatmanı sil' })
+  @ApiOperation({ summary: 'Rezervasiyanı sil' })
   @ApiResponse({ status: 204 })
   async remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     await this.deleteFollowUpUseCase.execute(id);

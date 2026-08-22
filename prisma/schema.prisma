@@ -98,6 +98,7 @@ model Device {
   translations DeviceTranslation[]
   zones        Zone[]
   procedures   Procedure[]
+  followUps    FollowUp[]
 
   @@index([branchId])
   @@map("devices")
@@ -309,15 +310,19 @@ model Note {
 model FollowUp {
   id          String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   customerId  String         @map("customer_id") @db.Uuid
+  deviceId    String         @map("device_id") @db.Uuid
   plannedDate DateTime       @map("planned_date") @db.Date
+  plannedTime String         @map("planned_time") @db.VarChar(5)
   status      FollowUpStatus @default(pending)
   createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
 
   customer Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  device   Device         @relation(fields: [deviceId], references: [id], onDelete: Restrict)
   zones    FollowUpZone[]
 
   @@index([customerId])
-  @@index([plannedDate])
+  @@index([deviceId])
+  @@index([plannedDate, plannedTime])
   @@index([status])
   @@map("follow_ups")
 }

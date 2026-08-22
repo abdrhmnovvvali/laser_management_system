@@ -1,22 +1,19 @@
 import { Inject, Injectable } from '@nestjs/common';
-import {
-  BusinessRuleViolationException,
-  EntityNotFoundException,
-} from '../../../../shared/kernel/domain.exception';
-import { ZoneFacade } from '../../../zones/application/zone.facade';
+import { EntityNotFoundException } from '../../../../shared/kernel/domain.exception';
 import { FOLLOW_UP_REPOSITORY } from '../../domain/repositories/follow-up.repository.interface';
 import type {
   IFollowUpRepository,
   UpdateFollowUpData,
 } from '../../domain/repositories/follow-up.repository.interface';
 import { FollowUp } from '../../domain/entities/follow-up.entity';
+import { FollowUpReservationValidator } from '../services/follow-up-reservation.validator';
 
 @Injectable()
 export class UpdateFollowUpUseCase {
   constructor(
     @Inject(FOLLOW_UP_REPOSITORY)
     private readonly followUpRepository: IFollowUpRepository,
-    private readonly zoneFacade: ZoneFacade,
+    private readonly reservationValidator: FollowUpReservationValidator,
   ) {}
 
   async execute(id: string, data: UpdateFollowUpData): Promise<FollowUp> {
@@ -25,23 +22,18 @@ export class UpdateFollowUpUseCase {
       throw new EntityNotFoundException('FollowUp', id);
     }
 
-    if (data.zoneIds !== undefined) {
-      await this.assertZonesExist(data.zoneIds);
-    }
+    const merged = {
+      customerId: existing.customerId,
+      deviceId: data.deviceId ?? existing.deviceId,
+      plannedDate: data.plannedDate ?? existing.plannedDate,
+      plannedTime: data.plannedTime ?? existing.plannedTime,
+      zoneIds: data.zoneIds ?? existing.zoneIds,
+      status: data.status ?? existing.status,
+      excludeFollowUpId: id,
+    };
+
+    await this.reservationValidator.validate(merged);
 
     return this.followUpRepository.update(id, data);
-  }
-
-  private async assertZonesExist(zoneIds: string[]): Promise<void> {
-    if (zoneIds.length === 0) {
-      return;
-    }
-
-    const zones = await this.zoneFacade.getByIds(zoneIds);
-    if (zones.length !== zoneIds.length) {
-      throw new BusinessRuleViolationException(
-        'Seçilən nahiyələrdən biri və ya bir neçəsi tapılmadı',
-      );
-    }
   }
 }

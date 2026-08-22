@@ -59,14 +59,17 @@ export function collectProcedureRelationIds(
 export function collectFollowUpRelationIds(
   followUps: Array<{
     customerId: string;
+    deviceId?: string;
     zoneIds?: string[];
   }>,
 ): {
   customerIds: string[];
+  deviceIds: (string | null | undefined)[];
   zoneIds: (string | null | undefined)[];
 } {
   return {
     customerIds: followUps.map((followUp) => followUp.customerId),
+    deviceIds: followUps.map((followUp) => followUp.deviceId),
     zoneIds: followUps.flatMap((followUp) => followUp.zoneIds ?? []),
   };
 }

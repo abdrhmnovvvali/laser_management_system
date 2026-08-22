@@ -17,6 +17,10 @@ export class ListFollowUpsByCustomerUseCase {
   ) {
     return this.followUpRepository.findAll({
       customerId: query.customerId,
+      deviceId: query.deviceId,
+      plannedDate: query.plannedDate
+        ? new Date(query.plannedDate)
+        : undefined,
       status: query.status,
       pagination: options?.skipPagination
         ? undefined

@@ -10,6 +10,8 @@ import {
   CreateFollowUpData,
   FollowUpListOptions,
   IFollowUpRepository,
+  PendingSlotConflictQuery,
+  BookedSlotQuery,
   UpcomingFollowUpListOptions,
   UpdateFollowUpData,
 } from '../../../domain/repositories/follow-up.repository.interface';
@@ -33,6 +35,10 @@ export class PrismaFollowUpRepository implements IFollowUpRepository {
     const { skip, take } = toPrismaSkipTake(options.pagination);
     const where: Prisma.FollowUpWhereInput = {};
     if (options.customerId) where.customerId = options.customerId;
+    if (options.deviceId) where.deviceId = options.deviceId;
+    if (options.plannedDate) {
+      where.plannedDate = toDateOnly(options.plannedDate);
+    }
     if (options.status) {
       where.status = options.status as PrismaFollowUpStatus;
     }
@@ -41,7 +47,7 @@ export class PrismaFollowUpRepository implements IFollowUpRepository {
       this.prisma.followUp.findMany({
         where,
         include: zonesInclude,
-        orderBy: { plannedDate: 'asc' },
+        orderBy: [{ plannedDate: 'asc' }, { plannedTime: 'asc' }],
         skip,
         take,
       }),
@@ -83,7 +89,7 @@ export class PrismaFollowUpRepository implements IFollowUpRepository {
       this.prisma.followUp.findMany({
         where,
         include: zonesInclude,
-        orderBy: { plannedDate: 'asc' },
+        orderBy: [{ plannedDate: 'asc' }, { plannedTime: 'asc' }],
         skip,
         take,
       }),
@@ -97,11 +103,42 @@ export class PrismaFollowUpRepository implements IFollowUpRepository {
     );
   }
 
+  async findPendingSlotConflict(
+    query: PendingSlotConflictQuery,
+  ): Promise<FollowUp | null> {
+    const row = await this.prisma.followUp.findFirst({
+      where: {
+        deviceId: query.deviceId,
+        plannedDate: toDateOnly(query.plannedDate),
+        plannedTime: query.plannedTime,
+        status: FollowUpStatus.PENDING as PrismaFollowUpStatus,
+        ...(query.excludeFollowUpId
+          ? { id: { not: query.excludeFollowUpId } }
+          : {}),
+      },
+      include: zonesInclude,
+    });
+    return row ? this.toDomain(row) : null;
+  }
+
+  async findBookedTimesForDay(query: BookedSlotQuery): Promise<string[]> {
+    const rows = await this.prisma.followUp.findMany({
+      where: {
+        deviceId: query.deviceId,
+        plannedDate: toDateOnly(query.plannedDate),
+        status: FollowUpStatus.PENDING as PrismaFollowUpStatus,
+      },
+      select: { plannedTime: true },
+      orderBy: { plannedTime: 'asc' },
+    });
+    return rows.map((row) => row.plannedTime);
+  }
+
   async findByStatus(status: FollowUpStatus): Promise<FollowUp[]> {
     const rows = await this.prisma.followUp.findMany({
       where: { status: status as PrismaFollowUpStatus },
       include: zonesInclude,
-      orderBy: { plannedDate: 'asc' },
+      orderBy: [{ plannedDate: 'asc' }, { plannedTime: 'asc' }],
     });
     return rows.map((row) => this.toDomain(row));
   }
@@ -110,10 +147,12 @@ export class PrismaFollowUpRepository implements IFollowUpRepository {
     const created = await this.prisma.followUp.create({
       data: {
         customerId: data.customerId,
+        deviceId: data.deviceId,
         plannedDate: toDateOnly(data.plannedDate),
+        plannedTime: data.plannedTime,
         status: (data.status ?? FollowUpStatus.PENDING) as PrismaFollowUpStatus,
         zones: {
-          create: (data.zoneIds ?? []).map((zoneId) => ({ zoneId })),
+          create: data.zoneIds.map((zoneId) => ({ zoneId })),
         },
       },
       include: zonesInclude,
@@ -123,8 +162,14 @@ export class PrismaFollowUpRepository implements IFollowUpRepository {
 
   async update(id: string, data: UpdateFollowUpData): Promise<FollowUp> {
     const payload: Prisma.FollowUpUpdateInput = {};
+    if (data.deviceId !== undefined) {
+      payload.device = { connect: { id: data.deviceId } };
+    }
     if (data.plannedDate !== undefined) {
       payload.plannedDate = toDateOnly(data.plannedDate);
+    }
+    if (data.plannedTime !== undefined) {
+      payload.plannedTime = data.plannedTime;
     }
     if (data.status !== undefined) {
       payload.status = data.status as PrismaFollowUpStatus;
@@ -167,7 +212,9 @@ export class PrismaFollowUpRepository implements IFollowUpRepository {
   private toDomain(row: {
     id: string;
     customerId: string;
+    deviceId: string;
     plannedDate: Date;
+    plannedTime: string;
     status: PrismaFollowUpStatus;
     createdAt: Date;
     zones: Array<{ zoneId: string }>;
@@ -175,7 +222,9 @@ export class PrismaFollowUpRepository implements IFollowUpRepository {
     return FollowUpPersistenceMapper.toDomain({
       id: row.id,
       customer_id: row.customerId,
+      device_id: row.deviceId,
       planned_date: row.plannedDate.toISOString(),
+      planned_time: row.plannedTime,
       status: row.status as FollowUpStatus,
       created_at: row.createdAt.toISOString(),
       follow_up_zones: row.zones.map((item) => ({ zone_id: item.zoneId })),

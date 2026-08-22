@@ -15,7 +15,10 @@ export class FollowUpMapper {
     dto.id = followUp.id;
     dto.customerId = followUp.customerId;
     dto.customerName = lookups.customers.get(followUp.customerId) ?? null;
+    dto.deviceId = followUp.deviceId;
+    dto.deviceName = lookups.devices.get(followUp.deviceId) ?? null;
     dto.plannedDate = followUp.plannedDate;
+    dto.plannedTime = followUp.plannedTime;
     dto.status = followUp.status;
     dto.zoneIds = followUp.zoneIds;
     dto.zones = toNamedEntities(followUp.zoneIds, lookups.zones);
