@@ -1,5 +1,6 @@
 import { FollowUp } from '../../domain/entities/follow-up.entity';
 import { FollowUpStatus } from '../../domain/entities/follow-up-status.enum';
+import { parseDateOnlyString } from '../../../../shared/date/date-only.util';
 
 export interface FollowUpRow {
   id: string;
@@ -19,7 +20,7 @@ export class FollowUpPersistenceMapper {
       new Date(row.created_at),
       row.customer_id,
       row.device_id,
-      new Date(row.planned_date),
+      parseDateOnlyString(row.planned_date),
       row.planned_time,
       row.status,
       (row.follow_up_zones ?? []).map((link) => link.zone_id),

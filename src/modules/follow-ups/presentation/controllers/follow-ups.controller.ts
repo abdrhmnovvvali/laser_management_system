@@ -22,6 +22,7 @@ import {
   createPaginatedResponseDtoClass,
 } from '../../../../shared/dto/paginated-response.dto';
 import { RelationLookupService } from '../../../../shared/relations/relation-lookup.service';
+import { parseDateOnlyString } from '../../../../shared/date/date-only.util';
 import { collectFollowUpRelationIds } from '../../../../shared/relations/relation-name.util';
 import { CreateFollowUpUseCase } from '../../application/use-cases/create-follow-up.usecase';
 import { DeleteFollowUpUseCase } from '../../application/use-cases/delete-follow-up.usecase';
@@ -87,7 +88,7 @@ export class FollowUpsController {
   ): Promise<AvailableReservationSlotsResponseDto> {
     return this.getAvailableReservationSlotsUseCase.execute({
       deviceId: query.deviceId,
-      date: new Date(query.date),
+      date: parseDateOnlyString(query.date),
       excludeFollowUpId: query.excludeFollowUpId,
     });
   }
@@ -125,7 +126,7 @@ export class FollowUpsController {
   async create(@Body() dto: CreateFollowUpDto): Promise<FollowUpResponseDto> {
     const followUp = await this.createFollowUpUseCase.execute({
       ...dto,
-      plannedDate: new Date(dto.plannedDate),
+      plannedDate: parseDateOnlyString(dto.plannedDate),
     });
     const lookups = await this.relationLookupService.load(
       collectFollowUpRelationIds([followUp]),
@@ -142,7 +143,9 @@ export class FollowUpsController {
   ): Promise<FollowUpResponseDto> {
     const followUp = await this.updateFollowUpUseCase.execute(id, {
       ...dto,
-      plannedDate: dto.plannedDate ? new Date(dto.plannedDate) : undefined,
+      plannedDate: dto.plannedDate
+        ? parseDateOnlyString(dto.plannedDate)
+        : undefined,
     });
     const lookups = await this.relationLookupService.load(
       collectFollowUpRelationIds([followUp]),

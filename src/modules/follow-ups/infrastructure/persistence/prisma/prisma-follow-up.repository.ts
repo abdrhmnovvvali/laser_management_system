@@ -15,15 +15,15 @@ import {
   UpcomingFollowUpListOptions,
   UpdateFollowUpData,
 } from '../../../domain/repositories/follow-up.repository.interface';
+import {
+  formatDateOnly,
+  toDateOnly,
+} from '../../../../../shared/date/date-only.util';
 import { FollowUpPersistenceMapper } from '../../mappers/follow-up-persistence.mapper';
 
 const zonesInclude = {
   zones: true,
 } as const;
-
-function toDateOnly(date: Date): Date {
-  return new Date(date.toISOString().slice(0, 10));
-}
 
 @Injectable()
 export class PrismaFollowUpRepository implements IFollowUpRepository {
@@ -223,7 +223,7 @@ export class PrismaFollowUpRepository implements IFollowUpRepository {
       id: row.id,
       customer_id: row.customerId,
       device_id: row.deviceId,
-      planned_date: row.plannedDate.toISOString(),
+      planned_date: formatDateOnly(row.plannedDate),
       planned_time: row.plannedTime,
       status: row.status as FollowUpStatus,
       created_at: row.createdAt.toISOString(),

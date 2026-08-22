@@ -1,6 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EVENT_PUBLISHER } from '../../../../shared/events/event-publisher.interface';
 import type { IEventPublisher } from '../../../../shared/events/event-publisher.interface';
+import {
+  formatDateOnly,
+  getLocalTodayDateOnly,
+} from '../../../../shared/date/date-only.util';
 import { FollowUpStatus } from '../../domain/entities/follow-up-status.enum';
 import { FollowUpDueEvent } from '../../domain/events/follow-up-due.event';
 import { FOLLOW_UP_REPOSITORY } from '../../domain/repositories/follow-up.repository.interface';
@@ -50,8 +54,8 @@ export class CreateFollowUpUseCase {
   }
 
   private isDueOnOrBeforeToday(plannedDate: Date): boolean {
-    const today = new Date().toISOString().slice(0, 10);
-    const planned = plannedDate.toISOString().slice(0, 10);
+    const today = formatDateOnly(getLocalTodayDateOnly());
+    const planned = formatDateOnly(plannedDate);
     return planned <= today;
   }
 }

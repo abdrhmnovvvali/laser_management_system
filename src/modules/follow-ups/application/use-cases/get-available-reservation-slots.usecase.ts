@@ -1,5 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import {
+  isSameDateOnly,
+} from '../../../../shared/date/date-only.util';
 import { generateReservationSlotTimes } from '../../domain/reservation-slot.util';
 import { FOLLOW_UP_REPOSITORY } from '../../domain/repositories/follow-up.repository.interface';
 import type { IFollowUpRepository } from '../../domain/repositories/follow-up.repository.interface';
@@ -44,8 +47,7 @@ export class GetAvailableReservationSlotsUseCase {
       if (
         existing &&
         existing.deviceId === input.deviceId &&
-        existing.plannedDate.toISOString().slice(0, 10) ===
-          input.date.toISOString().slice(0, 10)
+        isSameDateOnly(existing.plannedDate, input.date)
       ) {
         bookedSet = new Set(
           bookedTimes.filter((time) => time !== existing.plannedTime),

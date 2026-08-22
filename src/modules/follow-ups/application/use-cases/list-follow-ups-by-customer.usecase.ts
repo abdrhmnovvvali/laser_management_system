@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { resolvePagination } from '../../../../shared/pagination/pagination.util';
+import { parseDateOnlyString } from '../../../../shared/date/date-only.util';
 import { FOLLOW_UP_REPOSITORY } from '../../domain/repositories/follow-up.repository.interface';
 import type { IFollowUpRepository } from '../../domain/repositories/follow-up.repository.interface';
 import { ListFollowUpsQueryDto } from '../dto/list-follow-ups-query.dto';
@@ -19,7 +20,7 @@ export class ListFollowUpsByCustomerUseCase {
       customerId: query.customerId,
       deviceId: query.deviceId,
       plannedDate: query.plannedDate
-        ? new Date(query.plannedDate)
+        ? parseDateOnlyString(query.plannedDate)
         : undefined,
       status: query.status,
       pagination: options?.skipPagination

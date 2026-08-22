@@ -18,8 +18,8 @@ export class FollowUpResponseDto {
   @ApiProperty({ nullable: true, description: 'Cihazın adı/tipi' })
   deviceName: string | null;
 
-  @ApiProperty()
-  plannedDate: Date;
+  @ApiProperty({ example: '2026-07-15', description: 'Rezervasiya tarixi (YYYY-MM-DD)' })
+  plannedDate: string;
 
   @ApiProperty({ example: '10:30', description: 'Rezervasiya saatı (HH:mm)' })
   plannedTime: string;
