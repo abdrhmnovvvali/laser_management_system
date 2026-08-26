@@ -12,8 +12,10 @@ import { FraudReportFacade } from '../../../fraud-detection/application/fraud-re
 import { FraudReportItem } from '../../../fraud-detection/domain/entities/fraud-report-item.entity';
 import { NotificationType } from '../../../notifications/domain/entities/notification-type.enum';
 import { NotificationFacade } from '../../../notifications/application/notification.facade';
+import { PackageFacade } from '../../../packages/application/package.facade';
 import { Procedure } from '../../../procedures/domain/entities/procedure.entity';
 import { ProcedureFacade } from '../../../procedures/application/procedure.facade';
+import { ZoneFacade } from '../../../zones/application/zone.facade';
 import {
   DashboardAlerts,
   DashboardBranchStats,
@@ -23,10 +25,12 @@ import {
   DashboardProblem,
   DashboardProblemSeverity,
   DashboardSummary,
+  DashboardUsageRankItem,
 } from '../../domain/entities/dashboard-summary.entity';
 
 const UPCOMING_FOLLOW_UP_WINDOW_DAYS = 7;
 const TOP_FRAUD_CASES_LIMIT = 200;
+const TOP_USAGE_LIMIT = 10;
 const TIME_ZONE = 'Asia/Baku';
 
 export interface GetDashboardSummaryInput {
@@ -43,6 +47,8 @@ export class GetDashboardSummaryUseCase {
     private readonly birthdayFacade: BirthdayFacade,
     private readonly followUpFacade: FollowUpFacade,
     private readonly campaignFacade: CampaignFacade,
+    private readonly packageFacade: PackageFacade,
+    private readonly zoneFacade: ZoneFacade,
     private readonly fraudReportFacade: FraudReportFacade,
     private readonly branchFacade: BranchFacade,
     private readonly deviceFacade: DeviceFacade,
@@ -224,6 +230,12 @@ export class GetDashboardSummaryUseCase {
       branchNameMap,
     });
 
+    const [topZones, topCampaigns, topPackages] = await Promise.all([
+      this.buildTopZones(monthlyProcedures),
+      this.buildTopCampaigns(monthlyProcedures),
+      this.buildTopPackages(monthlyProcedures),
+    ]);
+
     const period: DashboardPeriod = {
       monthStart,
       monthEnd,
@@ -237,7 +249,98 @@ export class GetDashboardSummaryUseCase {
       alerts,
       branchStats,
       problems,
+      topZones,
+      topCampaigns,
+      topPackages,
     );
+  }
+
+  private async buildTopZones(
+    procedures: Procedure[],
+  ): Promise<DashboardUsageRankItem[]> {
+    const counts = new Map<string, number>();
+
+    for (const procedure of procedures) {
+      const zoneIds = new Set(procedure.zoneIds ?? []);
+      if (procedure.freeZoneId) {
+        zoneIds.add(procedure.freeZoneId);
+      }
+      for (const zoneId of zoneIds) {
+        counts.set(zoneId, (counts.get(zoneId) ?? 0) + 1);
+      }
+    }
+
+    const ranked = this.rankCounts(counts);
+    const names = await this.zoneFacade.resolveNames(ranked.map((item) => item.id));
+
+    return ranked.map((item) => ({
+      id: item.id,
+      name: names.get(item.id) ?? null,
+      usageCount: item.usageCount,
+    }));
+  }
+
+  private async buildTopCampaigns(
+    procedures: Procedure[],
+  ): Promise<DashboardUsageRankItem[]> {
+    const counts = new Map<string, number>();
+
+    for (const procedure of procedures) {
+      if (!procedure.campaignId) {
+        continue;
+      }
+      counts.set(
+        procedure.campaignId,
+        (counts.get(procedure.campaignId) ?? 0) + 1,
+      );
+    }
+
+    const ranked = this.rankCounts(counts);
+    const names = await this.campaignFacade.resolveNames(
+      ranked.map((item) => item.id),
+    );
+
+    return ranked.map((item) => ({
+      id: item.id,
+      name: names.get(item.id) ?? null,
+      usageCount: item.usageCount,
+    }));
+  }
+
+  private async buildTopPackages(
+    procedures: Procedure[],
+  ): Promise<DashboardUsageRankItem[]> {
+    const counts = new Map<string, number>();
+
+    for (const procedure of procedures) {
+      if (!procedure.packageId) {
+        continue;
+      }
+      counts.set(
+        procedure.packageId,
+        (counts.get(procedure.packageId) ?? 0) + 1,
+      );
+    }
+
+    const ranked = this.rankCounts(counts);
+    const names = await this.packageFacade.resolveNames(
+      ranked.map((item) => item.id),
+    );
+
+    return ranked.map((item) => ({
+      id: item.id,
+      name: names.get(item.id) ?? null,
+      usageCount: item.usageCount,
+    }));
+  }
+
+  private rankCounts(
+    counts: Map<string, number>,
+  ): Array<{ id: string; usageCount: number }> {
+    return [...counts.entries()]
+      .map(([id, usageCount]) => ({ id, usageCount }))
+      .sort((left, right) => right.usageCount - left.usageCount)
+      .slice(0, TOP_USAGE_LIMIT);
   }
 
   private buildBranchStats(

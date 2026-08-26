@@ -9,6 +9,7 @@ import {
   DashboardProblemDto,
   DashboardSummaryResponseDto,
   DashboardUnreadNotificationsDto,
+  DashboardUsageRankItemDto,
 } from '../dto/dashboard-summary-response.dto';
 
 export class DashboardSummaryMapper {
@@ -21,6 +22,13 @@ export class DashboardSummaryMapper {
     dto.alerts = this.mapAlerts(summary);
     dto.branches = summary.branches.map((branch) => this.mapBranch(branch));
     dto.problems = summary.problems.map((problem) => this.mapProblem(problem));
+    dto.topZones = summary.topZones.map((item) => this.mapUsageRank(item));
+    dto.topCampaigns = summary.topCampaigns.map((item) =>
+      this.mapUsageRank(item),
+    );
+    dto.topPackages = summary.topPackages.map((item) =>
+      this.mapUsageRank(item),
+    );
 
     return dto;
   }
@@ -117,6 +125,16 @@ export class DashboardSummaryMapper {
     dto.branchId = problem.branchId;
     dto.branchName = problem.branchName;
     dto.threshold = problem.threshold;
+    return dto;
+  }
+
+  private static mapUsageRank(
+    item: DashboardSummary['topZones'][number],
+  ): DashboardUsageRankItemDto {
+    const dto = new DashboardUsageRankItemDto();
+    dto.id = item.id;
+    dto.name = item.name;
+    dto.usageCount = item.usageCount;
     return dto;
   }
 }

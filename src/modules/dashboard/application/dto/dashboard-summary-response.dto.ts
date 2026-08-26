@@ -168,6 +168,17 @@ export class DashboardProblemDto {
   threshold?: number;
 }
 
+export class DashboardUsageRankItemDto {
+  @ApiProperty()
+  id: string;
+
+  @ApiProperty({ nullable: true })
+  name: string | null;
+
+  @ApiProperty({ description: 'Seçilmiş dövrdə istifadə sayı' })
+  usageCount: number;
+}
+
 export class DashboardSummaryResponseDto {
   @ApiProperty({ type: DashboardPeriodDto })
   period: DashboardPeriodDto;
@@ -192,4 +203,22 @@ export class DashboardSummaryResponseDto {
     description: 'Admin üçün prioritetləşdirilmiş problem siyahısı',
   })
   problems: DashboardProblemDto[];
+
+  @ApiProperty({
+    type: [DashboardUsageRankItemDto],
+    description: 'Seçilmiş dövrdə ən çox gəlinən nahiyələr',
+  })
+  topZones: DashboardUsageRankItemDto[];
+
+  @ApiProperty({
+    type: [DashboardUsageRankItemDto],
+    description: 'Seçilmiş dövrdə ən çox istifadə olunan kampaniyalar',
+  })
+  topCampaigns: DashboardUsageRankItemDto[];
+
+  @ApiProperty({
+    type: [DashboardUsageRankItemDto],
+    description: 'Seçilmiş dövrdə ən çox istifadə olunan paketlər',
+  })
+  topPackages: DashboardUsageRankItemDto[];
 }

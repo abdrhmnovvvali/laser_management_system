@@ -73,6 +73,13 @@ export interface DashboardProblem {
   threshold?: number;
 }
 
+/** Seçilmiş dövrdə ən çox istifadə olunan katalog elementi */
+export interface DashboardUsageRankItem {
+  id: string;
+  name: string | null;
+  usageCount: number;
+}
+
 export class DashboardSummary {
   constructor(
     public readonly period: DashboardPeriod,
@@ -81,5 +88,8 @@ export class DashboardSummary {
     public readonly alerts: DashboardAlerts,
     public readonly branches: DashboardBranchStats[],
     public readonly problems: DashboardProblem[],
+    public readonly topZones: DashboardUsageRankItem[] = [],
+    public readonly topCampaigns: DashboardUsageRankItem[] = [],
+    public readonly topPackages: DashboardUsageRankItem[] = [],
   ) {}
 }
