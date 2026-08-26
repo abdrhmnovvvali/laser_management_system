@@ -230,11 +230,42 @@ export class GetDashboardSummaryUseCase {
       branchNameMap,
     });
 
-    const [topZones, topCampaigns, topPackages] = await Promise.all([
-      this.buildTopZones(monthlyProcedures),
-      this.buildTopCampaigns(monthlyProcedures),
-      this.buildTopPackages(monthlyProcedures),
+    const usageOptions = {
+      dateFrom: monthStart,
+      dateTo: monthEnd,
+      branchId,
+      limit: TOP_USAGE_LIMIT,
+    };
+
+    const [topZoneRows, topCampaignRows, topPackageRows] = await Promise.all([
+      this.procedureFacade.findTopZoneUsage(usageOptions),
+      this.procedureFacade.findTopCampaignUsage(usageOptions),
+      this.procedureFacade.findTopPackageUsage(usageOptions),
     ]);
+
+    const [zoneNames, campaignNames, packageNames] = await Promise.all([
+      this.zoneFacade.resolveNames(topZoneRows.map((row) => row.id)),
+      this.campaignFacade.resolveNames(topCampaignRows.map((row) => row.id)),
+      this.packageFacade.resolveNames(topPackageRows.map((row) => row.id)),
+    ]);
+
+    const topZones: DashboardUsageRankItem[] = topZoneRows.map((row) => ({
+      id: row.id,
+      name: zoneNames.get(row.id) ?? null,
+      usageCount: row.usageCount,
+    }));
+    const topCampaigns: DashboardUsageRankItem[] = topCampaignRows.map(
+      (row) => ({
+        id: row.id,
+        name: campaignNames.get(row.id) ?? null,
+        usageCount: row.usageCount,
+      }),
+    );
+    const topPackages: DashboardUsageRankItem[] = topPackageRows.map((row) => ({
+      id: row.id,
+      name: packageNames.get(row.id) ?? null,
+      usageCount: row.usageCount,
+    }));
 
     const period: DashboardPeriod = {
       monthStart,
@@ -253,94 +284,6 @@ export class GetDashboardSummaryUseCase {
       topCampaigns,
       topPackages,
     );
-  }
-
-  private async buildTopZones(
-    procedures: Procedure[],
-  ): Promise<DashboardUsageRankItem[]> {
-    const counts = new Map<string, number>();
-
-    for (const procedure of procedures) {
-      const zoneIds = new Set(procedure.zoneIds ?? []);
-      if (procedure.freeZoneId) {
-        zoneIds.add(procedure.freeZoneId);
-      }
-      for (const zoneId of zoneIds) {
-        counts.set(zoneId, (counts.get(zoneId) ?? 0) + 1);
-      }
-    }
-
-    const ranked = this.rankCounts(counts);
-    const names = await this.zoneFacade.resolveNames(ranked.map((item) => item.id));
-
-    return ranked.map((item) => ({
-      id: item.id,
-      name: names.get(item.id) ?? null,
-      usageCount: item.usageCount,
-    }));
-  }
-
-  private async buildTopCampaigns(
-    procedures: Procedure[],
-  ): Promise<DashboardUsageRankItem[]> {
-    const counts = new Map<string, number>();
-
-    for (const procedure of procedures) {
-      if (!procedure.campaignId) {
-        continue;
-      }
-      counts.set(
-        procedure.campaignId,
-        (counts.get(procedure.campaignId) ?? 0) + 1,
-      );
-    }
-
-    const ranked = this.rankCounts(counts);
-    const names = await this.campaignFacade.resolveNames(
-      ranked.map((item) => item.id),
-    );
-
-    return ranked.map((item) => ({
-      id: item.id,
-      name: names.get(item.id) ?? null,
-      usageCount: item.usageCount,
-    }));
-  }
-
-  private async buildTopPackages(
-    procedures: Procedure[],
-  ): Promise<DashboardUsageRankItem[]> {
-    const counts = new Map<string, number>();
-
-    for (const procedure of procedures) {
-      if (!procedure.packageId) {
-        continue;
-      }
-      counts.set(
-        procedure.packageId,
-        (counts.get(procedure.packageId) ?? 0) + 1,
-      );
-    }
-
-    const ranked = this.rankCounts(counts);
-    const names = await this.packageFacade.resolveNames(
-      ranked.map((item) => item.id),
-    );
-
-    return ranked.map((item) => ({
-      id: item.id,
-      name: names.get(item.id) ?? null,
-      usageCount: item.usageCount,
-    }));
-  }
-
-  private rankCounts(
-    counts: Map<string, number>,
-  ): Array<{ id: string; usageCount: number }> {
-    return [...counts.entries()]
-      .map(([id, usageCount]) => ({ id, usageCount }))
-      .sort((left, right) => right.usageCount - left.usageCount)
-      .slice(0, TOP_USAGE_LIMIT);
   }
 
   private buildBranchStats(
@@ -533,19 +476,21 @@ export class GetDashboardSummaryUseCase {
     monthEnd: Date;
   } {
     const parts = this.getDateParts(reference);
-    const monthStart = new Date(parts.year, parts.month - 1, 1);
-    const monthEnd = new Date(parts.year, parts.month, 0, 23, 59, 59, 999);
+    const monthStart = new Date(Date.UTC(parts.year, parts.month - 1, 1));
+    const monthEnd = new Date(
+      Date.UTC(parts.year, parts.month, 0, 23, 59, 59, 999),
+    );
     return { monthStart, monthEnd };
   }
 
   private parseDateStart(value: string): Date {
     const [year, month, day] = value.split('-').map(Number);
-    return new Date(year, month - 1, day, 0, 0, 0, 0);
+    return new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
   }
 
   private parseDateEnd(value: string): Date {
     const [year, month, day] = value.split('-').map(Number);
-    return new Date(year, month - 1, day, 23, 59, 59, 999);
+    return new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999));
   }
 
   private filterFraudByPeriod(

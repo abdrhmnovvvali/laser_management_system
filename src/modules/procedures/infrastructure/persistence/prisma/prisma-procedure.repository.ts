@@ -9,6 +9,8 @@ import {
   CreateProcedureData,
   IProcedureRepository,
   ProcedureFilters,
+  ProcedureUsageRankOptions,
+  ProcedureUsageRankRow,
   UpdateProcedureData,
 } from '../../../domain/repositories/procedure.repository.interface';
 import { ProcedurePersistenceMapper } from '../../mappers/procedure-persistence.mapper';
@@ -58,6 +60,74 @@ export class PrismaProcedureRepository implements IProcedureRepository {
     return this.prisma.procedure.count({ where: { customerId } });
   }
 
+  async findTopZoneUsage(
+    options: ProcedureUsageRankOptions,
+  ): Promise<ProcedureUsageRankRow[]> {
+    const procedureFilter = this.buildUsageProcedureFilter(options);
+    const rows = await this.prisma.procedureZone.groupBy({
+      by: ['zoneId'],
+      where: {
+        procedure: procedureFilter,
+      },
+      _count: { zoneId: true },
+      orderBy: { _count: { zoneId: 'desc' } },
+      take: options.limit ?? 10,
+    });
+
+    return rows.map((row) => ({
+      id: row.zoneId,
+      usageCount: row._count.zoneId,
+    }));
+  }
+
+  async findTopPackageUsage(
+    options: ProcedureUsageRankOptions,
+  ): Promise<ProcedureUsageRankRow[]> {
+    const rows = await this.prisma.procedure.groupBy({
+      by: ['packageId'],
+      where: {
+        ...this.buildUsageProcedureFilter(options),
+        packageId: { not: null },
+      },
+      _count: { packageId: true },
+      orderBy: { _count: { packageId: 'desc' } },
+      take: options.limit ?? 10,
+    });
+
+    return rows
+      .filter((row): row is typeof row & { packageId: string } =>
+        Boolean(row.packageId),
+      )
+      .map((row) => ({
+        id: row.packageId,
+        usageCount: row._count.packageId,
+      }));
+  }
+
+  async findTopCampaignUsage(
+    options: ProcedureUsageRankOptions,
+  ): Promise<ProcedureUsageRankRow[]> {
+    const rows = await this.prisma.procedure.groupBy({
+      by: ['campaignId'],
+      where: {
+        ...this.buildUsageProcedureFilter(options),
+        campaignId: { not: null },
+      },
+      _count: { campaignId: true },
+      orderBy: { _count: { campaignId: 'desc' } },
+      take: options.limit ?? 10,
+    });
+
+    return rows
+      .filter((row): row is typeof row & { campaignId: string } =>
+        Boolean(row.campaignId),
+      )
+      .map((row) => ({
+        id: row.campaignId,
+        usageCount: row._count.campaignId,
+      }));
+  }
+
   async create(data: CreateProcedureData): Promise<Procedure> {
     const created = await this.prisma.procedure.create({
       data: {
@@ -102,6 +172,24 @@ export class PrismaProcedureRepository implements IProcedureRepository {
 
   async delete(id: string): Promise<void> {
     await this.prisma.procedure.delete({ where: { id } });
+  }
+
+  private buildUsageProcedureFilter(
+    options: ProcedureUsageRankOptions,
+  ): Prisma.ProcedureWhereInput {
+    const where: Prisma.ProcedureWhereInput = {};
+
+    if (options.dateFrom || options.dateTo) {
+      where.date = {};
+      if (options.dateFrom) where.date.gte = options.dateFrom;
+      if (options.dateTo) where.date.lte = options.dateTo;
+    }
+
+    if (options.branchId) {
+      where.customer = { branchId: options.branchId };
+    }
+
+    return where;
   }
 
   private async buildWhere(

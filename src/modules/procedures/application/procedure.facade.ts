@@ -1,6 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Procedure } from '../domain/entities/procedure.entity';
-import type { ProcedureFilters } from '../domain/repositories/procedure.repository.interface';
+import { PROCEDURE_REPOSITORY } from '../domain/repositories/procedure.repository.interface';
+import type {
+  IProcedureRepository,
+  ProcedureFilters,
+  ProcedureUsageRankOptions,
+  ProcedureUsageRankRow,
+} from '../domain/repositories/procedure.repository.interface';
 import { GetProcedureUseCase } from './use-cases/get-procedure.usecase';
 import { ListProceduresUseCase } from './use-cases/list-procedures.usecase';
 
@@ -13,6 +19,8 @@ export class ProcedureFacade {
   constructor(
     private readonly getProcedureUseCase: GetProcedureUseCase,
     private readonly listProceduresUseCase: ListProceduresUseCase,
+    @Inject(PROCEDURE_REPOSITORY)
+    private readonly procedureRepository: IProcedureRepository,
   ) {}
 
   async getById(id: string): Promise<Procedure> {
@@ -32,5 +40,23 @@ export class ProcedureFacade {
       skipPagination: true,
     });
     return result.items;
+  }
+
+  async findTopZoneUsage(
+    options: ProcedureUsageRankOptions,
+  ): Promise<ProcedureUsageRankRow[]> {
+    return this.procedureRepository.findTopZoneUsage(options);
+  }
+
+  async findTopPackageUsage(
+    options: ProcedureUsageRankOptions,
+  ): Promise<ProcedureUsageRankRow[]> {
+    return this.procedureRepository.findTopPackageUsage(options);
+  }
+
+  async findTopCampaignUsage(
+    options: ProcedureUsageRankOptions,
+  ): Promise<ProcedureUsageRankRow[]> {
+    return this.procedureRepository.findTopCampaignUsage(options);
   }
 }

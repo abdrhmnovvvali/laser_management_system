@@ -42,10 +42,31 @@ export interface ProcedureFilters {
   pagination?: PaginationParams;
 }
 
+export interface ProcedureUsageRankRow {
+  id: string;
+  usageCount: number;
+}
+
+export interface ProcedureUsageRankOptions {
+  dateFrom?: Date;
+  dateTo?: Date;
+  branchId?: string;
+  limit?: number;
+}
+
 export interface IProcedureRepository {
   findAll(filters: ProcedureFilters): Promise<PaginatedResult<Procedure>>;
   findById(id: string): Promise<Procedure | null>;
   countByCustomerId(customerId: string): Promise<number>;
+  findTopZoneUsage(
+    options: ProcedureUsageRankOptions,
+  ): Promise<ProcedureUsageRankRow[]>;
+  findTopPackageUsage(
+    options: ProcedureUsageRankOptions,
+  ): Promise<ProcedureUsageRankRow[]>;
+  findTopCampaignUsage(
+    options: ProcedureUsageRankOptions,
+  ): Promise<ProcedureUsageRankRow[]>;
   create(data: CreateProcedureData): Promise<Procedure>;
   update(id: string, data: UpdateProcedureData): Promise<Procedure>;
   delete(id: string): Promise<void>;
