@@ -55,13 +55,13 @@ async function main() {
 
   const daskentCustomers = new Map();
   const semerqendCustomers = new Map();
-  const procedures = [];
 
-  function updateCustomer(map, key, data) {
+  function trackCustomer(map, key, data) {
     if (!map.has(key)) {
-      map.set(key, data);
+      map.set(key, { ...data, visitCount: 1 });
     } else {
       const existing = map.get(key);
+      existing.visitCount += 1;
       if (data.registeredAt) {
         if (!existing.registeredAt || new Date(data.registeredAt) < new Date(existing.registeredAt)) {
           existing.registeredAt = data.registeredAt;
@@ -80,31 +80,18 @@ async function main() {
     ws10761.eachRow((row) => {
       const nameRaw = row.getCell(3).value;
       const phoneRaw = row.getCell(4).value;
-      const zonesRaw = row.getCell(6).value;
       const dateRaw = row.getCell(7).value;
-      const priceRaw = row.getCell(10).value;
 
       const phone = cleanPhone(phoneRaw);
       const { firstName, lastName } = parseFullName(nameRaw);
       const registeredAt = parseDate(dateRaw);
       if (firstName === "Müştəri" && !phone) return;
       const key = phone ? phone : `${firstName}_${lastName}`;
-      updateCustomer(daskentCustomers, key, {
+      trackCustomer(daskentCustomers, key, {
         firstName,
         lastName,
         phone: phone ? "+" + phone : null,
         registeredAt,
-      });
-
-      procedures.push({
-        branchType: "DASKENT",
-        deviceType: "Candela Pro U",
-        phone: phone ? "+" + phone : null,
-        firstName,
-        lastName,
-        date: registeredAt || "2024-12-11T00:00:00.000Z",
-        price: typeof priceRaw === "number" ? priceRaw * 1000 : 0,
-        zonesRaw: zonesRaw ? String(zonesRaw) : null,
       });
     });
   }
@@ -122,22 +109,11 @@ async function main() {
         const { firstName, lastName } = parseFullName(dName);
         if (!(firstName === "Müştəri" && !dPhone)) {
           const key = dPhone ? dPhone : `${firstName}_${lastName}`;
-          updateCustomer(daskentCustomers, key, {
+          trackCustomer(daskentCustomers, key, {
             firstName,
             lastName,
             phone: dPhone ? "+" + dPhone : null,
             registeredAt: dDate,
-          });
-
-          procedures.push({
-            branchType: "DASKENT",
-            deviceType: "Candela Pro U",
-            phone: dPhone ? "+" + dPhone : null,
-            firstName,
-            lastName,
-            date: dDate || "2024-05-22T00:00:00.000Z",
-            price: 0,
-            zonesRaw: null,
           });
         }
       }
@@ -150,22 +126,11 @@ async function main() {
         const { firstName, lastName } = parseFullName(sName1);
         if (!(firstName === "Müştəri" && !sPhone1)) {
           const key = sPhone1 ? sPhone1 : `${firstName}_${lastName}`;
-          updateCustomer(semerqendCustomers, key, {
+          trackCustomer(semerqendCustomers, key, {
             firstName,
             lastName,
             phone: sPhone1 ? "+" + sPhone1 : null,
             registeredAt: sDate1,
-          });
-
-          procedures.push({
-            branchType: "SEMERQEND",
-            deviceType: "Candela Pro U",
-            phone: sPhone1 ? "+" + sPhone1 : null,
-            firstName,
-            lastName,
-            date: sDate1 || "2024-05-22T00:00:00.000Z",
-            price: 0,
-            zonesRaw: null,
           });
         }
       }
@@ -178,22 +143,11 @@ async function main() {
         const { firstName, lastName } = parseFullName(sName2);
         if (!(firstName === "Müştəri" && !sPhone2)) {
           const key = sPhone2 ? sPhone2 : `${firstName}_${lastName}`;
-          updateCustomer(semerqendCustomers, key, {
+          trackCustomer(semerqendCustomers, key, {
             firstName,
             lastName,
             phone: sPhone2 ? "+" + sPhone2 : null,
             registeredAt: sDate2,
-          });
-
-          procedures.push({
-            branchType: "SEMERQEND",
-            deviceType: "Candela Pro U",
-            phone: sPhone2 ? "+" + sPhone2 : null,
-            firstName,
-            lastName,
-            date: sDate2 || "2024-05-22T00:00:00.000Z",
-            price: 0,
-            zonesRaw: null,
           });
         }
       }
@@ -207,7 +161,6 @@ async function main() {
       if (r <= 3) return;
       const nameRaw = row.getCell(3).value;
       const phoneRaw = row.getCell(4).value;
-      const zonesRaw = row.getCell(6).value;
       const dateRaw = row.getCell(7).value;
 
       const phone = cleanPhone(phoneRaw);
@@ -215,28 +168,17 @@ async function main() {
       const registeredAt = parseDate(dateRaw);
       if (firstName === "Müştəri" && !phone) return;
       const key = phone ? phone : `${firstName}_${lastName}`;
-      updateCustomer(semerqendCustomers, key, {
+      trackCustomer(semerqendCustomers, key, {
         firstName,
         lastName,
         phone: phone ? "+" + phone : null,
         registeredAt,
       });
-
-      procedures.push({
-        branchType: "SEMERQEND",
-        deviceType: "Candela Pro U",
-        phone: phone ? "+" + phone : null,
-        firstName,
-        lastName,
-        date: registeredAt || "2023-01-06T00:00:00.000Z",
-        price: 0,
-        zonesRaw: zonesRaw ? String(zonesRaw) : null,
-      });
     });
   }
 
   let sql = `-- ==========================================================\n`;
-  sql += `-- Auto-generated Import Script for Customers & Procedures with Visit Counts\n`;
+  sql += `-- Auto-generated Import Script for Customers with Visit Counts\n`;
   sql += `-- ==========================================================\n\n`;
 
   sql += `DO $$\n`;
@@ -295,34 +237,35 @@ async function main() {
   sql += `  END IF;\n\n`;
 
   // 2. Customers Temp Table
-  sql += `  -- 2. Create Temp Table for Customers\n`;
+  sql += `  -- 2. Create Temp Table for Customers with Visit Counts\n`;
   sql += `  CREATE TEMP TABLE temp_import_customers (\n`;
   sql += `    branch_type TEXT,\n`;
   sql += `    first_name TEXT,\n`;
   sql += `    last_name TEXT,\n`;
   sql += `    phone TEXT,\n`;
-  sql += `    registered_at TIMESTAMPTZ\n`;
+  sql += `    registered_at TIMESTAMPTZ,\n`;
+  sql += `    visit_count INTEGER\n`;
   sql += `  ) ON COMMIT DROP;\n\n`;
 
   const customerRows = [];
   for (const c of daskentCustomers.values()) {
     const regDateSql = c.registeredAt ? `'${c.registeredAt}'::timestamptz` : 'NOW()';
-    customerRows.push(`('DASKENT', ${escapeSql(c.firstName)}, ${escapeSql(c.lastName)}, ${escapeSql(c.phone)}, ${regDateSql})`);
+    customerRows.push(`('DASKENT', ${escapeSql(c.firstName)}, ${escapeSql(c.lastName)}, ${escapeSql(c.phone)}, ${regDateSql}, ${c.visitCount || 1})`);
   }
   for (const c of semerqendCustomers.values()) {
     const regDateSql = c.registeredAt ? `'${c.registeredAt}'::timestamptz` : 'NOW()';
-    customerRows.push(`('SEMERQEND', ${escapeSql(c.firstName)}, ${escapeSql(c.lastName)}, ${escapeSql(c.phone)}, ${regDateSql})`);
+    customerRows.push(`('SEMERQEND', ${escapeSql(c.firstName)}, ${escapeSql(c.lastName)}, ${escapeSql(c.phone)}, ${regDateSql}, ${c.visitCount || 1})`);
   }
 
   const batchSize = 300;
   for (let i = 0; i < customerRows.length; i += batchSize) {
     const chunk = customerRows.slice(i, i + batchSize);
-    sql += `  INSERT INTO temp_import_customers (branch_type, first_name, last_name, phone, registered_at) VALUES\n  ` + chunk.join(',\n  ') + `;\n\n`;
+    sql += `  INSERT INTO temp_import_customers (branch_type, first_name, last_name, phone, registered_at, visit_count) VALUES\n  ` + chunk.join(',\n  ') + `;\n\n`;
   }
 
-  sql += `  -- Insert Daşkənd customers avoiding duplicates\n`;
-  sql += `  INSERT INTO customers (id, first_name, last_name, phone, branch_id, registered_at)\n`;
-  sql += `  SELECT gen_random_uuid(), t.first_name, t.last_name, t.phone, v_daskent_id, t.registered_at\n`;
+  sql += `  -- Insert new Daşkənd customers\n`;
+  sql += `  INSERT INTO customers (id, first_name, last_name, phone, branch_id, registered_at, visit_count)\n`;
+  sql += `  SELECT gen_random_uuid(), t.first_name, t.last_name, t.phone, v_daskent_id, t.registered_at, t.visit_count\n`;
   sql += `  FROM temp_import_customers t\n`;
   sql += `  WHERE t.branch_type = 'DASKENT'\n`;
   sql += `    AND NOT EXISTS (\n`;
@@ -334,9 +277,9 @@ async function main() {
   sql += `        )\n`;
   sql += `    );\n\n`;
 
-  sql += `  -- Insert Səmərqənd customers avoiding duplicates\n`;
-  sql += `  INSERT INTO customers (id, first_name, last_name, phone, branch_id, registered_at)\n`;
-  sql += `  SELECT gen_random_uuid(), t.first_name, t.last_name, t.phone, v_semerqend_id, t.registered_at\n`;
+  sql += `  -- Insert new Səmərqənd customers\n`;
+  sql += `  INSERT INTO customers (id, first_name, last_name, phone, branch_id, registered_at, visit_count)\n`;
+  sql += `  SELECT gen_random_uuid(), t.first_name, t.last_name, t.phone, v_semerqend_id, t.registered_at, t.visit_count\n`;
   sql += `  FROM temp_import_customers t\n`;
   sql += `  WHERE t.branch_type = 'SEMERQEND'\n`;
   sql += `    AND NOT EXISTS (\n`;
@@ -348,56 +291,16 @@ async function main() {
   sql += `        )\n`;
   sql += `    );\n\n`;
 
-  // 3. Procedures Temp Table
-  sql += `  -- 3. Create Temp Table for Procedures / Visits\n`;
-  sql += `  CREATE TEMP TABLE temp_import_procedures (\n`;
-  sql += `    branch_type TEXT,\n`;
-  sql += `    first_name TEXT,\n`;
-  sql += `    last_name TEXT,\n`;
-  sql += `    phone TEXT,\n`;
-  sql += `    proc_date TIMESTAMPTZ,\n`;
-  sql += `    price NUMERIC(10,2)\n`;
-  sql += `  ) ON COMMIT DROP;\n\n`;
-
-  const procRows = [];
-  for (const p of procedures) {
-    const pDate = p.date ? `'${p.date}'::timestamptz` : 'NOW()';
-    procRows.push(`('${p.branchType}', ${escapeSql(p.firstName)}, ${escapeSql(p.lastName)}, ${escapeSql(p.phone)}, ${pDate}, ${p.price})`);
-  }
-
-  for (let i = 0; i < procRows.length; i += batchSize) {
-    const chunk = procRows.slice(i, i + batchSize);
-    sql += `  INSERT INTO temp_import_procedures (branch_type, first_name, last_name, phone, proc_date, price) VALUES\n  ` + chunk.join(',\n  ') + `;\n\n`;
-  }
-
-  sql += `  -- 4. Insert Procedures and calculate visit numbers chronologically per customer\n`;
-  sql += `  WITH matched_procedures AS (\n`;
-  sql += `    SELECT\n`;
-  sql += `      c.id AS customer_id,\n`;
-  sql += `      CASE WHEN t.branch_type = 'DASKENT' THEN v_candela_daskent_id ELSE v_candela_semerqend_id END AS device_id,\n`;
-  sql += `      t.proc_date AS date,\n`;
-  sql += `      t.price AS price,\n`;
-  sql += `      ROW_NUMBER() OVER (PARTITION BY c.id ORDER BY t.proc_date ASC) AS visit_number\n`;
-  sql += `    FROM temp_import_procedures t\n`;
-  sql += `    JOIN customers c ON c.branch_id = (CASE WHEN t.branch_type = 'DASKENT' THEN v_daskent_id ELSE v_semerqend_id END)\n`;
-  sql += `      AND (\n`;
-  sql += `        (t.phone IS NOT NULL AND c.phone = t.phone)\n`;
-  sql += `        OR (t.phone IS NULL AND c.first_name = t.first_name AND c.last_name = t.last_name)\n`;
-  sql += `      )\n`;
-  sql += `  )\n`;
-  sql += `  INSERT INTO procedures (id, customer_id, device_id, date, visit_number, declared_shot_count, actual_shot_count, price, discount_amount, created_at)\n`;
-  sql += `  SELECT\n`;
-  sql += `    gen_random_uuid(),\n`;
-  sql += `    m.customer_id,\n`;
-  sql += `    m.device_id,\n`;
-  sql += `    m.date,\n`;
-  sql += `    m.visit_number,\n`;
-  sql += `    0,\n`;
-  sql += `    0,\n`;
-  sql += `    m.price,\n`;
-  sql += `    0,\n`;
-  sql += `    m.date\n`;
-  sql += `  FROM matched_procedures m;\n\n`;
+  sql += `  -- Update existing customers' visit_count and registered_at\n`;
+  sql += `  UPDATE customers c\n`;
+  sql += `  SET visit_count = t.visit_count,\n`;
+  sql += `      registered_at = LEAST(c.registered_at, t.registered_at)\n`;
+  sql += `  FROM temp_import_customers t\n`;
+  sql += `  WHERE c.branch_id = (CASE WHEN t.branch_type = 'DASKENT' THEN v_daskent_id ELSE v_semerqend_id END)\n`;
+  sql += `    AND (\n`;
+  sql += `      (t.phone IS NOT NULL AND c.phone = t.phone)\n`;
+  sql += `      OR (t.phone IS NULL AND c.first_name = t.first_name AND c.last_name = t.last_name)\n`;
+  sql += `    );\n\n`;
 
   sql += `END $$;\n`;
 
@@ -407,7 +310,6 @@ async function main() {
   console.log(`Daşkənd customers: ${daskentCustomers.size}`);
   console.log(`Səmərqənd customers: ${semerqendCustomers.size}`);
   console.log(`Total customers: ${daskentCustomers.size + semerqendCustomers.size}`);
-  console.log(`Total procedures/visits imported: ${procedures.length}`);
 }
 
 main().catch(console.error);

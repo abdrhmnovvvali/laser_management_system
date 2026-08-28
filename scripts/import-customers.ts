@@ -35,22 +35,22 @@ async function main() {
   }
 
   const totalCustomers = await prisma.customer.count();
-  const totalProcedures = await prisma.procedure.count();
   console.log(`Total customers in database: ${totalCustomers}`);
-  console.log(`Total procedures (visits) in database: ${totalProcedures}`);
 
-  const sampleCustomers = await prisma.customer.findMany({
-    take: 5,
-    include: {
-      _count: {
-        select: { procedures: true },
-      },
-    },
-  });
+  const sampleCustomers = await prisma.$queryRaw<
+    Array<{
+      first_name: string;
+      last_name: string;
+      phone: string | null;
+      visit_count: number;
+    }>
+  >`SELECT first_name, last_name, phone, visit_count FROM customers ORDER BY visit_count DESC LIMIT 8;`;
 
-  console.log('\nSample customers with visit counts:');
+  console.log('\nTop sample customers with imported visit counts:');
   for (const c of sampleCustomers) {
-    console.log(`- ${c.firstName} ${c.lastName} (${c.phone}): ${c._count.procedures} visits`);
+    console.log(
+      `- ${c.first_name} ${c.last_name} (${c.phone}): ${c.visit_count} visits`,
+    );
   }
 }
 

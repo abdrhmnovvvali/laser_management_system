@@ -124,6 +124,7 @@ model Customer {
   birthDate    DateTime? @map("birth_date") @db.Date
   gender       Gender?
   branchId     String    @map("branch_id") @db.Uuid
+  visitCount   Int       @default(0) @map("visit_count")
   registeredAt DateTime  @default(now()) @map("registered_at") @db.Timestamptz(6)
 
   branch        Branch         @relation(fields: [branchId], references: [id], onDelete: Restrict)

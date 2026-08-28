@@ -96,6 +96,7 @@ export class PrismaCustomerRepository implements ICustomerRepository {
         birthDate: data.birthDate ? toDateOnly(data.birthDate) : null,
         gender: (data.gender as PrismaGender | null | undefined) ?? null,
         branchId: data.branchId,
+        visitCount: data.visitCount ?? 0,
       },
     });
     return this.toDomain(row);
@@ -114,6 +115,9 @@ export class PrismaCustomerRepository implements ICustomerRepository {
     }
     if (data.branchId !== undefined) {
       payload.branch = { connect: { id: data.branchId } };
+    }
+    if (data.visitCount !== undefined) {
+      payload.visitCount = data.visitCount;
     }
 
     const row = await this.prisma.customer.update({
@@ -222,9 +226,12 @@ export class PrismaCustomerRepository implements ICustomerRepository {
     birthDate: Date | null;
     gender: PrismaGender | null;
     branchId: string;
+    visitCount?: number;
     registeredAt: Date;
     _count?: { procedures?: number };
   }): Customer {
+    const baseCount = row.visitCount ?? 0;
+    const procedureCount = row._count?.procedures ?? 0;
     return CustomerPersistenceMapper.toDomain({
       id: row.id,
       first_name: row.firstName,
@@ -234,7 +241,7 @@ export class PrismaCustomerRepository implements ICustomerRepository {
       gender: row.gender as Gender | null,
       branch_id: row.branchId,
       registered_at: row.registeredAt.toISOString(),
-      visit_count: row._count?.procedures ?? 0,
+      visit_count: baseCount + procedureCount,
     });
   }
 }

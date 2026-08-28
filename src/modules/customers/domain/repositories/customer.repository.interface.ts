@@ -11,6 +11,7 @@ export interface CreateCustomerData {
   birthDate?: Date | null;
   gender?: Gender | null;
   branchId: string;
+  visitCount?: number;
 }
 
 export interface UpdateCustomerData {
@@ -20,6 +21,7 @@ export interface UpdateCustomerData {
   birthDate?: Date | null;
   gender?: Gender | null;
   branchId?: string;
+  visitCount?: number;
 }
 
 export interface CustomerFilters {

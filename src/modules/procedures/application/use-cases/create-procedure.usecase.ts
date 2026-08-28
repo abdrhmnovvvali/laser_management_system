@@ -51,12 +51,10 @@ export class CreateProcedureUseCase {
   ) {}
 
   async execute(input: CreateProcedureInput): Promise<Procedure> {
-    await this.customerFacade.getById(input.customerId);
+    const customer = await this.customerFacade.getById(input.customerId);
     await this.deviceFacade.getById(input.deviceId);
 
-    const completedVisitCount = await this.procedureRepository.countByCustomerId(
-      input.customerId,
-    );
+    const completedVisitCount = customer.visitCount;
     const procedureDate = input.date ?? new Date();
     const pricing = await this.resolvePriceAndZones(input);
 
