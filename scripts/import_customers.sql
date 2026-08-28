@@ -4281,7 +4281,8 @@ BEGIN
   WHERE c.branch_id = (CASE WHEN t.branch_type = 'DASKENT' THEN v_daskent_id ELSE v_semerqend_id END)
     AND (
       (t.phone IS NOT NULL AND c.phone = t.phone)
-      OR (t.phone IS NULL AND c.first_name = t.first_name AND c.last_name = t.last_name)
+      OR (COALESCE(t.phone, '') = COALESCE(c.phone, '') AND c.first_name = t.first_name AND c.last_name = t.last_name)
+      OR (c.first_name = t.first_name AND c.last_name = t.last_name)
     );
 
 END $$;
