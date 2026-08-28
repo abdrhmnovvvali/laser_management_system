@@ -68,53 +68,140 @@ function escapeSql(str) {
 }
 
 let sql = `-- ==========================================================\n`;
-sql += `-- Auto-generated Zones & Pricing Seeder for all Devices/Branches\n`;
+sql += `-- Update Branches, Devices & Synchronize Zones\n`;
+sql += `-- Daşkənd: Doctor laser -> Devices: Candela Pro U, Deka\n`;
+sql += `-- Səmərqənd: Laser N1   -> Device:  Candela Pro U\n`;
 sql += `-- ==========================================================\n\n`;
 
 sql += `DO $$\n`;
 sql += `DECLARE\n`;
-sql += `  r_branch RECORD;\n`;
-sql += `  r_device RECORD;\n`;
-sql += `  v_device_id UUID;\n`;
+sql += `  v_daskent_id UUID;\n`;
+sql += `  v_semerqend_id UUID;\n`;
+sql += `  v_candela_daskent_id UUID;\n`;
+sql += `  v_deka_daskent_id UUID;\n`;
+sql += `  v_candela_semerqend_id UUID;\n`;
 sql += `  v_zone_id UUID;\n`;
+sql += `  v_dev_id UUID;\n`;
 sql += `BEGIN\n`;
-sql += `  -- For every branch in the system\n`;
-sql += `  FOR r_branch IN SELECT id FROM branches LOOP\n`;
-sql += `    -- If branch has no devices, create default laser device\n`;
-sql += `    IF NOT EXISTS (SELECT 1 FROM devices WHERE branch_id = r_branch.id) THEN\n`;
-sql += `      v_device_id := gen_random_uuid();\n`;
-sql += `      INSERT INTO devices (id, branch_id, shot_counter, created_at) VALUES (v_device_id, r_branch.id, 0, NOW());\n`;
-sql += `      INSERT INTO device_translations (device_id, locale, type) VALUES\n`;
-sql += `        (v_device_id, 'az', 'Lazer Cihazı'),\n`;
-sql += `        (v_device_id, 'ru', 'Лазерный аппарат'),\n`;
-sql += `        (v_device_id, 'en', 'Laser Device');\n`;
-sql += `    END IF;\n\n`;
 
-sql += `    -- Loop over each device in this branch\n`;
-sql += `    FOR r_device IN SELECT id FROM devices WHERE branch_id = r_branch.id LOOP\n`;
+// 1. Daşkənd branch (Doctor laser)
+sql += `  -- 1. Find or create Daşkənd branch\n`;
+sql += `  SELECT branch_id INTO v_daskent_id FROM branch_translations WHERE name ILIKE '%Daşkənd%' OR name ILIKE '%Daskent%' OR name ILIKE '%Doctor laser%' LIMIT 1;\n`;
+sql += `  IF v_daskent_id IS NULL THEN\n`;
+sql += `    v_daskent_id := gen_random_uuid();\n`;
+sql += `    INSERT INTO branches (id, created_at) VALUES (v_daskent_id, NOW());\n`;
+sql += `  END IF;\n\n`;
 
-for (const z of allZones) {
-  sql += `      -- Zone: ${z.ru} (${z.price})\n`;
-  sql += `      SELECT z.id INTO v_zone_id\n`;
-  sql += `      FROM zones z\n`;
-  sql += `      JOIN zone_translations zt ON zt.zone_id = z.id\n`;
-  sql += `      WHERE z.device_id = r_device.id AND zt.name = ${escapeSql(z.ru)} LIMIT 1;\n`;
-  sql += `      IF v_zone_id IS NULL THEN\n`;
-  sql += `        v_zone_id := gen_random_uuid();\n`;
-  sql += `        INSERT INTO zones (id, device_id, price, created_at) VALUES (v_zone_id, r_device.id, ${z.price}, NOW());\n`;
-  sql += `        INSERT INTO zone_translations (zone_id, locale, name) VALUES\n`;
-  sql += `          (v_zone_id, 'az', ${escapeSql(z.az)}),\n`;
-  sql += `          (v_zone_id, 'ru', ${escapeSql(z.ru)}),\n`;
-  sql += `          (v_zone_id, 'en', ${escapeSql(z.en)});\n`;
-  sql += `      ELSE\n`;
-  sql += `        UPDATE zones SET price = ${z.price} WHERE id = v_zone_id;\n`;
-  sql += `      END IF;\n\n`;
+sql += `  -- Update translations to "Doctor laser"\n`;
+sql += `  INSERT INTO branch_translations (branch_id, locale, name, address) VALUES\n`;
+sql += `    (v_daskent_id, 'az', 'Doctor laser', 'Дархан, Ниёзбек Йули 8'),\n`;
+sql += `    (v_daskent_id, 'en', 'Doctor laser', 'Darkhan, Niyozbek Yuli 8'),\n`;
+sql += `    (v_daskent_id, 'ru', 'Doctor laser', 'Дархан, Ниёзбек Йули 8')\n`;
+sql += `  ON CONFLICT (branch_id, locale) DO UPDATE SET name = EXCLUDED.name, address = EXCLUDED.address;\n\n`;
+
+// 2. Səmərqənd branch (Laser N1)
+sql += `  -- 2. Find or create Səmərqənd branch\n`;
+sql += `  SELECT branch_id INTO v_semerqend_id FROM branch_translations WHERE name ILIKE '%Səmərqənd%' OR name ILIKE '%Semerqend%' OR name ILIKE '%Laser N1%' LIMIT 1;\n`;
+sql += `  IF v_semerqend_id IS NULL THEN\n`;
+sql += `    v_semerqend_id := gen_random_uuid();\n`;
+sql += `    INSERT INTO branches (id, created_at) VALUES (v_semerqend_id, NOW());\n`;
+sql += `  END IF;\n\n`;
+
+sql += `  -- Update translations to "Laser N1"\n`;
+sql += `  INSERT INTO branch_translations (branch_id, locale, name, address) VALUES\n`;
+sql += `    (v_semerqend_id, 'az', 'Laser N1', 'Гагарина, дом 81'),\n`;
+sql += `    (v_semerqend_id, 'en', 'Laser N1', 'Gagarina, house 81'),\n`;
+sql += `    (v_semerqend_id, 'ru', 'Laser N1', 'Гагарина, дом 81')\n`;
+sql += `  ON CONFLICT (branch_id, locale) DO UPDATE SET name = EXCLUDED.name, address = EXCLUDED.address;\n\n`;
+
+// 3. Daşkənd Devices: Candela Pro U and Deka
+sql += `  -- 3. Setup Daşkənd Devices: Candela Pro U and Deka\n`;
+sql += `  SELECT d.id INTO v_candela_daskent_id\n`;
+sql += `  FROM devices d\n`;
+sql += `  JOIN device_translations dt ON dt.device_id = d.id\n`;
+sql += `  WHERE d.branch_id = v_daskent_id AND dt.type ILIKE '%Candela%'\n`;
+sql += `  LIMIT 1;\n`;
+
+sql += `  IF v_candela_daskent_id IS NULL THEN\n`;
+sql += `    -- Check if there is an unrenamed device in Daşkənd branch\n`;
+sql += `    SELECT id INTO v_candela_daskent_id FROM devices WHERE branch_id = v_daskent_id LIMIT 1;\n`;
+sql += `    IF v_candela_daskent_id IS NULL THEN\n`;
+sql += `      v_candela_daskent_id := gen_random_uuid();\n`;
+sql += `      INSERT INTO devices (id, branch_id, shot_counter, created_at) VALUES (v_candela_daskent_id, v_daskent_id, 0, NOW());\n`;
+sql += `    END IF;\n`;
+sql += `  END IF;\n\n`;
+
+sql += `  INSERT INTO device_translations (device_id, locale, type) VALUES\n`;
+sql += `    (v_candela_daskent_id, 'az', 'Candela Pro U'),\n`;
+sql += `    (v_candela_daskent_id, 'en', 'Candela Pro U'),\n`;
+sql += `    (v_candela_daskent_id, 'ru', 'Candela Pro U')\n`;
+sql += `  ON CONFLICT (device_id, locale) DO UPDATE SET type = EXCLUDED.type;\n\n`;
+
+sql += `  -- Deka device for Daşkənd\n`;
+sql += `  SELECT d.id INTO v_deka_daskent_id\n`;
+sql += `  FROM devices d\n`;
+sql += `  JOIN device_translations dt ON dt.device_id = d.id\n`;
+sql += `  WHERE d.branch_id = v_daskent_id AND dt.type ILIKE '%Deka%'\n`;
+sql += `  LIMIT 1;\n`;
+
+sql += `  IF v_deka_daskent_id IS NULL THEN\n`;
+sql += `    v_deka_daskent_id := gen_random_uuid();\n`;
+sql += `    INSERT INTO devices (id, branch_id, shot_counter, created_at) VALUES (v_deka_daskent_id, v_daskent_id, 0, NOW());\n`;
+sql += `  END IF;\n\n`;
+
+sql += `  INSERT INTO device_translations (device_id, locale, type) VALUES\n`;
+sql += `    (v_deka_daskent_id, 'az', 'Deka'),\n`;
+sql += `    (v_deka_daskent_id, 'en', 'Deka'),\n`;
+sql += `    (v_deka_daskent_id, 'ru', 'Deka')\n`;
+sql += `  ON CONFLICT (device_id, locale) DO UPDATE SET type = EXCLUDED.type;\n\n`;
+
+// 4. Səmərqənd Device: Candela Pro U
+sql += `  -- 4. Setup Səmərqənd Device: Candela Pro U\n`;
+sql += `  SELECT d.id INTO v_candela_semerqend_id\n`;
+sql += `  FROM devices d\n`;
+sql += `  JOIN device_translations dt ON dt.device_id = d.id\n`;
+sql += `  WHERE d.branch_id = v_semerqend_id AND dt.type ILIKE '%Candela%'\n`;
+sql += `  LIMIT 1;\n`;
+
+sql += `  IF v_candela_semerqend_id IS NULL THEN\n`;
+sql += `    SELECT id INTO v_candela_semerqend_id FROM devices WHERE branch_id = v_semerqend_id LIMIT 1;\n`;
+sql += `    IF v_candela_semerqend_id IS NULL THEN\n`;
+sql += `      v_candela_semerqend_id := gen_random_uuid();\n`;
+sql += `      INSERT INTO devices (id, branch_id, shot_counter, created_at) VALUES (v_candela_semerqend_id, v_semerqend_id, 0, NOW());\n`;
+sql += `    END IF;\n`;
+sql += `  END IF;\n\n`;
+
+sql += `  INSERT INTO device_translations (device_id, locale, type) VALUES\n`;
+sql += `    (v_candela_semerqend_id, 'az', 'Candela Pro U'),\n`;
+sql += `    (v_candela_semerqend_id, 'en', 'Candela Pro U'),\n`;
+sql += `    (v_candela_semerqend_id, 'ru', 'Candela Pro U')\n`;
+sql += `  ON CONFLICT (device_id, locale) DO UPDATE SET type = EXCLUDED.type;\n\n`;
+
+// 5. Seed / Sync zones for all 3 devices
+sql += `  -- 5. Seed zones for all target devices\n`;
+const devicesToSync = ['v_candela_daskent_id', 'v_deka_daskent_id', 'v_candela_semerqend_id'];
+
+for (const targetDevVar of devicesToSync) {
+  for (const z of allZones) {
+    sql += `  SELECT z.id INTO v_zone_id\n`;
+    sql += `  FROM zones z\n`;
+    sql += `  JOIN zone_translations zt ON zt.zone_id = z.id\n`;
+    sql += `  WHERE z.device_id = ${targetDevVar} AND zt.name = ${escapeSql(z.ru)} LIMIT 1;\n`;
+    sql += `  IF v_zone_id IS NULL THEN\n`;
+    sql += `    v_zone_id := gen_random_uuid();\n`;
+    sql += `    INSERT INTO zones (id, device_id, price, created_at) VALUES (v_zone_id, ${targetDevVar}, ${z.price}, NOW());\n`;
+    sql += `    INSERT INTO zone_translations (zone_id, locale, name) VALUES\n`;
+    sql += `      (v_zone_id, 'az', ${escapeSql(z.az)}),\n`;
+    sql += `      (v_zone_id, 'ru', ${escapeSql(z.ru)}),\n`;
+    sql += `      (v_zone_id, 'en', ${escapeSql(z.en)});\n`;
+    sql += `  ELSE\n`;
+    sql += `    UPDATE zones SET price = ${z.price} WHERE id = v_zone_id;\n`;
+    sql += `  END IF;\n\n`;
+  }
 }
 
-sql += `    END LOOP;\n`;
-sql += `  END LOOP;\n`;
 sql += `END $$;\n`;
 
 const outputPath = path.resolve(__dirname, 'import_zones.sql');
 fs.writeFileSync(outputPath, sql);
-console.log(`Generated import_zones.sql at ${outputPath} with ${allZones.length} zones.`);
+console.log(`Updated import_zones.sql with accurate branch & device structures.`);
