@@ -121,9 +121,7 @@ async function main() {
   let sql = `-- ==========================================================\n`;
   sql += `-- Auto-generated Import Script for Daşkənd Pro & Səmərqənd Pro\n`;
   sql += `-- ==========================================================\n\n`;
-  sql += `BEGIN;\n\n`;
-
-  sql += `-- 1. Ensure Branches Exist\n`;
+  sql += `-- Ensure Branches Exist and Import Customers\n`;
   sql += `DO $$\n`;
   sql += `DECLARE\n`;
   sql += `  v_daskent_id UUID;\n`;
@@ -201,8 +199,7 @@ async function main() {
   sql += `        )\n`;
   sql += `    );\n\n`;
 
-  sql += `END $$;\n\n`;
-  sql += `COMMIT;\n`;
+  sql += `END $$;\n`;
 
   const outputPath = path.resolve(__dirname, "import_customers.sql");
   fs.writeFileSync(outputPath, sql);

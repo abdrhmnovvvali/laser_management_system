@@ -11,7 +11,10 @@ async function main() {
   }
 
   console.log('Reading SQL file...');
-  const sql = fs.readFileSync(sqlPath, 'utf8');
+  let sql = fs.readFileSync(sqlPath, 'utf8');
+
+  // Strip standalone BEGIN; and COMMIT; statements so PostgreSQL doesn't fail on prepared statement protocol
+  sql = sql.replace(/^\s*BEGIN\s*;\s*$/gim, '').replace(/^\s*COMMIT\s*;\s*$/gim, '').trim();
 
   console.log('Executing customer import transaction...');
   await prisma.$executeRawUnsafe(sql);

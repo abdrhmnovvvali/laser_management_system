@@ -2,9 +2,7 @@
 -- Auto-generated Import Script for Daşkənd Pro & Səmərqənd Pro
 -- ==========================================================
 
-BEGIN;
-
--- 1. Ensure Branches Exist
+-- Ensure Branches Exist and Import Customers
 DO $$
 DECLARE
   v_daskent_id UUID;
@@ -4246,5 +4244,3 @@ BEGIN
     );
 
 END $$;
-
-COMMIT;
