@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Locale as PrismaLocale, Prisma } from '@prisma/client';
+import { BusinessRuleViolationException } from '../../../../../shared/kernel/domain.exception';
 import { createPaginatedResult } from '../../../../../shared/pagination/pagination.util';
 import type { PaginatedResult } from '../../../../../shared/pagination/pagination.types';
 import { toPrismaSkipTake } from '../../../../../shared/pagination/prisma-pagination.util';
@@ -129,7 +130,50 @@ export class PrismaZoneRepository implements IZoneRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await this.prisma.zone.delete({ where: { id } });
+    const procedureZonesCount = await this.prisma.procedureZone.count({
+      where: { zoneId: id },
+    });
+    if (procedureZonesCount > 0) {
+      throw new BusinessRuleViolationException(
+        'Bu zona prosedurlarda istifadə edildiyi üçün silinə bilməz.',
+      );
+    }
+
+    const campaignZonesCount = await this.prisma.campaignZone.count({
+      where: { zoneId: id },
+    });
+    if (campaignZonesCount > 0) {
+      throw new BusinessRuleViolationException(
+        'Bu zona kampaniyalarda istifadə edildiyi üçün silinə bilməz.',
+      );
+    }
+
+    const followUpZonesCount = await this.prisma.followUpZone.count({
+      where: { zoneId: id },
+    });
+    if (followUpZonesCount > 0) {
+      throw new BusinessRuleViolationException(
+        'Bu zona rezervasiyalarda istifadə edildiyi üçün silinə bilməz.',
+      );
+    }
+
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        await tx.packageZone.deleteMany({ where: { zoneId: id } });
+        await tx.zoneTranslation.deleteMany({ where: { zoneId: id } });
+        await tx.zone.delete({ where: { id } });
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2003'
+      ) {
+        throw new BusinessRuleViolationException(
+          'Bu zona digər qeydlərə bağlı olduğu üçün silinə bilməz.',
+        );
+      }
+      throw error;
+    }
   }
 
   private async replaceTranslations(

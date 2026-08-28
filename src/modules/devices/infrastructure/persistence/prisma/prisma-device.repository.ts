@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Locale as PrismaLocale, Prisma } from '@prisma/client';
+import { BusinessRuleViolationException } from '../../../../../shared/kernel/domain.exception';
 import { createPaginatedResult } from '../../../../../shared/pagination/pagination.util';
 import type { PaginatedResult } from '../../../../../shared/pagination/pagination.types';
 import { toPrismaSkipTake } from '../../../../../shared/pagination/prisma-pagination.util';
@@ -116,7 +117,96 @@ export class PrismaDeviceRepository implements IDeviceRepository {
   }
 
   async delete(id: string): Promise<void> {
-    await this.prisma.device.delete({ where: { id } });
+    // 1. Cihaza bağlı prosedurların yoxlanılması
+    const proceduresCount = await this.prisma.procedure.count({
+      where: { deviceId: id },
+    });
+    if (proceduresCount > 0) {
+      throw new BusinessRuleViolationException(
+        'Bu cihaza bağlı prosedurlar mövcuddur. Əvvəlcə həmin prosedurları tənzimləyin və ya silin.',
+      );
+    }
+
+    // 2. Cihaza bağlı rezervasiyaların yoxlanılması
+    const followUpsCount = await this.prisma.followUp.count({
+      where: { deviceId: id },
+    });
+    if (followUpsCount > 0) {
+      throw new BusinessRuleViolationException(
+        'Bu cihaza bağlı aktiv rezervasiyalar mövcuddur. Əvvəlcə həmin rezervasiyaları tənzimləyin və ya silin.',
+      );
+    }
+
+    // 3. Cihazın zonalarının prosedurlarda istifadə edilməsinin yoxlanılması
+    const procedureZonesCount = await this.prisma.procedureZone.count({
+      where: { zone: { deviceId: id } },
+    });
+    if (procedureZonesCount > 0) {
+      throw new BusinessRuleViolationException(
+        'Bu cihaza aid zonalar prosedurlarda istifadə edildiyi üçün cihaz silinə bilməz.',
+      );
+    }
+
+    // 4. Cihazın zonalarının kampaniyalarda istifadə edilməsinin yoxlanılması
+    const campaignZonesCount = await this.prisma.campaignZone.count({
+      where: { zone: { deviceId: id } },
+    });
+    if (campaignZonesCount > 0) {
+      throw new BusinessRuleViolationException(
+        'Bu cihaza aid zonalar kampaniyalarda istifadə edildiyi üçün cihaz silinə bilməz.',
+      );
+    }
+
+    // 5. Cihazın zonalarının rezervasiyalarda istifadə edilməsinin yoxlanılması
+    const followUpZonesCount = await this.prisma.followUpZone.count({
+      where: { zone: { deviceId: id } },
+    });
+    if (followUpZonesCount > 0) {
+      throw new BusinessRuleViolationException(
+        'Bu cihaza aid zonalar rezervasiyalarda istifadə edildiyi üçün cihaz silinə bilməz.',
+      );
+    }
+
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        // Cihazın zonalarını tapırıq
+        const deviceZones = await tx.zone.findMany({
+          where: { deviceId: id },
+          select: { id: true },
+        });
+        const zoneIds = deviceZones.map((z) => z.id);
+
+        if (zoneIds.length > 0) {
+          await tx.packageZone.deleteMany({
+            where: { zoneId: { in: zoneIds } },
+          });
+          await tx.zoneTranslation.deleteMany({
+            where: { zoneId: { in: zoneIds } },
+          });
+          await tx.zone.deleteMany({
+            where: { deviceId: id },
+          });
+        }
+
+        await tx.deviceTranslation.deleteMany({
+          where: { deviceId: id },
+        });
+
+        await tx.device.delete({
+          where: { id },
+        });
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2003'
+      ) {
+        throw new BusinessRuleViolationException(
+          'Bu cihaz digər qeydlərə bağlı olduğu üçün silinə bilməz.',
+        );
+      }
+      throw error;
+    }
   }
 
   private async replaceTranslations(
