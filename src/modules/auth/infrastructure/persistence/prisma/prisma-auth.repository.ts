@@ -172,7 +172,7 @@ export class PrismaAuthRepository implements IAuthRepository {
   }): Promise<AuthSession> {
     const accessExpiresIn = this.configService.get<string>(
       'jwt.expiresIn',
-      '15m',
+      '7d',
     );
     const payload: JwtPayload = { sub: user.id, email: user.email };
     const accessToken = await this.jwtService.signAsync(payload, {

@@ -9,8 +9,8 @@ export const validationSchema = Joi.object({
   DATABASE_URL: Joi.string().required(),
 
   JWT_SECRET: Joi.string().required(),
-  JWT_EXPIRES_IN: Joi.string().default('15m'),
-  JWT_REFRESH_EXPIRES_IN: Joi.string().default('7d'),
+  JWT_EXPIRES_IN: Joi.string().default('7d'),
+  JWT_REFRESH_EXPIRES_IN: Joi.string().default('30d'),
 
   SWAGGER_PATH: Joi.string().default('api/docs'),
 
