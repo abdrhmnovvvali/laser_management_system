@@ -10,6 +10,7 @@ export interface CustomerRow {
   gender: Gender | null;
   branch_id: string;
   registered_at: string;
+  visit_count?: number;
 }
 
 export class CustomerPersistenceMapper {
@@ -23,6 +24,7 @@ export class CustomerPersistenceMapper {
       row.birth_date ? new Date(row.birth_date) : null,
       row.gender,
       row.branch_id,
+      row.visit_count ?? 0,
     );
   }
 }

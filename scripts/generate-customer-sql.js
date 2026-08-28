@@ -55,13 +55,13 @@ async function main() {
 
   const daskentCustomers = new Map();
   const semerqendCustomers = new Map();
+  const procedures = [];
 
   function updateCustomer(map, key, data) {
     if (!map.has(key)) {
       map.set(key, data);
     } else {
       const existing = map.get(key);
-      // Əgər köhnə tarixdən daha erkən tarix tapılarsa və ya köhnədə tarix yox idisə yeniləyirik
       if (data.registeredAt) {
         if (!existing.registeredAt || new Date(data.registeredAt) < new Date(existing.registeredAt)) {
           existing.registeredAt = data.registeredAt;
@@ -74,13 +74,16 @@ async function main() {
     }
   }
 
-  // 1. Sheet: 10761 -> Daşkənd (Doctor laser)
+  // 1. Sheet: 10761 -> Daşkənd (Doctor laser - Candela Pro U)
   const ws10761 = wb.getWorksheet("10761");
   if (ws10761) {
     ws10761.eachRow((row) => {
       const nameRaw = row.getCell(3).value;
       const phoneRaw = row.getCell(4).value;
+      const zonesRaw = row.getCell(6).value;
       const dateRaw = row.getCell(7).value;
+      const priceRaw = row.getCell(10).value;
+
       const phone = cleanPhone(phoneRaw);
       const { firstName, lastName } = parseFullName(nameRaw);
       const registeredAt = parseDate(dateRaw);
@@ -91,6 +94,17 @@ async function main() {
         lastName,
         phone: phone ? "+" + phone : null,
         registeredAt,
+      });
+
+      procedures.push({
+        branchType: "DASKENT",
+        deviceType: "Candela Pro U",
+        phone: phone ? "+" + phone : null,
+        firstName,
+        lastName,
+        date: registeredAt || "2024-12-11T00:00:00.000Z",
+        price: typeof priceRaw === "number" ? priceRaw * 1000 : 0,
+        zonesRaw: zonesRaw ? String(zonesRaw) : null,
       });
     });
   }
@@ -114,6 +128,17 @@ async function main() {
             phone: dPhone ? "+" + dPhone : null,
             registeredAt: dDate,
           });
+
+          procedures.push({
+            branchType: "DASKENT",
+            deviceType: "Candela Pro U",
+            phone: dPhone ? "+" + dPhone : null,
+            firstName,
+            lastName,
+            date: dDate || "2024-05-22T00:00:00.000Z",
+            price: 0,
+            zonesRaw: null,
+          });
         }
       }
 
@@ -130,6 +155,17 @@ async function main() {
             lastName,
             phone: sPhone1 ? "+" + sPhone1 : null,
             registeredAt: sDate1,
+          });
+
+          procedures.push({
+            branchType: "SEMERQEND",
+            deviceType: "Candela Pro U",
+            phone: sPhone1 ? "+" + sPhone1 : null,
+            firstName,
+            lastName,
+            date: sDate1 || "2024-05-22T00:00:00.000Z",
+            price: 0,
+            zonesRaw: null,
           });
         }
       }
@@ -148,19 +184,32 @@ async function main() {
             phone: sPhone2 ? "+" + sPhone2 : null,
             registeredAt: sDate2,
           });
+
+          procedures.push({
+            branchType: "SEMERQEND",
+            deviceType: "Candela Pro U",
+            phone: sPhone2 ? "+" + sPhone2 : null,
+            firstName,
+            lastName,
+            date: sDate2 || "2024-05-22T00:00:00.000Z",
+            price: 0,
+            zonesRaw: null,
+          });
         }
       }
     });
   }
 
-  // 3. Sheet: 1245 Pro -> Səmərqənd (Laser N1)
+  // 3. Sheet: 1245 Pro -> Səmərqənd (Laser N1 - Candela Pro U)
   const ws1245 = wb.getWorksheet("1245 Pro");
   if (ws1245) {
     ws1245.eachRow((row, r) => {
       if (r <= 3) return;
       const nameRaw = row.getCell(3).value;
       const phoneRaw = row.getCell(4).value;
+      const zonesRaw = row.getCell(6).value;
       const dateRaw = row.getCell(7).value;
+
       const phone = cleanPhone(phoneRaw);
       const { firstName, lastName } = parseFullName(nameRaw);
       const registeredAt = parseDate(dateRaw);
@@ -172,20 +221,33 @@ async function main() {
         phone: phone ? "+" + phone : null,
         registeredAt,
       });
+
+      procedures.push({
+        branchType: "SEMERQEND",
+        deviceType: "Candela Pro U",
+        phone: phone ? "+" + phone : null,
+        firstName,
+        lastName,
+        date: registeredAt || "2023-01-06T00:00:00.000Z",
+        price: 0,
+        zonesRaw: zonesRaw ? String(zonesRaw) : null,
+      });
     });
   }
 
   let sql = `-- ==========================================================\n`;
-  sql += `-- Auto-generated Import Script for Daşkənd & Səmərqənd with Original Registration Dates\n`;
+  sql += `-- Auto-generated Import Script for Customers & Procedures with Visit Counts\n`;
   sql += `-- ==========================================================\n\n`;
 
-  sql += `-- Ensure Branches Exist and Import Customers\n`;
   sql += `DO $$\n`;
   sql += `DECLARE\n`;
   sql += `  v_daskent_id UUID;\n`;
   sql += `  v_semerqend_id UUID;\n`;
+  sql += `  v_candela_daskent_id UUID;\n`;
+  sql += `  v_candela_semerqend_id UUID;\n`;
   sql += `BEGIN\n`;
-  // Find or create Daşkənd Pro / Doctor laser branch
+  // 1. Branches & Devices
+  sql += `  -- 1. Ensure Branches & Devices\n`;
   sql += `  SELECT branch_id INTO v_daskent_id FROM branch_translations WHERE name ILIKE '%Daşkənd%' OR name ILIKE '%Daskent%' OR name ILIKE '%Doctor laser%' LIMIT 1;\n`;
   sql += `  IF v_daskent_id IS NULL THEN\n`;
   sql += `    v_daskent_id := gen_random_uuid();\n`;
@@ -196,7 +258,6 @@ async function main() {
   sql += `      (v_daskent_id, 'ru', 'Doctor laser', 'Дархан, Ниёзбек Йули 8');\n`;
   sql += `  END IF;\n\n`;
 
-  // Find or create Səmərqənd Pro / Laser N1 branch
   sql += `  SELECT branch_id INTO v_semerqend_id FROM branch_translations WHERE name ILIKE '%Səmərqənd%' OR name ILIKE '%Semerqend%' OR name ILIKE '%Laser N1%' LIMIT 1;\n`;
   sql += `  IF v_semerqend_id IS NULL THEN\n`;
   sql += `    v_semerqend_id := gen_random_uuid();\n`;
@@ -207,7 +268,34 @@ async function main() {
   sql += `      (v_semerqend_id, 'ru', 'Laser N1', 'Гагарина, дом 81');\n`;
   sql += `  END IF;\n\n`;
 
-  sql += `  -- Create temp table to hold raw import data with original date\n`;
+  sql += `  SELECT d.id INTO v_candela_daskent_id FROM devices d JOIN device_translations dt ON dt.device_id = d.id WHERE d.branch_id = v_daskent_id AND dt.type ILIKE '%Candela%' LIMIT 1;\n`;
+  sql += `  IF v_candela_daskent_id IS NULL THEN\n`;
+  sql += `    SELECT id INTO v_candela_daskent_id FROM devices WHERE branch_id = v_daskent_id LIMIT 1;\n`;
+  sql += `    IF v_candela_daskent_id IS NULL THEN\n`;
+  sql += `      v_candela_daskent_id := gen_random_uuid();\n`;
+  sql += `      INSERT INTO devices (id, branch_id, shot_counter, created_at) VALUES (v_candela_daskent_id, v_daskent_id, 0, NOW());\n`;
+  sql += `      INSERT INTO device_translations (device_id, locale, type) VALUES\n`;
+  sql += `        (v_candela_daskent_id, 'az', 'Candela Pro U'),\n`;
+  sql += `        (v_candela_daskent_id, 'en', 'Candela Pro U'),\n`;
+  sql += `        (v_candela_daskent_id, 'ru', 'Candela Pro U');\n`;
+  sql += `    END IF;\n`;
+  sql += `  END IF;\n\n`;
+
+  sql += `  SELECT d.id INTO v_candela_semerqend_id FROM devices d JOIN device_translations dt ON dt.device_id = d.id WHERE d.branch_id = v_semerqend_id AND dt.type ILIKE '%Candela%' LIMIT 1;\n`;
+  sql += `  IF v_candela_semerqend_id IS NULL THEN\n`;
+  sql += `    SELECT id INTO v_candela_semerqend_id FROM devices WHERE branch_id = v_semerqend_id LIMIT 1;\n`;
+  sql += `    IF v_candela_semerqend_id IS NULL THEN\n`;
+  sql += `      v_candela_semerqend_id := gen_random_uuid();\n`;
+  sql += `      INSERT INTO devices (id, branch_id, shot_counter, created_at) VALUES (v_candela_semerqend_id, v_semerqend_id, 0, NOW());\n`;
+  sql += `      INSERT INTO device_translations (device_id, locale, type) VALUES\n`;
+  sql += `        (v_candela_semerqend_id, 'az', 'Candela Pro U'),\n`;
+  sql += `        (v_candela_semerqend_id, 'en', 'Candela Pro U'),\n`;
+  sql += `        (v_candela_semerqend_id, 'ru', 'Candela Pro U');\n`;
+  sql += `    END IF;\n`;
+  sql += `  END IF;\n\n`;
+
+  // 2. Customers Temp Table
+  sql += `  -- 2. Create Temp Table for Customers\n`;
   sql += `  CREATE TEMP TABLE temp_import_customers (\n`;
   sql += `    branch_type TEXT,\n`;
   sql += `    first_name TEXT,\n`;
@@ -216,19 +304,19 @@ async function main() {
   sql += `    registered_at TIMESTAMPTZ\n`;
   sql += `  ) ON COMMIT DROP;\n\n`;
 
-  const allRows = [];
+  const customerRows = [];
   for (const c of daskentCustomers.values()) {
     const regDateSql = c.registeredAt ? `'${c.registeredAt}'::timestamptz` : 'NOW()';
-    allRows.push(`('DASKENT', ${escapeSql(c.firstName)}, ${escapeSql(c.lastName)}, ${escapeSql(c.phone)}, ${regDateSql})`);
+    customerRows.push(`('DASKENT', ${escapeSql(c.firstName)}, ${escapeSql(c.lastName)}, ${escapeSql(c.phone)}, ${regDateSql})`);
   }
   for (const c of semerqendCustomers.values()) {
     const regDateSql = c.registeredAt ? `'${c.registeredAt}'::timestamptz` : 'NOW()';
-    allRows.push(`('SEMERQEND', ${escapeSql(c.firstName)}, ${escapeSql(c.lastName)}, ${escapeSql(c.phone)}, ${regDateSql})`);
+    customerRows.push(`('SEMERQEND', ${escapeSql(c.firstName)}, ${escapeSql(c.lastName)}, ${escapeSql(c.phone)}, ${regDateSql})`);
   }
 
   const batchSize = 300;
-  for (let i = 0; i < allRows.length; i += batchSize) {
-    const chunk = allRows.slice(i, i + batchSize);
+  for (let i = 0; i < customerRows.length; i += batchSize) {
+    const chunk = customerRows.slice(i, i + batchSize);
     sql += `  INSERT INTO temp_import_customers (branch_type, first_name, last_name, phone, registered_at) VALUES\n  ` + chunk.join(',\n  ') + `;\n\n`;
   }
 
@@ -260,14 +348,67 @@ async function main() {
   sql += `        )\n`;
   sql += `    );\n\n`;
 
+  // 3. Procedures Temp Table
+  sql += `  -- 3. Create Temp Table for Procedures / Visits\n`;
+  sql += `  CREATE TEMP TABLE temp_import_procedures (\n`;
+  sql += `    branch_type TEXT,\n`;
+  sql += `    first_name TEXT,\n`;
+  sql += `    last_name TEXT,\n`;
+  sql += `    phone TEXT,\n`;
+  sql += `    proc_date TIMESTAMPTZ,\n`;
+  sql += `    price NUMERIC(10,2)\n`;
+  sql += `  ) ON COMMIT DROP;\n\n`;
+
+  const procRows = [];
+  for (const p of procedures) {
+    const pDate = p.date ? `'${p.date}'::timestamptz` : 'NOW()';
+    procRows.push(`('${p.branchType}', ${escapeSql(p.firstName)}, ${escapeSql(p.lastName)}, ${escapeSql(p.phone)}, ${pDate}, ${p.price})`);
+  }
+
+  for (let i = 0; i < procRows.length; i += batchSize) {
+    const chunk = procRows.slice(i, i + batchSize);
+    sql += `  INSERT INTO temp_import_procedures (branch_type, first_name, last_name, phone, proc_date, price) VALUES\n  ` + chunk.join(',\n  ') + `;\n\n`;
+  }
+
+  sql += `  -- 4. Insert Procedures and calculate visit numbers chronologically per customer\n`;
+  sql += `  WITH matched_procedures AS (\n`;
+  sql += `    SELECT\n`;
+  sql += `      c.id AS customer_id,\n`;
+  sql += `      CASE WHEN t.branch_type = 'DASKENT' THEN v_candela_daskent_id ELSE v_candela_semerqend_id END AS device_id,\n`;
+  sql += `      t.proc_date AS date,\n`;
+  sql += `      t.price AS price,\n`;
+  sql += `      ROW_NUMBER() OVER (PARTITION BY c.id ORDER BY t.proc_date ASC) AS visit_number\n`;
+  sql += `    FROM temp_import_procedures t\n`;
+  sql += `    JOIN customers c ON c.branch_id = (CASE WHEN t.branch_type = 'DASKENT' THEN v_daskent_id ELSE v_semerqend_id END)\n`;
+  sql += `      AND (\n`;
+  sql += `        (t.phone IS NOT NULL AND c.phone = t.phone)\n`;
+  sql += `        OR (t.phone IS NULL AND c.first_name = t.first_name AND c.last_name = t.last_name)\n`;
+  sql += `      )\n`;
+  sql += `  )\n`;
+  sql += `  INSERT INTO procedures (id, customer_id, device_id, date, visit_number, declared_shot_count, actual_shot_count, price, discount_amount, shot_count_difference, created_at)\n`;
+  sql += `  SELECT\n`;
+  sql += `    gen_random_uuid(),\n`;
+  sql += `    m.customer_id,\n`;
+  sql += `    m.device_id,\n`;
+  sql += `    m.date,\n`;
+  sql += `    m.visit_number,\n`;
+  sql += `    0,\n`;
+  sql += `    0,\n`;
+  sql += `    m.price,\n`;
+  sql += `    0,\n`;
+  sql += `    0,\n`;
+  sql += `    m.date\n`;
+  sql += `  FROM matched_procedures m;\n\n`;
+
   sql += `END $$;\n`;
 
   const outputPath = path.resolve(__dirname, "import_customers.sql");
   fs.writeFileSync(outputPath, sql);
   console.log(`Generated SQL file at ${outputPath}`);
-  console.log(`Daşkənd count: ${daskentCustomers.size}`);
-  console.log(`Səmərqənd count: ${semerqendCustomers.size}`);
-  console.log(`Total count: ${daskentCustomers.size + semerqendCustomers.size}`);
+  console.log(`Daşkənd customers: ${daskentCustomers.size}`);
+  console.log(`Səmərqənd customers: ${semerqendCustomers.size}`);
+  console.log(`Total customers: ${daskentCustomers.size + semerqendCustomers.size}`);
+  console.log(`Total procedures/visits imported: ${procedures.length}`);
 }
 
 main().catch(console.error);

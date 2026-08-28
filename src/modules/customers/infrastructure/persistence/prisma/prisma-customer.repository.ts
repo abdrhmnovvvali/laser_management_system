@@ -32,6 +32,11 @@ export class PrismaCustomerRepository implements ICustomerRepository {
     const [rows, total] = await this.prisma.$transaction([
       this.prisma.customer.findMany({
         where,
+        include: {
+          _count: {
+            select: { procedures: true },
+          },
+        },
         orderBy: { registeredAt: 'desc' },
         skip,
         take,
@@ -55,7 +60,14 @@ export class PrismaCustomerRepository implements ICustomerRepository {
   }
 
   async findById(id: string): Promise<Customer | null> {
-    const row = await this.prisma.customer.findUnique({ where: { id } });
+    const row = await this.prisma.customer.findUnique({
+      where: { id },
+      include: {
+        _count: {
+          select: { procedures: true },
+        },
+      },
+    });
     return row ? this.toDomain(row) : null;
   }
 
@@ -66,6 +78,11 @@ export class PrismaCustomerRepository implements ICustomerRepository {
 
     const rows = await this.prisma.customer.findMany({
       where: { id: { in: ids } },
+      include: {
+        _count: {
+          select: { procedures: true },
+        },
+      },
     });
     return rows.map((row) => this.toDomain(row));
   }
@@ -206,6 +223,7 @@ export class PrismaCustomerRepository implements ICustomerRepository {
     gender: PrismaGender | null;
     branchId: string;
     registeredAt: Date;
+    _count?: { procedures?: number };
   }): Customer {
     return CustomerPersistenceMapper.toDomain({
       id: row.id,
@@ -216,6 +234,7 @@ export class PrismaCustomerRepository implements ICustomerRepository {
       gender: row.gender as Gender | null,
       branch_id: row.branchId,
       registered_at: row.registeredAt.toISOString(),
+      visit_count: row._count?.procedures ?? 0,
     });
   }
 }

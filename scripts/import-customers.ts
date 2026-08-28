@@ -35,7 +35,23 @@ async function main() {
   }
 
   const totalCustomers = await prisma.customer.count();
+  const totalProcedures = await prisma.procedure.count();
   console.log(`Total customers in database: ${totalCustomers}`);
+  console.log(`Total procedures (visits) in database: ${totalProcedures}`);
+
+  const sampleCustomers = await prisma.customer.findMany({
+    take: 5,
+    include: {
+      _count: {
+        select: { procedures: true },
+      },
+    },
+  });
+
+  console.log('\nSample customers with visit counts:');
+  for (const c of sampleCustomers) {
+    console.log(`- ${c.firstName} ${c.lastName} (${c.phone}): ${c._count.procedures} visits`);
+  }
 }
 
 main()

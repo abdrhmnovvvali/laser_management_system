@@ -11,6 +11,7 @@ export class Customer extends BaseEntity<string> {
     public readonly birthDate: Date | null,
     public readonly gender: Gender | null,
     public readonly branchId: string,
+    public readonly visitCount: number = 0,
   ) {
     super(id, registeredAt);
   }

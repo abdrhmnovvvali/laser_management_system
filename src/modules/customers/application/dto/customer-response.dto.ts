@@ -28,4 +28,7 @@ export class CustomerResponseDto {
 
   @ApiProperty()
   registeredAt: Date;
+
+  @ApiProperty({ default: 0, description: 'Müştərinin cəmi vizit sayı' })
+  visitCount: number;
 }

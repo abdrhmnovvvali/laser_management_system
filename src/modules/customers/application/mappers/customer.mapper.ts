@@ -21,6 +21,7 @@ export class CustomerMapper {
     dto.branchId = customer.branchId;
     dto.branchName = lookupName(lookups.branches, customer.branchId);
     dto.registeredAt = customer.registeredAt;
+    dto.visitCount = customer.visitCount;
     return dto;
   }
 
