@@ -15,6 +15,7 @@ import type { IProcedureRepository } from '../../domain/repositories/procedure.r
 import { calculateCampaignDiscount } from '../../domain/services/campaign-discount.calculator';
 import {
   LoyaltyRewardCalculator,
+  type LoyaltyRewardResult,
   type ZonePrice,
 } from '../../domain/services/loyalty-reward.calculator';
 
@@ -24,6 +25,7 @@ export interface CreateProcedureInput {
   packageId?: string;
   campaignId?: string;
   zoneIds?: string[];
+  freeZoneId?: string;
   date?: Date;
   declaredShotCount: number;
   actualShotCount: number;
@@ -69,16 +71,37 @@ export class CreateProcedureUseCase {
 
     const priceAfterCampaign = Math.max(0, pricing.price - campaignDiscount);
 
-    const loyalty = LoyaltyRewardCalculator.apply(
-      priceAfterCampaign,
-      pricing.zones,
-      completedVisitCount,
-      {
-        visitsBeforeFreeZone: this.configService.get<number>(
-          'loyalty.visitsBeforeFreeZone',
-        )!,
-      },
-    );
+    let loyalty: LoyaltyRewardResult;
+    if (input.packageId && input.freeZoneId) {
+      const freeZone = pricing.zones.find((z) => z.id === input.freeZoneId);
+      const isReward = LoyaltyRewardCalculator.isRewardVisit(
+        completedVisitCount,
+        {
+          visitsBeforeFreeZone: this.configService.get<number>(
+            'loyalty.visitsBeforeFreeZone',
+          )!,
+        },
+      );
+      loyalty = {
+        applies: isReward,
+        visitNumber: completedVisitCount + 1,
+        freeZoneId: input.freeZoneId,
+        discountAmount: freeZone ? freeZone.price : 0,
+        finalPrice: priceAfterCampaign,
+      };
+    } else {
+      loyalty = LoyaltyRewardCalculator.apply(
+        priceAfterCampaign,
+        pricing.zones,
+        completedVisitCount,
+        {
+          visitsBeforeFreeZone: this.configService.get<number>(
+            'loyalty.visitsBeforeFreeZone',
+          )!,
+        },
+        input.freeZoneId,
+      );
+    }
 
     const procedure = await this.procedureRepository.create({
       customerId: input.customerId,
@@ -148,29 +171,39 @@ export class CreateProcedureUseCase {
   private async resolvePriceAndZones(
     input: CreateProcedureInput,
   ): Promise<ResolvedPricing> {
+    let zoneIds = input.zoneIds ? [...input.zoneIds] : [];
+
     if (input.packageId) {
       const pkg = await this.packageFacade.getById(input.packageId);
-      const zoneIds =
-        input.zoneIds && input.zoneIds.length > 0 ? input.zoneIds : pkg.zoneIds;
+      if (zoneIds.length === 0) {
+        zoneIds = [...pkg.zoneIds];
+      }
+      if (input.freeZoneId && !zoneIds.includes(input.freeZoneId)) {
+        zoneIds.push(input.freeZoneId);
+      }
       const zones = await this.loadZonePrices(zoneIds);
       return { price: pkg.price, zoneIds, zones };
     }
 
-    if (!input.zoneIds || input.zoneIds.length === 0) {
+    if (input.freeZoneId && !zoneIds.includes(input.freeZoneId)) {
+      zoneIds.push(input.freeZoneId);
+    }
+
+    if (zoneIds.length === 0) {
       throw new BusinessRuleViolationException(
         'packageId verilməyibsə, ən azı bir zoneId göstərilməlidir',
       );
     }
 
-    const zones = await this.loadZonePrices(input.zoneIds);
-    if (zones.length !== input.zoneIds.length) {
+    const zones = await this.loadZonePrices(zoneIds);
+    if (zones.length !== zoneIds.length) {
       throw new BusinessRuleViolationException(
         'Seçilən nahiyələrdən biri və ya bir neçəsi tapılmadı',
       );
     }
 
     const price = zones.reduce((sum, zone) => sum + zone.price, 0);
-    return { price, zoneIds: input.zoneIds, zones };
+    return { price, zoneIds, zones };
   }
 
   private async loadZonePrices(zoneIds: string[]): Promise<ZonePrice[]> {

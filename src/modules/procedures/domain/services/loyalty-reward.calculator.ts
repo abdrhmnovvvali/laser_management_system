@@ -35,27 +35,42 @@ export class LoyaltyRewardCalculator {
     zones: ZonePrice[],
     completedVisitCount: number,
     config: LoyaltyConfig,
+    explicitFreeZoneId?: string | null,
   ): LoyaltyRewardResult {
     const visitNumber = completedVisitCount + 1;
-    const noReward: LoyaltyRewardResult = {
-      applies: false,
-      visitNumber,
-      freeZoneId: null,
-      discountAmount: 0,
-      finalPrice: basePrice,
-    };
+    const isReward = this.isRewardVisit(completedVisitCount, config);
 
-    if (
-      !this.isRewardVisit(completedVisitCount, config) ||
-      zones.length === 0 ||
-      basePrice <= 0
-    ) {
-      return noReward;
+    if (!isReward || zones.length === 0) {
+      return {
+        applies: false,
+        visitNumber,
+        freeZoneId: null,
+        discountAmount: 0,
+        finalPrice: basePrice,
+      };
     }
 
-    const freeZone = zones.reduce((cheapest, zone) =>
-      zone.price < cheapest.price ? zone : cheapest,
-    );
+    let freeZone: ZonePrice | undefined;
+    if (explicitFreeZoneId) {
+      freeZone = zones.find((z) => z.id === explicitFreeZoneId);
+    }
+
+    if (!freeZone && zones.length >= 2) {
+      freeZone = zones.reduce((cheapest, zone) =>
+        zone.price < cheapest.price ? zone : cheapest,
+      );
+    }
+
+    if (!freeZone) {
+      return {
+        applies: false,
+        visitNumber,
+        freeZoneId: null,
+        discountAmount: 0,
+        finalPrice: basePrice,
+      };
+    }
+
     const discountAmount = Math.min(freeZone.price, basePrice);
 
     return {
@@ -63,7 +78,7 @@ export class LoyaltyRewardCalculator {
       visitNumber,
       freeZoneId: freeZone.id,
       discountAmount,
-      finalPrice: basePrice - discountAmount,
+      finalPrice: Math.max(0, basePrice - discountAmount),
     };
   }
 }

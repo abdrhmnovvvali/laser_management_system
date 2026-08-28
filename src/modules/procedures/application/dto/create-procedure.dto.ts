@@ -49,6 +49,15 @@ export class CreateProcedureDto {
   @IsUUID('4', { each: true })
   zoneIds?: string[];
 
+  @ApiProperty({
+    example: 'a1b2c3d4-...',
+    required: false,
+    description: '7-ci vizit loyallıq hədiyyəsi üçün pulsuz nahiyə',
+  })
+  @IsOptional()
+  @IsUUID()
+  freeZoneId?: string;
+
   @ApiProperty({ example: '2026-07-03', required: false })
   @IsOptional()
   @IsDateString()
