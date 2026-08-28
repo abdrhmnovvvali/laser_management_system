@@ -385,7 +385,7 @@ async function main() {
   sql += `        OR (t.phone IS NULL AND c.first_name = t.first_name AND c.last_name = t.last_name)\n`;
   sql += `      )\n`;
   sql += `  )\n`;
-  sql += `  INSERT INTO procedures (id, customer_id, device_id, date, visit_number, declared_shot_count, actual_shot_count, price, discount_amount, shot_count_difference, created_at)\n`;
+  sql += `  INSERT INTO procedures (id, customer_id, device_id, date, visit_number, declared_shot_count, actual_shot_count, price, discount_amount, created_at)\n`;
   sql += `  SELECT\n`;
   sql += `    gen_random_uuid(),\n`;
   sql += `    m.customer_id,\n`;
@@ -395,7 +395,6 @@ async function main() {
   sql += `    0,\n`;
   sql += `    0,\n`;
   sql += `    m.price,\n`;
-  sql += `    0,\n`;
   sql += `    0,\n`;
   sql += `    m.date\n`;
   sql += `  FROM matched_procedures m;\n\n`;
