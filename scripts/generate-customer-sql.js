@@ -129,16 +129,26 @@ async function main() {
   sql += `  v_daskent_id UUID;\n`;
   sql += `  v_semerqend_id UUID;\n`;
   sql += `BEGIN\n`;
-  sql += `  -- Find or create Daşkənd Pro branch\n`;
-  sql += `  SELECT id INTO v_daskent_id FROM branches WHERE name ILIKE '%Daşkənd%' OR name ILIKE '%Daskent%' LIMIT 1;\n`;
+  // Find or create Daşkənd Pro branch
+  sql += `  SELECT branch_id INTO v_daskent_id FROM branch_translations WHERE name ILIKE '%Daşkənd%' OR name ILIKE '%Daskent%' LIMIT 1;\n`;
   sql += `  IF v_daskent_id IS NULL THEN\n`;
-  sql += `    INSERT INTO branches (id, name, address, phone, created_at) VALUES (gen_random_uuid(), 'Daşkənd Pro', 'Daşkənd', NULL, NOW()) RETURNING id INTO v_daskent_id;\n`;
+  sql += `    v_daskent_id := gen_random_uuid();\n`;
+  sql += `    INSERT INTO branches (id, created_at) VALUES (v_daskent_id, NOW());\n`;
+  sql += `    INSERT INTO branch_translations (branch_id, locale, name, address) VALUES\n`;
+  sql += `      (v_daskent_id, 'az', 'Daşkənd Pro', 'Daşkənd'),\n`;
+  sql += `      (v_daskent_id, 'en', 'Daşkənd Pro', 'Daşkənd'),\n`;
+  sql += `      (v_daskent_id, 'ru', 'Daşkənd Pro', 'Daşkənd');\n`;
   sql += `  END IF;\n\n`;
 
-  sql += `  -- Find or create Səmərqənd Pro branch\n`;
-  sql += `  SELECT id INTO v_semerqend_id FROM branches WHERE name ILIKE '%Səmərqənd%' OR name ILIKE '%Semerqend%' LIMIT 1;\n`;
+  // Find or create Səmərqənd Pro branch
+  sql += `  SELECT branch_id INTO v_semerqend_id FROM branch_translations WHERE name ILIKE '%Səmərqənd%' OR name ILIKE '%Semerqend%' LIMIT 1;\n`;
   sql += `  IF v_semerqend_id IS NULL THEN\n`;
-  sql += `    INSERT INTO branches (id, name, address, phone, created_at) VALUES (gen_random_uuid(), 'Səmərqənd Pro', 'Səmərqənd', NULL, NOW()) RETURNING id INTO v_semerqend_id;\n`;
+  sql += `    v_semerqend_id := gen_random_uuid();\n`;
+  sql += `    INSERT INTO branches (id, created_at) VALUES (v_semerqend_id, NOW());\n`;
+  sql += `    INSERT INTO branch_translations (branch_id, locale, name, address) VALUES\n`;
+  sql += `      (v_semerqend_id, 'az', 'Səmərqənd Pro', 'Səmərqənd'),\n`;
+  sql += `      (v_semerqend_id, 'en', 'Səmərqənd Pro', 'Səmərqənd'),\n`;
+  sql += `      (v_semerqend_id, 'ru', 'Səmərqənd Pro', 'Səmərqənd');\n`;
   sql += `  END IF;\n\n`;
 
   sql += `  -- Create temp table to hold raw import data\n`;

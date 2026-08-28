@@ -10,16 +10,24 @@ DECLARE
   v_daskent_id UUID;
   v_semerqend_id UUID;
 BEGIN
-  -- Find or create Daşkənd Pro branch
-  SELECT id INTO v_daskent_id FROM branches WHERE name ILIKE '%Daşkənd%' OR name ILIKE '%Daskent%' LIMIT 1;
+  SELECT branch_id INTO v_daskent_id FROM branch_translations WHERE name ILIKE '%Daşkənd%' OR name ILIKE '%Daskent%' LIMIT 1;
   IF v_daskent_id IS NULL THEN
-    INSERT INTO branches (id, name, address, phone, created_at) VALUES (gen_random_uuid(), 'Daşkənd Pro', 'Daşkənd', NULL, NOW()) RETURNING id INTO v_daskent_id;
+    v_daskent_id := gen_random_uuid();
+    INSERT INTO branches (id, created_at) VALUES (v_daskent_id, NOW());
+    INSERT INTO branch_translations (branch_id, locale, name, address) VALUES
+      (v_daskent_id, 'az', 'Daşkənd Pro', 'Daşkənd'),
+      (v_daskent_id, 'en', 'Daşkənd Pro', 'Daşkənd'),
+      (v_daskent_id, 'ru', 'Daşkənd Pro', 'Daşkənd');
   END IF;
 
-  -- Find or create Səmərqənd Pro branch
-  SELECT id INTO v_semerqend_id FROM branches WHERE name ILIKE '%Səmərqənd%' OR name ILIKE '%Semerqend%' LIMIT 1;
+  SELECT branch_id INTO v_semerqend_id FROM branch_translations WHERE name ILIKE '%Səmərqənd%' OR name ILIKE '%Semerqend%' LIMIT 1;
   IF v_semerqend_id IS NULL THEN
-    INSERT INTO branches (id, name, address, phone, created_at) VALUES (gen_random_uuid(), 'Səmərqənd Pro', 'Səmərqənd', NULL, NOW()) RETURNING id INTO v_semerqend_id;
+    v_semerqend_id := gen_random_uuid();
+    INSERT INTO branches (id, created_at) VALUES (v_semerqend_id, NOW());
+    INSERT INTO branch_translations (branch_id, locale, name, address) VALUES
+      (v_semerqend_id, 'az', 'Səmərqənd Pro', 'Səmərqənd'),
+      (v_semerqend_id, 'en', 'Səmərqənd Pro', 'Səmərqənd'),
+      (v_semerqend_id, 'ru', 'Səmərqənd Pro', 'Səmərqənd');
   END IF;
 
   -- Create temp table to hold raw import data

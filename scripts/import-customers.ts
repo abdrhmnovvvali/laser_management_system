@@ -19,6 +19,7 @@ async function main() {
   console.log('--- Import Verification ---');
   const branches = await prisma.branch.findMany({
     include: {
+      translations: true,
       _count: {
         select: { customers: true },
       },
@@ -26,7 +27,8 @@ async function main() {
   });
 
   for (const b of branches) {
-    console.log(`Branch: ${b.name} (ID: ${b.id}) -> Total Customers: ${b._count.customers}`);
+    const name = b.translations.find((t) => t.locale === 'az')?.name || b.translations[0]?.name || 'Unknown';
+    console.log(`Branch: ${name} (ID: ${b.id}) -> Total Customers: ${b._count.customers}`);
   }
 
   const totalCustomers = await prisma.customer.count();
