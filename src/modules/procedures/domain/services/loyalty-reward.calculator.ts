@@ -30,6 +30,10 @@ export class LoyaltyRewardCalculator {
     return nextVisitNumber % interval === 0;
   }
 
+  /**
+   * Loyallıq endirimi yalnız explicit `freeZoneId` ilə tətbiq olunur.
+   * Avtomatik zona seçimi yoxdur — frontend hansı nahiyənin pulsuz olduğunu göndərməlidir.
+   */
   static apply(
     basePrice: number,
     zones: ZonePrice[],
@@ -40,7 +44,7 @@ export class LoyaltyRewardCalculator {
     const visitNumber = completedVisitCount + 1;
     const isReward = this.isRewardVisit(completedVisitCount, config);
 
-    if (!isReward || zones.length === 0) {
+    if (!isReward || zones.length === 0 || !explicitFreeZoneId) {
       return {
         applies: false,
         visitNumber,
@@ -50,17 +54,7 @@ export class LoyaltyRewardCalculator {
       };
     }
 
-    let freeZone: ZonePrice | undefined;
-    if (explicitFreeZoneId) {
-      freeZone = zones.find((z) => z.id === explicitFreeZoneId);
-    }
-
-    if (!freeZone && zones.length >= 2) {
-      freeZone = zones.reduce((cheapest, zone) =>
-        zone.price < cheapest.price ? zone : cheapest,
-      );
-    }
-
+    const freeZone = zones.find((z) => z.id === explicitFreeZoneId);
     if (!freeZone) {
       return {
         applies: false,

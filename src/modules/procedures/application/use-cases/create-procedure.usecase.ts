@@ -71,37 +71,32 @@ export class CreateProcedureUseCase {
 
     const priceAfterCampaign = Math.max(0, pricing.price - campaignDiscount);
 
-    let loyalty: LoyaltyRewardResult;
-    if (input.packageId && input.freeZoneId) {
-      const freeZone = pricing.zones.find((z) => z.id === input.freeZoneId);
-      const isReward = LoyaltyRewardCalculator.isRewardVisit(
-        completedVisitCount,
-        {
-          visitsBeforeFreeZone: this.configService.get<number>(
-            'loyalty.visitsBeforeFreeZone',
-          )!,
-        },
-      );
-      loyalty = {
-        applies: isReward,
-        visitNumber: completedVisitCount + 1,
-        freeZoneId: input.freeZoneId,
-        discountAmount: freeZone ? freeZone.price : 0,
-        finalPrice: priceAfterCampaign,
-      };
-    } else {
-      loyalty = LoyaltyRewardCalculator.apply(
-        priceAfterCampaign,
-        pricing.zones,
-        completedVisitCount,
-        {
-          visitsBeforeFreeZone: this.configService.get<number>(
-            'loyalty.visitsBeforeFreeZone',
-          )!,
-        },
-        input.freeZoneId,
-      );
+    const loyaltyConfig = {
+      visitsBeforeFreeZone: this.configService.get<number>(
+        'loyalty.visitsBeforeFreeZone',
+      )!,
+    };
+
+    if (LoyaltyRewardCalculator.isRewardVisit(completedVisitCount, loyaltyConfig)) {
+      if (!input.freeZoneId) {
+        throw new BusinessRuleViolationException(
+          'Loyallıq vizitində pulsuz nahiyə seçilməlidir (freeZoneId)',
+        );
+      }
+      if (!pricing.zones.some((zone) => zone.id === input.freeZoneId)) {
+        throw new BusinessRuleViolationException(
+          'freeZoneId seçilmiş nahiyələr arasında olmalıdır',
+        );
+      }
     }
+
+    const loyalty: LoyaltyRewardResult = LoyaltyRewardCalculator.apply(
+      priceAfterCampaign,
+      pricing.zones,
+      completedVisitCount,
+      loyaltyConfig,
+      input.freeZoneId,
+    );
 
     const procedure = await this.procedureRepository.create({
       customerId: input.customerId,

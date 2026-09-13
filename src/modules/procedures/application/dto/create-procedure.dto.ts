@@ -52,7 +52,8 @@ export class CreateProcedureDto {
   @ApiProperty({
     example: 'a1b2c3d4-...',
     required: false,
-    description: '7-ci vizit loyallıq hədiyyəsi üçün pulsuz nahiyə',
+    description:
+      'Loyallıq vizitində (7, 14, …) mütləqdir — pulsuz olacaq nahiyə. Avtomatik seçilmir.',
   })
   @IsOptional()
   @IsUUID()
