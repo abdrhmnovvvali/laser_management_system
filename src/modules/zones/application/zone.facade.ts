@@ -30,6 +30,18 @@ export class ZoneFacade {
     return zones.map((zone) => zone.id);
   }
 
+  async resolvePrices(
+    zoneIds: Iterable<string | null | undefined>,
+  ): Promise<Map<string, number>> {
+    const ids = uniqueIds(zoneIds);
+    if (ids.length === 0) {
+      return new Map();
+    }
+
+    const zones = await this.zoneRepository.findByIds(ids);
+    return new Map(zones.map((zone) => [zone.id, zone.price]));
+  }
+
   async resolveNames(
     zoneIds: Iterable<string | null | undefined>,
   ): Promise<Map<string, string>> {

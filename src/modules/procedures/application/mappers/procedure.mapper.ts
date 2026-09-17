@@ -4,7 +4,7 @@ import {
 } from '../../../../shared/relations/relation-lookups.interface';
 import {
   lookupName,
-  toNamedEntities,
+  toPricedEntities,
 } from '../../../../shared/relations/relation-name.util';
 import { Procedure } from '../../domain/entities/procedure.entity';
 import { ProcedureResponseDto } from '../dto/procedure-response.dto';
@@ -25,7 +25,11 @@ export class ProcedureMapper {
     dto.campaignId = procedure.campaignId;
     dto.campaignName = lookupName(lookups.campaigns, procedure.campaignId);
     dto.zoneIds = procedure.zoneIds;
-    dto.zones = toNamedEntities(procedure.zoneIds, lookups.zones);
+    dto.zones = toPricedEntities(
+      procedure.zoneIds,
+      lookups.zones,
+      lookups.zonePrices,
+    );
     dto.date = procedure.date;
     dto.declaredShotCount = procedure.declaredShotCount;
     dto.actualShotCount = procedure.actualShotCount;

@@ -1,5 +1,6 @@
 import { NamedEntityDto } from '../dto/named-entity.dto';
-import type { NameLookup } from './relation-lookups.interface';
+import { PricedEntityDto } from '../dto/priced-entity.dto';
+import type { NameLookup, PriceLookup } from './relation-lookups.interface';
 
 export function lookupName(
   names: NameLookup,
@@ -19,6 +20,18 @@ export function toNamedEntities(
   return ids.map((id) => ({
     id,
     name: names.get(id) ?? id,
+  }));
+}
+
+export function toPricedEntities(
+  ids: string[],
+  names: NameLookup,
+  prices: PriceLookup,
+): PricedEntityDto[] {
+  return ids.map((id) => ({
+    id,
+    name: names.get(id) ?? id,
+    price: prices.get(id) ?? null,
   }));
 }
 

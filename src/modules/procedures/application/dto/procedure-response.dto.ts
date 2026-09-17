@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { NamedEntityDto } from '../../../../shared/dto/named-entity.dto';
+import { PricedEntityDto } from '../../../../shared/dto/priced-entity.dto';
 
 export class ProcedureResponseDto {
   @ApiProperty()
@@ -32,8 +32,11 @@ export class ProcedureResponseDto {
   @ApiProperty({ type: [String] })
   zoneIds: string[];
 
-  @ApiProperty({ type: [NamedEntityDto], description: 'Nahiyələrin id və adları' })
-  zones: NamedEntityDto[];
+  @ApiProperty({
+    type: [PricedEntityDto],
+    description: 'Nahiyələrin id, ad və qiymətləri',
+  })
+  zones: PricedEntityDto[];
 
   @ApiProperty()
   date: Date;

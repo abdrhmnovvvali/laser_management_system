@@ -1,8 +1,11 @@
 export type NameLookup = ReadonlyMap<string, string>;
+export type PriceLookup = ReadonlyMap<string, number>;
 
 export interface RelationLookups {
   branches: NameLookup;
   zones: NameLookup;
+  /** Nahiyə id → qiymət (prosedur cavabında nahiyələrin qiymətini göstərmək üçün) */
+  zonePrices: PriceLookup;
   customers: NameLookup;
   devices: NameLookup;
   packages: NameLookup;
@@ -21,6 +24,7 @@ export interface RelationIds {
 export const EMPTY_RELATION_LOOKUPS: RelationLookups = {
   branches: new Map(),
   zones: new Map(),
+  zonePrices: new Map(),
   customers: new Map(),
   devices: new Map(),
   packages: new Map(),
