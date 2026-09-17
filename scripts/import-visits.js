@@ -151,6 +151,7 @@ const ZONE_ALIASES = {
   'boyun 1/2': 'Yarım boyun',
   yarımboyun: 'Yarım boyun',
   'yarım boyun': 'Yarım boyun',
+  yarıboyun: 'Yarım boyun',
   qolaltı: 'Qoltuqaltı',
   qolalti: 'Qoltuqaltı',
   'qol altı': 'Qoltuqaltı',
@@ -181,6 +182,8 @@ const ZONE_ALIASES = {
   'döş ətrafı': 'Sinə',
   'sinə ucu': 'Gilə ətrafı',
   gilə: 'Gilə ətrafı',
+  oreal: 'Gilə ətrafı',
+  areal: 'Gilə ətrafı',
   dekolte: 'Dekolte',
   kürək: 'Bütün kürək',
   çiyin: 'Çiyinlər',
@@ -350,7 +353,7 @@ async function readVisits(filePath, options) {
       const zoneNames = [];
       if (!options.noZones && source.columns.zones) {
         const rawZones = String(cellText(row, source.columns.zones) || '');
-        for (const part of rawZones.split(/[,\n/]+/)) {
+        for (const part of rawZones.split(/[,\n+]+/)) {
           const token = normalizeZoneToken(part);
           if (!token) continue;
           const mapped = ZONE_ALIASES[token];
