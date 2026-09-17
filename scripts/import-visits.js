@@ -193,6 +193,8 @@ const ZONE_ALIASES = {
 };
 
 const LOCALES = ['az', 'en', 'ru'];
+/** procedures.price sütunu Decimal(10,2) — maksimum dəyər. */
+const MAX_PRICE = 99999999.99;
 const BATCH_SIZE = 500;
 
 // ---------------------------------------------------------------------------
@@ -277,9 +279,19 @@ function parsePrice(raw, multiplier) {
   if (!text) return 0;
   const value = Number(text.replace(/[^\d]/g, ''));
   if (!Number.isFinite(value) || value <= 0) return 0;
-  // Nöqtə/vergüllə yazılan məbləğ (800.000) artıq tam məbləğdir — vurmaya ehtiyac yoxdur.
-  const alreadyFull = /[.,]\d{3}(?!\d)/.test(text);
-  return alreadyFull ? value : value * multiplier;
+
+  // Məbləğ artıq tamdırsa vurmaq lazım deyil: ya nöqtə ilə yazılıb (800.000),
+  // ya da 5+ rəqəmlidir (1800000) — min-lə yazılanlar 2–4 rəqəm olur.
+  const alreadyFull = /[.,]\d{3}(?!\d)/.test(text) || value >= 10000;
+  const price = alreadyFull ? value : value * multiplier;
+
+  // price sütunu Decimal(10,2)-dir; səhv doldurulmuş xana importu dayandırmasın.
+  if (price > MAX_PRICE) {
+    console.warn(`  ! Qiymət həddi aşdı, 0 yazılır: "${firstLine(raw)}"`);
+    return 0;
+  }
+
+  return price;
 }
 
 function cellText(row, column) {
