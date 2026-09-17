@@ -29,6 +29,7 @@ export interface CreateProcedureInput {
   date?: Date;
   declaredShotCount: number;
   actualShotCount: number;
+  manualDiscount?: number;
 }
 
 interface ResolvedPricing {
@@ -98,6 +99,15 @@ export class CreateProcedureUseCase {
       input.freeZoneId,
     );
 
+    // Əl ilə verilən məbləğ endirimi ən sonda — kampaniya və loyallıqdan sonra qalan qiymətə.
+    const manualDiscount = input.manualDiscount ?? 0;
+
+    if (manualDiscount > loyalty.finalPrice) {
+      throw new BusinessRuleViolationException(
+        'Endirim məbləği prosedurun qiymətindən çox ola bilməz',
+      );
+    }
+
     const procedure = await this.procedureRepository.create({
       customerId: input.customerId,
       deviceId: input.deviceId,
@@ -106,10 +116,11 @@ export class CreateProcedureUseCase {
       date: procedureDate,
       declaredShotCount: input.declaredShotCount,
       actualShotCount: input.actualShotCount,
-      price: loyalty.finalPrice,
+      price: loyalty.finalPrice - manualDiscount,
       zoneIds: pricing.zoneIds,
       freeZoneId: loyalty.freeZoneId,
-      discountAmount: campaignDiscount + loyalty.discountAmount,
+      discountAmount:
+        campaignDiscount + loyalty.discountAmount + manualDiscount,
       visitNumber: loyalty.visitNumber,
     });
 

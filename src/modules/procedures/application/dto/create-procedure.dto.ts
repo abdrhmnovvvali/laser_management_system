@@ -4,6 +4,7 @@ import {
   IsArray,
   IsDateString,
   IsInt,
+  IsNumber,
   IsOptional,
   IsUUID,
   Min,
@@ -76,4 +77,15 @@ export class CreateProcedureDto {
   @IsInt()
   @Min(0)
   actualShotCount: number;
+
+  @ApiProperty({
+    example: 50000,
+    required: false,
+    description:
+      'Əl ilə verilən məbləğ endirimi — kampaniya və loyallıq endirimindən sonra tətbiq olunur. Qalan qiymətdən çox ola bilməz.',
+  })
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  manualDiscount?: number;
 }
