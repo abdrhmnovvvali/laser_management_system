@@ -28,6 +28,7 @@ import { CampaignsModule } from './modules/campaigns/presentation/campaigns.modu
 import { CommunicationModule } from './modules/notes/presentation/communication.module';
 import { FollowUpsModule } from './modules/follow-ups/presentation/follow-ups.module';
 import { BirthdaysModule } from './modules/birthdays/presentation/birthdays.module';
+import { ReturnRemindersModule } from './modules/return-reminders/presentation/return-reminders.module';
 import { NotificationsModule } from './modules/notifications/presentation/notifications.module';
 import { ExcelImportModule } from './modules/excel-import/presentation/excel-import.module';
 import { DashboardModule } from './modules/dashboard/presentation/dashboard.module';
@@ -59,6 +60,7 @@ import { PrinterModule } from './modules/printer/presentation/printer.module';
     CommunicationModule,
     FollowUpsModule,
     BirthdaysModule,
+    ReturnRemindersModule,
     NotificationsModule,
     ExcelImportModule,
     DashboardModule,
