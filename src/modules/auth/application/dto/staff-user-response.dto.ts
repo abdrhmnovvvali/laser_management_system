@@ -19,4 +19,7 @@ export class StaffUserResponseDto {
 
   @ApiProperty({ nullable: true, description: 'Filialın adı' })
   branchName: string | null;
+
+  @ApiProperty({ description: 'false — hesab deaktivdir, daxil ola bilmir' })
+  isActive: boolean;
 }

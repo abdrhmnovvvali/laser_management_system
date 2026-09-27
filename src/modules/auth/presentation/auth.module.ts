@@ -4,6 +4,7 @@ import { AUTH_REPOSITORY } from '../domain/repositories/auth.repository.interfac
 import { PrismaAuthRepository } from '../infrastructure/persistence/prisma/prisma-auth.repository';
 import { CreateStaffUserUseCase } from '../application/use-cases/create-staff-user.usecase';
 import { DeleteStaffUserUseCase } from '../application/use-cases/delete-staff-user.usecase';
+import { SetStaffUserActiveUseCase } from '../application/use-cases/set-staff-user-active.usecase';
 import { ListStaffUsersUseCase } from '../application/use-cases/list-staff-users.usecase';
 import { LoginUseCase } from '../application/use-cases/login.usecase';
 import { RefreshSessionUseCase } from '../application/use-cases/refresh-session.usecase';
@@ -18,6 +19,7 @@ import { AuthController } from './controllers/auth.controller';
     CreateStaffUserUseCase,
     ListStaffUsersUseCase,
     DeleteStaffUserUseCase,
+    SetStaffUserActiveUseCase,
     { provide: AUTH_REPOSITORY, useClass: PrismaAuthRepository },
   ],
 })

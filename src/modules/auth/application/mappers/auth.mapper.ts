@@ -53,6 +53,7 @@ export class AuthMapper {
     dto.role = staffUser.role;
     dto.branchId = staffUser.branchId;
     dto.branchName = lookupName(lookups.branches, staffUser.branchId);
+    dto.isActive = staffUser.isActive;
     return dto;
   }
 

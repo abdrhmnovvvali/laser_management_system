@@ -29,5 +29,8 @@ export interface IAuthRepository {
   findAllStaffUsers(options?: StaffListOptions): Promise<PaginatedResult<StaffUser>>;
   findStaffUserById(id: string): Promise<StaffUser | null>;
   countStaffByRole(role: Role): Promise<number>;
+  countActiveStaffByRole(role: Role): Promise<number>;
+  /** Deaktiv edildikdə refresh token da ləğv olunur. */
+  setStaffUserActive(id: string, isActive: boolean): Promise<StaffUser>;
   deleteStaffUser(id: string): Promise<void>;
 }

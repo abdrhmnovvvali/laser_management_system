@@ -55,6 +55,8 @@ model User {
   branchId         String?  @map("branch_id") @db.Uuid
   fullName         String?  @map("full_name")
   refreshTokenHash String?  @map("refresh_token_hash")
+  /// Deaktiv hesab sistemə daxil ola bilməz (silinmədən bloklanır)
+  isActive         Boolean  @default(true) @map("is_active")
   createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   branch Branch? @relation(fields: [branchId], references: [id], onDelete: SetNull)

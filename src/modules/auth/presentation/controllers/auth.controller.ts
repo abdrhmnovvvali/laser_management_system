@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
 } from '@nestjs/common';
@@ -29,6 +30,7 @@ import { Role } from '../../../../shared/guards/roles.enum';
 import { RelationLookupService } from '../../../../shared/relations/relation-lookup.service';
 import { CreateStaffUserUseCase } from '../../application/use-cases/create-staff-user.usecase';
 import { DeleteStaffUserUseCase } from '../../application/use-cases/delete-staff-user.usecase';
+import { SetStaffUserActiveUseCase } from '../../application/use-cases/set-staff-user-active.usecase';
 import { ListStaffUsersUseCase } from '../../application/use-cases/list-staff-users.usecase';
 import { LoginUseCase } from '../../application/use-cases/login.usecase';
 import { RefreshSessionUseCase } from '../../application/use-cases/refresh-session.usecase';
@@ -37,6 +39,7 @@ import { CurrentUserResponseDto } from '../../application/dto/current-user-respo
 import { LoginDto } from '../../application/dto/login.dto';
 import { LoginResponseDto } from '../../application/dto/login-response.dto';
 import { RefreshTokenDto } from '../../application/dto/refresh-token.dto';
+import { SetStaffUserActiveDto } from '../../application/dto/set-staff-user-active.dto';
 import { StaffUserResponseDto } from '../../application/dto/staff-user-response.dto';
 import { AuthMapper } from '../../application/mappers/auth.mapper';
 
@@ -54,6 +57,7 @@ export class AuthController {
     private readonly createStaffUserUseCase: CreateStaffUserUseCase,
     private readonly listStaffUsersUseCase: ListStaffUsersUseCase,
     private readonly deleteStaffUserUseCase: DeleteStaffUserUseCase,
+    private readonly setStaffUserActiveUseCase: SetStaffUserActiveUseCase,
     private readonly relationLookupService: RelationLookupService,
   ) {}
 
@@ -136,6 +140,30 @@ export class AuthController {
       role: dto.role,
       branchId: dto.branchId ?? null,
     });
+    const lookups = await this.relationLookupService.load({
+      branchIds: [staffUser.branchId],
+    });
+    return AuthMapper.toStaffUserResponseDto(staffUser, lookups);
+  }
+
+  @ApiBearerAuth('bearerAuth')
+  @Roles(Role.ADMIN)
+  @Patch('staff/:id/status')
+  @ApiOperation({
+    summary:
+      'İşçi hesabını deaktiv/aktiv et (yalnız admin) — deaktiv hesab daxil ola bilmir',
+  })
+  @ApiResponse({ status: 200, type: StaffUserResponseDto })
+  async setStaffUserActive(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: SetStaffUserActiveDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Promise<StaffUserResponseDto> {
+    const staffUser = await this.setStaffUserActiveUseCase.execute(
+      id,
+      dto.isActive,
+      user.id,
+    );
     const lookups = await this.relationLookupService.load({
       branchIds: [staffUser.branchId],
     });

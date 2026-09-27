@@ -49,11 +49,22 @@ export class JwtAuthGuard implements CanActivate {
 
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      select: { id: true, email: true, role: true, branchId: true },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        branchId: true,
+        isActive: true,
+      },
     });
 
     if (!user) {
       throw new UnauthorizedException('İstifadəçi tapılmadı');
+    }
+
+    // Deaktiv edilmiş hesabın mövcud tokeni də dərhal etibarsız olur.
+    if (!user.isActive) {
+      throw new UnauthorizedException('Hesabınız deaktiv edilib');
     }
 
     request.user = {

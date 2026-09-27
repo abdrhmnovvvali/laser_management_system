@@ -1,4 +1,5 @@
 import {
+  ForbiddenException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -52,6 +53,12 @@ export class PrismaAuthRepository implements IAuthRepository {
       throw new UnauthorizedException('Email və ya şifrə yanlışdır');
     }
 
+    if (!user.isActive) {
+      throw new ForbiddenException(
+        'Hesabınız deaktiv edilib. Administratorla əlaqə saxlayın.',
+      );
+    }
+
     return this.issueSession(user);
   }
 
@@ -61,7 +68,7 @@ export class PrismaAuthRepository implements IAuthRepository {
       where: { refreshTokenHash: tokenHash },
     });
 
-    if (!user) {
+    if (!user || !user.isActive) {
       throw new UnauthorizedException('Refresh token yanlış və ya vaxtı bitib');
     }
 
@@ -90,13 +97,7 @@ export class PrismaAuthRepository implements IAuthRepository {
         },
       });
 
-      return new StaffUser(
-        user.id,
-        user.email,
-        user.fullName ?? undefined,
-        user.role as Role,
-        user.branchId,
-      );
+      return this.toStaffUser(user);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'İstifadəçi yaradıla bilmədi';
@@ -118,16 +119,7 @@ export class PrismaAuthRepository implements IAuthRepository {
     ]);
 
     return createPaginatedResult(
-      users.map(
-        (user) =>
-          new StaffUser(
-            user.id,
-            user.email,
-            user.fullName ?? undefined,
-            user.role as Role,
-            user.branchId,
-          ),
-      ),
+      users.map((user) => this.toStaffUser(user)),
       total,
       options?.pagination,
     );
@@ -139,19 +131,31 @@ export class PrismaAuthRepository implements IAuthRepository {
       return null;
     }
 
-    return new StaffUser(
-      user.id,
-      user.email,
-      user.fullName ?? undefined,
-      user.role as Role,
-      user.branchId,
-    );
+    return this.toStaffUser(user);
   }
 
   async countStaffByRole(role: Role): Promise<number> {
     return this.prisma.user.count({
       where: { role: role as PrismaRole },
     });
+  }
+
+  async countActiveStaffByRole(role: Role): Promise<number> {
+    return this.prisma.user.count({
+      where: { role: role as PrismaRole, isActive: true },
+    });
+  }
+
+  async setStaffUserActive(id: string, isActive: boolean): Promise<StaffUser> {
+    const user = await this.prisma.user.update({
+      where: { id },
+      data: {
+        isActive,
+        // Deaktiv hesabın açıq sessiyası yenilənə bilməsin.
+        ...(isActive ? {} : { refreshTokenHash: null }),
+      },
+    });
+    return this.toStaffUser(user);
   }
 
   async deleteStaffUser(id: string): Promise<void> {
@@ -162,6 +166,24 @@ export class PrismaAuthRepository implements IAuthRepository {
         error instanceof Error ? error.message : 'İstifadəçi silinə bilmədi';
       throw new BusinessRuleViolationException(message);
     }
+  }
+
+  private toStaffUser(user: {
+    id: string;
+    email: string;
+    fullName: string | null;
+    role: PrismaRole;
+    branchId: string | null;
+    isActive: boolean;
+  }): StaffUser {
+    return new StaffUser(
+      user.id,
+      user.email,
+      user.fullName ?? undefined,
+      user.role as Role,
+      user.branchId,
+      user.isActive,
+    );
   }
 
   private async issueSession(user: {

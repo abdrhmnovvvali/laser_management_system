@@ -4,42 +4,46 @@ import {
   EntityNotFoundException,
 } from '../../../../shared/kernel/domain.exception';
 import { Role } from '../../../../shared/guards/roles.enum';
+import { StaffUser } from '../../domain/entities/staff-user.entity';
 import { AUTH_REPOSITORY } from '../../domain/repositories/auth.repository.interface';
 import type { IAuthRepository } from '../../domain/repositories/auth.repository.interface';
 
 @Injectable()
-export class DeleteStaffUserUseCase {
+export class SetStaffUserActiveUseCase {
   constructor(
     @Inject(AUTH_REPOSITORY)
     private readonly authRepository: IAuthRepository,
   ) {}
 
-  async execute(staffId: string, currentUserId: string): Promise<void> {
-    if (staffId === currentUserId) {
-      throw new BusinessRuleViolationException('Öz hesabınızı silə bilməzsiniz');
-    }
-
+  async execute(
+    staffId: string,
+    isActive: boolean,
+    currentUserId: string,
+  ): Promise<StaffUser> {
     const staff = await this.authRepository.findStaffUserById(staffId);
     if (!staff) {
       throw new EntityNotFoundException('StaffUser', staffId);
     }
 
-    if (staff.role === Role.ADMIN) {
-      const adminCount = await this.authRepository.countStaffByRole(Role.ADMIN);
-      if (adminCount <= 1) {
-        throw new BusinessRuleViolationException('Son admin silinə bilməz');
+    if (!isActive) {
+      if (staffId === currentUserId) {
+        throw new BusinessRuleViolationException(
+          'Öz hesabınızı deaktiv edə bilməzsiniz',
+        );
       }
-      // Deaktiv adminlər qalsa belə, sistemə girə bilən admin olmalıdır.
-      if (staff.isActive) {
+
+      if (staff.role === Role.ADMIN && staff.isActive) {
         const activeAdmins = await this.authRepository.countActiveStaffByRole(
           Role.ADMIN,
         );
         if (activeAdmins <= 1) {
-          throw new BusinessRuleViolationException('Son aktiv admin silinə bilməz');
+          throw new BusinessRuleViolationException(
+            'Son aktiv admin deaktiv edilə bilməz',
+          );
         }
       }
     }
 
-    await this.authRepository.deleteStaffUser(staffId);
+    return this.authRepository.setStaffUserActive(staffId, isActive);
   }
 }

@@ -7,5 +7,6 @@ export class StaffUser {
     public readonly fullName: string | undefined,
     public readonly role: Role,
     public readonly branchId: string | null,
+    public readonly isActive: boolean = true,
   ) {}
 }

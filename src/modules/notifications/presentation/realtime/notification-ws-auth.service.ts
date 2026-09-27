@@ -35,12 +35,22 @@ export class NotificationWsAuthService {
 
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      select: { id: true, email: true, role: true, branchId: true },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        branchId: true,
+        isActive: true,
+      },
     });
 
     if (!user) {
       this.logger.warn(`WS istifadəçi tapılmadı: ${payload.sub}`);
       throw new WsException('İstifadəçi tapılmadı');
+    }
+
+    if (!user.isActive) {
+      throw new WsException('Hesabınız deaktiv edilib');
     }
 
     return {
