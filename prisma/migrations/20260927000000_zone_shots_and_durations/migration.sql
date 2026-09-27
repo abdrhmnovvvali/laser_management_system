@@ -1,12 +1,14 @@
 -- Nahiyələr: seans üçün atış sayı və müddət normaları
-ALTER TABLE "zones" ADD COLUMN "min_shots" INTEGER;
-ALTER TABLE "zones" ADD COLUMN "max_shots" INTEGER;
-ALTER TABLE "zones" ADD COLUMN "min_duration_minutes" INTEGER;
-ALTER TABLE "zones" ADD COLUMN "max_duration_minutes" INTEGER;
+ALTER TABLE "zones" ADD COLUMN IF NOT EXISTS "min_shots" INTEGER;
+ALTER TABLE "zones" ADD COLUMN IF NOT EXISTS "max_shots" INTEGER;
+ALTER TABLE "zones" ADD COLUMN IF NOT EXISTS "min_duration_minutes" INTEGER;
+ALTER TABLE "zones" ADD COLUMN IF NOT EXISTS "max_duration_minutes" INTEGER;
 
+ALTER TABLE "zones" DROP CONSTRAINT IF EXISTS "zones_shots_range_check";
 ALTER TABLE "zones"
   ADD CONSTRAINT "zones_shots_range_check"
   CHECK (min_shots IS NULL OR max_shots IS NULL OR min_shots <= max_shots);
+ALTER TABLE "zones" DROP CONSTRAINT IF EXISTS "zones_duration_range_check";
 ALTER TABLE "zones"
   ADD CONSTRAINT "zones_duration_range_check"
   CHECK (min_duration_minutes IS NULL OR max_duration_minutes IS NULL OR min_duration_minutes <= max_duration_minutes);
@@ -75,8 +77,8 @@ JOIN "zone_translations" zt ON zt."locale" = 'ru' AND zt."name" = v.name
 WHERE z."id" = zt."zone_id";
 
 -- Rezervasiyalar: təxmini müddət (dəqiqə)
-ALTER TABLE "follow_ups" ADD COLUMN "duration_min_minutes" INTEGER NOT NULL DEFAULT 30;
-ALTER TABLE "follow_ups" ADD COLUMN "duration_max_minutes" INTEGER NOT NULL DEFAULT 30;
+ALTER TABLE "follow_ups" ADD COLUMN IF NOT EXISTS "duration_min_minutes" INTEGER NOT NULL DEFAULT 30;
+ALTER TABLE "follow_ups" ADD COLUMN IF NOT EXISTS "duration_max_minutes" INTEGER NOT NULL DEFAULT 30;
 
 -- Mövcud rezervasiyalar: nahiyələrin müddətlərinin cəmi (norması olmayanlar 30 dəq qalır)
 UPDATE "follow_ups" fu
