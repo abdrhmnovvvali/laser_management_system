@@ -8,9 +8,10 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
+import { ZoneNormsInputDto } from './zone-norms-input.dto';
 import { NameTranslationInputDto } from '../../../../shared/i18n/dto/translation-input.dto';
 
-export class UpdateZoneDto {
+export class UpdateZoneDto extends ZoneNormsInputDto {
   @ApiPropertyOptional({ example: 25.0 })
   @IsOptional()
   @IsNumber()

@@ -5,7 +5,7 @@ import { createPaginatedResult } from '../../../../../shared/pagination/paginati
 import type { PaginatedResult } from '../../../../../shared/pagination/pagination.types';
 import { toPrismaSkipTake } from '../../../../../shared/pagination/prisma-pagination.util';
 import { PrismaService } from '../../../../../shared/prisma/prisma.service';
-import { Zone } from '../../../domain/entities/zone.entity';
+import { Zone, ZoneNorms } from '../../../domain/entities/zone.entity';
 import {
   CreateZoneData,
   IZoneRepository,
@@ -98,6 +98,7 @@ export class PrismaZoneRepository implements IZoneRepository {
       data: {
         deviceId: data.deviceId,
         price: data.price,
+        ...this.toNormsData(data),
         translations: {
           create: data.translations.map((item) => ({
             locale: item.locale as PrismaLocale,
@@ -111,11 +112,12 @@ export class PrismaZoneRepository implements IZoneRepository {
   }
 
   async update(id: string, data: UpdateZoneData): Promise<Zone> {
-    if (data.price !== undefined) {
-      await this.prisma.zone.update({
-        where: { id },
-        data: { price: data.price },
-      });
+    const scalarData: Prisma.ZoneUpdateInput = {
+      ...(data.price !== undefined ? { price: data.price } : {}),
+      ...this.toNormsData(data),
+    };
+    if (Object.keys(scalarData).length > 0) {
+      await this.prisma.zone.update({ where: { id }, data: scalarData });
     }
 
     if (data.translations) {
@@ -176,6 +178,20 @@ export class PrismaZoneRepository implements IZoneRepository {
     }
   }
 
+  /** Yalnız göndərilən norma sahələrini yazır (null — sahəni təmizləyir). */
+  private toNormsData(data: Partial<ZoneNorms>): Partial<ZoneNorms> {
+    const result: Partial<ZoneNorms> = {};
+    if (data.minShots !== undefined) result.minShots = data.minShots;
+    if (data.maxShots !== undefined) result.maxShots = data.maxShots;
+    if (data.minDurationMinutes !== undefined) {
+      result.minDurationMinutes = data.minDurationMinutes;
+    }
+    if (data.maxDurationMinutes !== undefined) {
+      result.maxDurationMinutes = data.maxDurationMinutes;
+    }
+    return result;
+  }
+
   private async replaceTranslations(
     zoneId: string,
     translations: ZoneTranslationInput[],
@@ -196,6 +212,10 @@ export class PrismaZoneRepository implements IZoneRepository {
     id: string;
     deviceId: string;
     price: Prisma.Decimal;
+    minShots: number | null;
+    maxShots: number | null;
+    minDurationMinutes: number | null;
+    maxDurationMinutes: number | null;
     createdAt: Date;
     translations: Array<{ locale: PrismaLocale; name: string }>;
   }): Zone {
@@ -203,6 +223,10 @@ export class PrismaZoneRepository implements IZoneRepository {
       id: row.id,
       device_id: row.deviceId,
       price: Number(row.price),
+      min_shots: row.minShots,
+      max_shots: row.maxShots,
+      min_duration_minutes: row.minDurationMinutes,
+      max_duration_minutes: row.maxDurationMinutes,
       created_at: row.createdAt.toISOString(),
       zone_translations: row.translations.map((item) => ({
         locale: item.locale as Locale,

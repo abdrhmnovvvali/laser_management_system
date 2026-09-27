@@ -4,8 +4,9 @@ import {
 } from '../../../../shared/relations/relation-lookups.interface';
 import {
   lookupName,
-  toPricedEntities,
+  toZoneEntities,
 } from '../../../../shared/relations/relation-name.util';
+import { sumZoneNorms } from '../../../zones/domain/services/zone-norms.calculator';
 import { Procedure } from '../../domain/entities/procedure.entity';
 import { ProcedureResponseDto } from '../dto/procedure-response.dto';
 
@@ -25,11 +26,10 @@ export class ProcedureMapper {
     dto.campaignId = procedure.campaignId;
     dto.campaignName = lookupName(lookups.campaigns, procedure.campaignId);
     dto.zoneIds = procedure.zoneIds;
-    dto.zones = toPricedEntities(
-      procedure.zoneIds,
-      lookups.zones,
-      lookups.zonePrices,
-    );
+    dto.zones = toZoneEntities(procedure.zoneIds, lookups);
+    const norms = sumZoneNorms(dto.zones);
+    dto.expectedMinShots = norms.minShots;
+    dto.expectedMaxShots = norms.maxShots;
     dto.date = procedure.date;
     dto.declaredShotCount = procedure.declaredShotCount;
     dto.actualShotCount = procedure.actualShotCount;

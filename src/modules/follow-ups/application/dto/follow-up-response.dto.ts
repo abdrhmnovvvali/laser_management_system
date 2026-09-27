@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { NamedEntityDto } from '../../../../shared/dto/named-entity.dto';
+import { ZoneEntityDto } from '../../../../shared/dto/zone-entity.dto';
 import { FollowUpStatus } from '../../domain/entities/follow-up-status.enum';
 
 export class FollowUpResponseDto {
@@ -24,6 +24,18 @@ export class FollowUpResponseDto {
   @ApiProperty({ example: '10:30', description: 'Rezervasiya saatı (HH:mm)' })
   plannedTime: string;
 
+  @ApiProperty({ example: 25, description: 'Seansın təxmini minimum müddəti (dəq)' })
+  durationMinMinutes: number;
+
+  @ApiProperty({ example: 35, description: 'Seansın təxmini maksimum müddəti (dəq)' })
+  durationMaxMinutes: number;
+
+  @ApiProperty({ example: '09:25', description: 'Təxmini ən tez bitmə saatı' })
+  estimatedEndTime: string;
+
+  @ApiProperty({ example: '09:35', description: 'Təxmini ən gec bitmə saatı' })
+  estimatedLatestEndTime: string;
+
   @ApiProperty({ enum: FollowUpStatus })
   status: FollowUpStatus;
 
@@ -31,10 +43,10 @@ export class FollowUpResponseDto {
   zoneIds: string[];
 
   @ApiProperty({
-    type: [NamedEntityDto],
-    description: 'Planlaşdırılan nahiyələrin id və adları',
+    type: [ZoneEntityDto],
+    description: 'Planlaşdırılan nahiyələrin id, ad və normaları',
   })
-  zones: NamedEntityDto[];
+  zones: ZoneEntityDto[];
 
   @ApiProperty()
   createdAt: Date;

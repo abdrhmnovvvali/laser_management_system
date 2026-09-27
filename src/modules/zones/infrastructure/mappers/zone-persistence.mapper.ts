@@ -12,6 +12,10 @@ export interface ZoneRow {
   id: string;
   device_id: string;
   price: number;
+  min_shots?: number | null;
+  max_shots?: number | null;
+  min_duration_minutes?: number | null;
+  max_duration_minutes?: number | null;
   created_at: string;
   zone_translations?: ZoneTranslationRow[] | null;
 }
@@ -32,6 +36,12 @@ export class ZonePersistenceMapper {
       row.device_id,
       Number(row.price),
       translations,
+      {
+        minShots: row.min_shots ?? null,
+        maxShots: row.max_shots ?? null,
+        minDurationMinutes: row.min_duration_minutes ?? null,
+        maxDurationMinutes: row.max_duration_minutes ?? null,
+      },
     );
   }
 }

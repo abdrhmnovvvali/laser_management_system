@@ -30,6 +30,8 @@ export class PrismaFollowUpAdminReader implements IFollowUpAdminReader {
         device_id: row.deviceId,
         planned_date: formatDateOnly(row.plannedDate),
         planned_time: row.plannedTime,
+        duration_min_minutes: row.durationMinMinutes,
+        duration_max_minutes: row.durationMaxMinutes,
         status: row.status as FollowUpStatus,
         created_at: row.createdAt.toISOString(),
         follow_up_zones: row.zones.map((item) => ({ zone_id: item.zoneId })),

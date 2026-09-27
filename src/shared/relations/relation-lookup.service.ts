@@ -35,14 +35,10 @@ export class RelationLookupService {
       return EMPTY_RELATION_LOOKUPS;
     }
 
-    // zoneIds iki dəfə oxunduğu üçün əvvəlcə massivə çevrilir.
-    const zoneIds = [...(ids.zoneIds ?? [])];
-
-    const [branches, zones, zonePrices, customers, devices, packages, campaigns] =
+    const [branches, zoneDetails, customers, devices, packages, campaigns] =
       await Promise.all([
         this.branchFacade.resolveNames(ids.branchIds ?? []),
-        this.zoneFacade.resolveNames(zoneIds),
-        this.zoneFacade.resolvePrices(zoneIds),
+        this.zoneFacade.resolveDetails(ids.zoneIds ?? []),
         this.customerFacade.resolveNames(ids.customerIds ?? []),
         this.deviceFacade.resolveNames(ids.deviceIds ?? []),
         this.packageFacade.resolveNames(ids.packageIds ?? []),
@@ -51,8 +47,9 @@ export class RelationLookupService {
 
     return {
       branches,
-      zones,
-      zonePrices,
+      zones: zoneDetails.names,
+      zonePrices: zoneDetails.prices,
+      zoneNorms: zoneDetails.norms,
       customers,
       devices,
       packages,

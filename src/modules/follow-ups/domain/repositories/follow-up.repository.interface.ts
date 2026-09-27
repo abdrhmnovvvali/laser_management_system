@@ -13,12 +13,23 @@ export interface CreateFollowUpData {
   zoneIds: string[];
 }
 
+/** Repository-yə yazılan data — müddət use-case tərəfindən hesablanır. */
+export interface CreateFollowUpRecord extends CreateFollowUpData {
+  durationMinMinutes: number;
+  durationMaxMinutes: number;
+}
+
 export interface UpdateFollowUpData {
   deviceId?: string;
   plannedDate?: Date;
   plannedTime?: string;
   status?: FollowUpStatus;
   zoneIds?: string[];
+}
+
+export interface UpdateFollowUpRecord extends UpdateFollowUpData {
+  durationMinMinutes?: number;
+  durationMaxMinutes?: number;
 }
 
 export interface FollowUpListOptions {
@@ -34,16 +45,10 @@ export interface UpcomingFollowUpListOptions {
   pagination?: PaginationParams;
 }
 
-export interface PendingSlotConflictQuery {
+export interface PendingDayBookingsQuery {
   deviceId: string;
   plannedDate: Date;
-  plannedTime: string;
   excludeFollowUpId?: string;
-}
-
-export interface BookedSlotQuery {
-  deviceId: string;
-  plannedDate: Date;
 }
 
 export interface IFollowUpRepository {
@@ -53,11 +58,9 @@ export interface IFollowUpRepository {
     options: UpcomingFollowUpListOptions,
   ): Promise<PaginatedResult<FollowUp>>;
   findByStatus(status: FollowUpStatus): Promise<FollowUp[]>;
-  findPendingSlotConflict(
-    query: PendingSlotConflictQuery,
-  ): Promise<FollowUp | null>;
-  findBookedTimesForDay(query: BookedSlotQuery): Promise<string[]>;
-  create(data: CreateFollowUpData): Promise<FollowUp>;
-  update(id: string, data: UpdateFollowUpData): Promise<FollowUp>;
+  /** Cihazın həmin gün üçün gözləmədə olan rezervasiyaları (saata görə sıralı). */
+  findPendingForDay(query: PendingDayBookingsQuery): Promise<FollowUp[]>;
+  create(data: CreateFollowUpRecord): Promise<FollowUp>;
+  update(id: string, data: UpdateFollowUpRecord): Promise<FollowUp>;
   delete(id: string): Promise<void>;
 }

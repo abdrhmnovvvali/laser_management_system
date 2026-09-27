@@ -1,6 +1,9 @@
 import { NamedEntityDto } from '../dto/named-entity.dto';
-import { PricedEntityDto } from '../dto/priced-entity.dto';
-import type { NameLookup, PriceLookup } from './relation-lookups.interface';
+import { ZoneEntityDto } from '../dto/zone-entity.dto';
+import type {
+  NameLookup,
+  RelationLookups,
+} from './relation-lookups.interface';
 
 export function lookupName(
   names: NameLookup,
@@ -23,16 +26,22 @@ export function toNamedEntities(
   }));
 }
 
-export function toPricedEntities(
+export function toZoneEntities(
   ids: string[],
-  names: NameLookup,
-  prices: PriceLookup,
-): PricedEntityDto[] {
-  return ids.map((id) => ({
-    id,
-    name: names.get(id) ?? id,
-    price: prices.get(id) ?? null,
-  }));
+  lookups: Pick<RelationLookups, 'zones' | 'zonePrices' | 'zoneNorms'>,
+): ZoneEntityDto[] {
+  return ids.map((id) => {
+    const norms = lookups.zoneNorms.get(id);
+    return {
+      id,
+      name: lookups.zones.get(id) ?? id,
+      price: lookups.zonePrices.get(id) ?? null,
+      minShots: norms?.minShots ?? null,
+      maxShots: norms?.maxShots ?? null,
+      minDurationMinutes: norms?.minDurationMinutes ?? null,
+      maxDurationMinutes: norms?.maxDurationMinutes ?? null,
+    };
+  });
 }
 
 export function uniqueIds(

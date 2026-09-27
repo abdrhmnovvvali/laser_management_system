@@ -8,6 +8,8 @@ export interface FollowUpRow {
   device_id: string;
   planned_date: string;
   planned_time: string;
+  duration_min_minutes: number;
+  duration_max_minutes: number;
   status: FollowUpStatus;
   created_at: string;
   follow_up_zones?: { zone_id: string }[] | null;
@@ -24,6 +26,8 @@ export class FollowUpPersistenceMapper {
       row.planned_time,
       row.status,
       (row.follow_up_zones ?? []).map((link) => link.zone_id),
+      row.duration_min_minutes,
+      row.duration_max_minutes,
     );
   }
 }

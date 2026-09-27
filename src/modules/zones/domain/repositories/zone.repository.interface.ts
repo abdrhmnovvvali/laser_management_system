@@ -3,7 +3,7 @@ import {
   PaginatedResult,
   PaginationParams,
 } from '../../../../shared/pagination/pagination.types';
-import { Zone } from '../entities/zone.entity';
+import { Zone, ZoneNorms } from '../entities/zone.entity';
 
 export const ZONE_REPOSITORY = Symbol('IZoneRepository');
 
@@ -12,13 +12,13 @@ export interface ZoneTranslationInput {
   name: string;
 }
 
-export interface CreateZoneData {
+export interface CreateZoneData extends Partial<ZoneNorms> {
   deviceId: string;
   price: number;
   translations: ZoneTranslationInput[];
 }
 
-export interface UpdateZoneData {
+export interface UpdateZoneData extends Partial<ZoneNorms> {
   price?: number;
   translations?: ZoneTranslationInput[];
 }

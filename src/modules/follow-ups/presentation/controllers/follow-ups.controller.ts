@@ -90,6 +90,7 @@ export class FollowUpsController {
       deviceId: query.deviceId,
       date: parseDateOnlyString(query.date),
       excludeFollowUpId: query.excludeFollowUpId,
+      zoneIds: query.zoneIds,
     });
   }
 

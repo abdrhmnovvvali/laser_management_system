@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { PricedEntityDto } from '../../../../shared/dto/priced-entity.dto';
+import { ZoneEntityDto } from '../../../../shared/dto/zone-entity.dto';
 
 export class ProcedureResponseDto {
   @ApiProperty()
@@ -33,10 +33,10 @@ export class ProcedureResponseDto {
   zoneIds: string[];
 
   @ApiProperty({
-    type: [PricedEntityDto],
-    description: 'Nahiyələrin id, ad və qiymətləri',
+    type: [ZoneEntityDto],
+    description: 'Nahiyələrin id, ad, qiymət və atış/müddət normaları',
   })
-  zones: PricedEntityDto[];
+  zones: ZoneEntityDto[];
 
   @ApiProperty()
   date: Date;
@@ -46,6 +46,16 @@ export class ProcedureResponseDto {
 
   @ApiProperty()
   actualShotCount: number;
+
+  @ApiProperty({
+    description: 'Nahiyələrin normasına görə gözlənilən minimum atış sayı (cəm)',
+  })
+  expectedMinShots: number;
+
+  @ApiProperty({
+    description: 'Nahiyələrin normasına görə gözlənilən maksimum atış sayı (cəm)',
+  })
+  expectedMaxShots: number;
 
   @ApiProperty()
   shotCountDifference: number;

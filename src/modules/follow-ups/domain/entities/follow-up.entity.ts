@@ -11,6 +11,8 @@ export class FollowUp extends BaseEntity<string> {
     public readonly plannedTime: string,
     public readonly status: FollowUpStatus,
     public readonly zoneIds: string[] = [],
+    public readonly durationMinMinutes: number = 30,
+    public readonly durationMaxMinutes: number = 30,
   ) {
     super(id, createdAt);
   }

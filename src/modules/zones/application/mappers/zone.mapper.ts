@@ -17,6 +17,10 @@ export class ZoneMapper {
     dto.deviceId = zone.deviceId;
     dto.deviceName = lookupName(lookups.devices, zone.deviceId);
     dto.price = zone.price;
+    dto.minShots = zone.norms.minShots;
+    dto.maxShots = zone.norms.maxShots;
+    dto.minDurationMinutes = zone.norms.minDurationMinutes;
+    dto.maxDurationMinutes = zone.norms.maxDurationMinutes;
     dto.createdAt = zone.createdAt;
     return dto;
   }

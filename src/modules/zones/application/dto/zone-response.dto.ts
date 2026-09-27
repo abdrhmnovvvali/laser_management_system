@@ -18,6 +18,18 @@ export class ZoneResponseDto {
   @ApiProperty()
   price: number;
 
+  @ApiProperty({ nullable: true, description: 'Seans üçün minimum atış sayı' })
+  minShots: number | null;
+
+  @ApiProperty({ nullable: true, description: 'Seans üçün maksimum atış sayı' })
+  maxShots: number | null;
+
+  @ApiProperty({ nullable: true, description: 'Seansın minimum müddəti (dəq)' })
+  minDurationMinutes: number | null;
+
+  @ApiProperty({ nullable: true, description: 'Seansın maksimum müddəti (dəq)' })
+  maxDurationMinutes: number | null;
+
   @ApiProperty()
   createdAt: Date;
 

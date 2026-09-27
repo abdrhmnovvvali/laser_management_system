@@ -7,13 +7,12 @@ import { PrismaService } from '../../../../../shared/prisma/prisma.service';
 import { FollowUp } from '../../../domain/entities/follow-up.entity';
 import { FollowUpStatus } from '../../../domain/entities/follow-up-status.enum';
 import {
-  CreateFollowUpData,
+  CreateFollowUpRecord,
   FollowUpListOptions,
   IFollowUpRepository,
-  PendingSlotConflictQuery,
-  BookedSlotQuery,
+  PendingDayBookingsQuery,
   UpcomingFollowUpListOptions,
-  UpdateFollowUpData,
+  UpdateFollowUpRecord,
 } from '../../../domain/repositories/follow-up.repository.interface';
 import {
   formatDateOnly,
@@ -103,35 +102,20 @@ export class PrismaFollowUpRepository implements IFollowUpRepository {
     );
   }
 
-  async findPendingSlotConflict(
-    query: PendingSlotConflictQuery,
-  ): Promise<FollowUp | null> {
-    const row = await this.prisma.followUp.findFirst({
+  async findPendingForDay(query: PendingDayBookingsQuery): Promise<FollowUp[]> {
+    const rows = await this.prisma.followUp.findMany({
       where: {
         deviceId: query.deviceId,
         plannedDate: toDateOnly(query.plannedDate),
-        plannedTime: query.plannedTime,
         status: FollowUpStatus.PENDING as PrismaFollowUpStatus,
         ...(query.excludeFollowUpId
           ? { id: { not: query.excludeFollowUpId } }
           : {}),
       },
       include: zonesInclude,
-    });
-    return row ? this.toDomain(row) : null;
-  }
-
-  async findBookedTimesForDay(query: BookedSlotQuery): Promise<string[]> {
-    const rows = await this.prisma.followUp.findMany({
-      where: {
-        deviceId: query.deviceId,
-        plannedDate: toDateOnly(query.plannedDate),
-        status: FollowUpStatus.PENDING as PrismaFollowUpStatus,
-      },
-      select: { plannedTime: true },
       orderBy: { plannedTime: 'asc' },
     });
-    return rows.map((row) => row.plannedTime);
+    return rows.map((row) => this.toDomain(row));
   }
 
   async findByStatus(status: FollowUpStatus): Promise<FollowUp[]> {
@@ -143,13 +127,15 @@ export class PrismaFollowUpRepository implements IFollowUpRepository {
     return rows.map((row) => this.toDomain(row));
   }
 
-  async create(data: CreateFollowUpData): Promise<FollowUp> {
+  async create(data: CreateFollowUpRecord): Promise<FollowUp> {
     const created = await this.prisma.followUp.create({
       data: {
         customerId: data.customerId,
         deviceId: data.deviceId,
         plannedDate: toDateOnly(data.plannedDate),
         plannedTime: data.plannedTime,
+        durationMinMinutes: data.durationMinMinutes,
+        durationMaxMinutes: data.durationMaxMinutes,
         status: (data.status ?? FollowUpStatus.PENDING) as PrismaFollowUpStatus,
         zones: {
           create: data.zoneIds.map((zoneId) => ({ zoneId })),
@@ -160,7 +146,7 @@ export class PrismaFollowUpRepository implements IFollowUpRepository {
     return this.toDomain(created);
   }
 
-  async update(id: string, data: UpdateFollowUpData): Promise<FollowUp> {
+  async update(id: string, data: UpdateFollowUpRecord): Promise<FollowUp> {
     const payload: Prisma.FollowUpUpdateInput = {};
     if (data.deviceId !== undefined) {
       payload.device = { connect: { id: data.deviceId } };
@@ -170,6 +156,12 @@ export class PrismaFollowUpRepository implements IFollowUpRepository {
     }
     if (data.plannedTime !== undefined) {
       payload.plannedTime = data.plannedTime;
+    }
+    if (data.durationMinMinutes !== undefined) {
+      payload.durationMinMinutes = data.durationMinMinutes;
+    }
+    if (data.durationMaxMinutes !== undefined) {
+      payload.durationMaxMinutes = data.durationMaxMinutes;
     }
     if (data.status !== undefined) {
       payload.status = data.status as PrismaFollowUpStatus;
@@ -215,6 +207,8 @@ export class PrismaFollowUpRepository implements IFollowUpRepository {
     deviceId: string;
     plannedDate: Date;
     plannedTime: string;
+    durationMinMinutes: number;
+    durationMaxMinutes: number;
     status: PrismaFollowUpStatus;
     createdAt: Date;
     zones: Array<{ zoneId: string }>;
@@ -225,6 +219,8 @@ export class PrismaFollowUpRepository implements IFollowUpRepository {
       device_id: row.deviceId,
       planned_date: formatDateOnly(row.plannedDate),
       planned_time: row.plannedTime,
+      duration_min_minutes: row.durationMinMinutes,
+      duration_max_minutes: row.durationMaxMinutes,
       status: row.status as FollowUpStatus,
       created_at: row.createdAt.toISOString(),
       follow_up_zones: row.zones.map((item) => ({ zone_id: item.zoneId })),

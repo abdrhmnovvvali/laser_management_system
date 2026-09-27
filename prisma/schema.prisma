@@ -143,6 +143,12 @@ model Zone {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   deviceId  String   @map("device_id") @db.Uuid
   price     Decimal  @db.Decimal(10, 2)
+  /// Bir seansda gedən təxmini atış sayı (norma aralığı)
+  minShots           Int?     @map("min_shots")
+  maxShots           Int?     @map("max_shots")
+  /// Bir seansın təxmini müddəti (dəqiqə)
+  minDurationMinutes Int?     @map("min_duration_minutes")
+  maxDurationMinutes Int?     @map("max_duration_minutes")
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   device            Device            @relation(fields: [deviceId], references: [id], onDelete: Cascade)
@@ -314,6 +320,9 @@ model FollowUp {
   deviceId    String         @map("device_id") @db.Uuid
   plannedDate DateTime       @map("planned_date") @db.Date
   plannedTime String         @map("planned_time") @db.VarChar(5)
+  /// Rezervasiyanın təxmini müddəti — nahiyələrin müddətlərinin cəmi (yaradılma anındakı)
+  durationMinMinutes Int     @default(30) @map("duration_min_minutes")
+  durationMaxMinutes Int     @default(30) @map("duration_max_minutes")
   status      FollowUpStatus @default(pending)
   createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
 

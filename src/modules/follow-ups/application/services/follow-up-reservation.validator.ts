@@ -4,8 +4,17 @@ import { BusinessRuleViolationException } from '../../../../shared/kernel/domain
 import { CustomerFacade } from '../../../customers/application/customer.facade';
 import { DeviceFacade } from '../../../devices/application/device.facade';
 import { ZoneFacade } from '../../../zones/application/zone.facade';
+import { sumZoneNorms } from '../../../zones/domain/services/zone-norms.calculator';
 import { FollowUpStatus } from '../../domain/entities/follow-up-status.enum';
-import { isValidPlannedTime } from '../../domain/reservation-slot.util';
+import {
+  findOverlappingBooking,
+  formatMinutesToTime,
+  isValidPlannedTime,
+  parseTimeToMinutes,
+  resolveReservationDuration,
+  toBookedInterval,
+} from '../../domain/reservation-slot.util';
+import type { ReservationDuration } from '../../domain/reservation-slot.util';
 import { FOLLOW_UP_REPOSITORY } from '../../domain/repositories/follow-up.repository.interface';
 import type { IFollowUpRepository } from '../../domain/repositories/follow-up.repository.interface';
 
@@ -17,6 +26,8 @@ export interface ReservationInput {
   zoneIds: string[];
   status?: FollowUpStatus;
   excludeFollowUpId?: string;
+  /** Verilibsə, nahiyələrdən hesablanmır (məs. redaktədə nahiyələr dəyişməyibsə). */
+  duration?: ReservationDuration;
 }
 
 @Injectable()
@@ -30,14 +41,13 @@ export class FollowUpReservationValidator {
     private readonly configService: ConfigService,
   ) {}
 
-  async validate(input: ReservationInput): Promise<void> {
+  /** Rezervasiyanı yoxlayır və onun təxmini müddətini qaytarır. */
+  async validate(input: ReservationInput): Promise<ReservationDuration> {
     if (!isValidPlannedTime(input.plannedTime)) {
       throw new BusinessRuleViolationException(
         'Saat formatı düzgün deyil (HH:mm)',
       );
     }
-
-    this.assertTimeWithinSchedule(input.plannedTime);
 
     const customer = await this.customerFacade.getById(input.customerId);
     const device = await this.deviceFacade.getById(input.deviceId);
@@ -68,38 +78,56 @@ export class FollowUpReservationValidator {
       );
     }
 
+    const duration =
+      input.duration ??
+      resolveReservationDuration(
+        sumZoneNorms(zones.map((zone) => zone.norms)),
+        this.slotMinutes,
+      );
+
     const effectiveStatus = input.status ?? FollowUpStatus.PENDING;
     if (effectiveStatus !== FollowUpStatus.PENDING) {
-      return;
+      return duration;
     }
 
-    const conflict = await this.followUpRepository.findPendingSlotConflict({
+    this.assertTimeWithinSchedule(input.plannedTime, duration.minMinutes);
+
+    const bookings = await this.followUpRepository.findPendingForDay({
       deviceId: input.deviceId,
       plannedDate: input.plannedDate,
-      plannedTime: input.plannedTime,
       excludeFollowUpId: input.excludeFollowUpId,
     });
 
+    const conflict = findOverlappingBooking(
+      bookings.map(toBookedInterval),
+      parseTimeToMinutes(input.plannedTime),
+      duration.minMinutes,
+    );
+
     if (conflict) {
       throw new BusinessRuleViolationException(
-        'Bu cihaz üçün seçilmiş tarix və saat artıq rezerv edilib',
+        `Bu cihaz ${formatMinutesToTime(conflict.start)}–${formatMinutesToTime(conflict.minEnd)} ` +
+          `aralığında məşğuldur (seçilən seans ${duration.minMinutes} dəq çəkir)`,
       );
     }
+
+    return duration;
   }
 
-  private assertTimeWithinSchedule(plannedTime: string): void {
+  private get slotMinutes(): number {
+    return this.configService.get<number>('reservation.slotMinutes')!;
+  }
+
+  private assertTimeWithinSchedule(
+    plannedTime: string,
+    durationMinutes: number,
+  ): void {
     const slotStart = this.configService.get<string>('reservation.slotStart')!;
     const slotEnd = this.configService.get<string>('reservation.slotEnd')!;
-    const slotMinutes = this.configService.get<number>('reservation.slotMinutes')!;
 
-    const toMinutes = (time: string) => {
-      const [hours, minutes] = time.split(':').map(Number);
-      return hours * 60 + minutes;
-    };
-
-    const planned = toMinutes(plannedTime);
-    const start = toMinutes(slotStart);
-    const end = toMinutes(slotEnd);
+    const planned = parseTimeToMinutes(plannedTime);
+    const start = parseTimeToMinutes(slotStart);
+    const end = parseTimeToMinutes(slotEnd);
 
     if (planned < start || planned >= end) {
       throw new BusinessRuleViolationException(
@@ -107,9 +135,9 @@ export class FollowUpReservationValidator {
       );
     }
 
-    if ((planned - start) % slotMinutes !== 0) {
+    if (planned + durationMinutes > end) {
       throw new BusinessRuleViolationException(
-        `Rezervasiya saatı ${slotMinutes} dəqiqəlik slotlara uyğun olmalıdır`,
+        `Seans ${durationMinutes} dəq çəkir və ${slotEnd}-dən əvvəl bitməlidir`,
       );
     }
   }

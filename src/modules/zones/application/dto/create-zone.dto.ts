@@ -8,9 +8,10 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
+import { ZoneNormsInputDto } from './zone-norms-input.dto';
 import { NameTranslationInputDto } from '../../../../shared/i18n/dto/translation-input.dto';
 
-export class CreateZoneDto {
+export class CreateZoneDto extends ZoneNormsInputDto {
   @ApiProperty({ example: 'a1b2c3d4-...' })
   @IsUUID()
   deviceId: string;

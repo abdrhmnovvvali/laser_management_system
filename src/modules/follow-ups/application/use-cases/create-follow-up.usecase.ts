@@ -26,7 +26,7 @@ export class CreateFollowUpUseCase {
   ) {}
 
   async execute(data: CreateFollowUpData): Promise<FollowUp> {
-    await this.reservationValidator.validate({
+    const duration = await this.reservationValidator.validate({
       customerId: data.customerId,
       deviceId: data.deviceId,
       plannedDate: data.plannedDate,
@@ -38,6 +38,8 @@ export class CreateFollowUpUseCase {
     const followUp = await this.followUpRepository.create({
       ...data,
       zoneIds: data.zoneIds,
+      durationMinMinutes: duration.minMinutes,
+      durationMaxMinutes: duration.maxMinutes,
     });
 
     const effectiveStatus = data.status ?? FollowUpStatus.PENDING;

@@ -30,10 +30,22 @@ export class UpdateFollowUpUseCase {
       zoneIds: data.zoneIds ?? existing.zoneIds,
       status: data.status ?? existing.status,
       excludeFollowUpId: id,
+      // Nahiyələr dəyişməyibsə, yadda saxlanmış müddət saxlanılır.
+      duration:
+        data.zoneIds === undefined
+          ? {
+              minMinutes: existing.durationMinMinutes,
+              maxMinutes: existing.durationMaxMinutes,
+            }
+          : undefined,
     };
 
-    await this.reservationValidator.validate(merged);
+    const duration = await this.reservationValidator.validate(merged);
 
-    return this.followUpRepository.update(id, data);
+    return this.followUpRepository.update(id, {
+      ...data,
+      durationMinMinutes: duration.minMinutes,
+      durationMaxMinutes: duration.maxMinutes,
+    });
   }
 }

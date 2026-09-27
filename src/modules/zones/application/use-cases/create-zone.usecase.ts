@@ -8,6 +8,7 @@ import type {
   IZoneRepository,
 } from '../../domain/repositories/zone.repository.interface';
 import { Zone } from '../../domain/entities/zone.entity';
+import { findZoneNormsRangeError } from '../../domain/services/zone-norms.calculator';
 
 @Injectable()
 export class CreateZoneUseCase {
@@ -19,6 +20,10 @@ export class CreateZoneUseCase {
 
   async execute(data: CreateZoneData): Promise<Zone> {
     requireAllLocales(data.translations);
+    const normsError = findZoneNormsRangeError(data);
+    if (normsError) {
+      throw new BusinessRuleViolationException(normsError);
+    }
     try {
       await this.deviceFacade.getById(data.deviceId);
     } catch {

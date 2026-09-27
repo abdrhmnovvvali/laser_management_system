@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { uniqueIds } from '../../../shared/relations/relation-name.util';
-import { Zone } from '../domain/entities/zone.entity';
+import { Zone, ZoneNorms } from '../domain/entities/zone.entity';
 import { ZONE_REPOSITORY } from '../domain/repositories/zone.repository.interface';
 import type { IZoneRepository } from '../domain/repositories/zone.repository.interface';
 import { GetZoneUseCase } from './use-cases/get-zone.usecase';
@@ -40,6 +40,21 @@ export class ZoneFacade {
 
     const zones = await this.zoneRepository.findByIds(ids);
     return new Map(zones.map((zone) => [zone.id, zone.price]));
+  }
+
+  /** Ad, qiymət və normaları bir sorğu ilə qaytarır (relation lookup üçün). */
+  async resolveDetails(zoneIds: Iterable<string | null | undefined>): Promise<{
+    names: Map<string, string>;
+    prices: Map<string, number>;
+    norms: Map<string, ZoneNorms>;
+  }> {
+    const ids = uniqueIds(zoneIds);
+    const zones = ids.length ? await this.zoneRepository.findByIds(ids) : [];
+    return {
+      names: new Map(zones.map((zone) => [zone.id, zone.name])),
+      prices: new Map(zones.map((zone) => [zone.id, zone.price])),
+      norms: new Map(zones.map((zone) => [zone.id, zone.norms])),
+    };
   }
 
   async resolveNames(
