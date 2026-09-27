@@ -65,6 +65,9 @@ export class ReservationBookingDto {
   @ApiProperty()
   followUpId: string;
 
+  @ApiProperty({ nullable: true, description: 'Rezervasiya edən müştəri' })
+  customerName: string | null;
+
   @ApiProperty({ example: '09:00' })
   start: string;
 
@@ -76,6 +79,12 @@ export class ReservationBookingDto {
 }
 
 export class AvailableReservationSlotsResponseDto {
+  @ApiProperty({ example: '09:00', description: 'İş gününün başlanğıcı' })
+  workdayStart: string;
+
+  @ApiProperty({ example: '18:00', description: 'İş gününün sonu' })
+  workdayEnd: string;
+
   @ApiProperty({ description: 'Yeni seansın minimum müddəti (dəq)' })
   durationMinMinutes: number;
 

@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { CustomerFacade } from '../../../customers/application/customer.facade';
 import { ZoneFacade } from '../../../zones/application/zone.facade';
 import { sumZoneNorms } from '../../../zones/domain/services/zone-norms.calculator';
 import {
@@ -27,6 +28,7 @@ export class GetAvailableReservationSlotsUseCase {
     @Inject(FOLLOW_UP_REPOSITORY)
     private readonly followUpRepository: IFollowUpRepository,
     private readonly zoneFacade: ZoneFacade,
+    private readonly customerFacade: CustomerFacade,
     private readonly configService: ConfigService,
   ) {}
 
@@ -34,6 +36,8 @@ export class GetAvailableReservationSlotsUseCase {
     input: GetAvailableReservationSlotsInput,
   ): Promise<AvailableReservationSlotsResponseDto> {
     const slotMinutes = this.configService.get<number>('reservation.slotMinutes')!;
+    const slotStart = this.configService.get<string>('reservation.slotStart')!;
+    const slotEnd = this.configService.get<string>('reservation.slotEnd')!;
 
     const zones = input.zoneIds?.length
       ? await this.zoneFacade.getByIds(input.zoneIds)
@@ -49,6 +53,12 @@ export class GetAvailableReservationSlotsUseCase {
       excludeFollowUpId: input.excludeFollowUpId,
     });
     const bookings = followUps.map(toBookedInterval);
+    const customerNames = await this.customerFacade.resolveNames(
+      followUps.map((followUp) => followUp.customerId),
+    );
+    const customerIdByFollowUp = new Map(
+      followUps.map((followUp) => [followUp.id, followUp.customerId]),
+    );
 
     // Redaktədə cari rezervasiyanın saatı şəbəkədə olmasa belə siyahıda qalsın.
     const extraTimes: string[] = [];
@@ -66,8 +76,8 @@ export class GetAvailableReservationSlotsUseCase {
     }
 
     const slots = buildReservationSlots({
-      slotStart: this.configService.get<string>('reservation.slotStart')!,
-      slotEnd: this.configService.get<string>('reservation.slotEnd')!,
+      slotStart,
+      slotEnd,
       slotMinutes,
       bookings,
       durationMinutes: duration.minMinutes,
@@ -75,10 +85,15 @@ export class GetAvailableReservationSlotsUseCase {
     });
 
     return {
+      workdayStart: slotStart,
+      workdayEnd: slotEnd,
       durationMinMinutes: duration.minMinutes,
       durationMaxMinutes: duration.maxMinutes,
       bookings: bookings.map((booking) => ({
         followUpId: booking.followUpId,
+        customerName:
+          customerNames.get(customerIdByFollowUp.get(booking.followUpId) ?? '') ??
+          null,
         start: formatMinutesToTime(booking.start),
         minEnd: formatMinutesToTime(booking.minEnd),
         maxEnd: formatMinutesToTime(booking.maxEnd),
