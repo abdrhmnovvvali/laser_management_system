@@ -18,6 +18,8 @@ import type { ReservationDuration } from '../../domain/reservation-slot.util';
 import { FOLLOW_UP_REPOSITORY } from '../../domain/repositories/follow-up.repository.interface';
 import type { IFollowUpRepository } from '../../domain/repositories/follow-up.repository.interface';
 
+const DAY_END_MINUTES = 24 * 60;
+
 export interface ReservationInput {
   customerId: string;
   deviceId: string;
@@ -90,7 +92,7 @@ export class FollowUpReservationValidator {
       return duration;
     }
 
-    this.assertTimeWithinSchedule(input.plannedTime, duration.minMinutes);
+    this.assertEndsSameDay(input.plannedTime, duration.minMinutes);
 
     const bookings = await this.followUpRepository.findPendingForDay({
       deviceId: input.deviceId,
@@ -118,26 +120,14 @@ export class FollowUpReservationValidator {
     return this.configService.get<number>('reservation.slotMinutes')!;
   }
 
-  private assertTimeWithinSchedule(
-    plannedTime: string,
-    durationMinutes: number,
-  ): void {
-    const slotStart = this.configService.get<string>('reservation.slotStart')!;
-    const slotEnd = this.configService.get<string>('reservation.slotEnd')!;
-
-    const planned = parseTimeToMinutes(plannedTime);
-    const start = parseTimeToMinutes(slotStart);
-    const end = parseTimeToMinutes(slotEnd);
-
-    if (planned < start || planned >= end) {
+  /**
+   * Rezervasiya saatı məhdudlaşdırılmır (iş saatı limiti yoxdur) — yalnız seans
+   * həmin gün bitməlidir ki, gecə yarısını keçən qeyd yaranmasın.
+   */
+  private assertEndsSameDay(plannedTime: string, durationMinutes: number): void {
+    if (parseTimeToMinutes(plannedTime) + durationMinutes > DAY_END_MINUTES) {
       throw new BusinessRuleViolationException(
-        `Rezervasiya saatı ${slotStart}–${slotEnd} aralığında olmalıdır`,
-      );
-    }
-
-    if (planned + durationMinutes > end) {
-      throw new BusinessRuleViolationException(
-        `Seans ${durationMinutes} dəq çəkir və ${slotEnd}-dən əvvəl bitməlidir`,
+        `Seans ${durationMinutes} dəq çəkir və 24:00-dan əvvəl bitməlidir`,
       );
     }
   }

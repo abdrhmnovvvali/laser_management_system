@@ -79,10 +79,10 @@ export class ReservationBookingDto {
 }
 
 export class AvailableReservationSlotsResponseDto {
-  @ApiProperty({ example: '09:00', description: 'İş gününün başlanğıcı' })
+  @ApiProperty({ example: '00:00', description: 'Rezervasiya üçün açıq günün başlanğıcı' })
   workdayStart: string;
 
-  @ApiProperty({ example: '18:00', description: 'İş gününün sonu' })
+  @ApiProperty({ example: '24:00', description: 'Rezervasiya üçün açıq günün sonu' })
   workdayEnd: string;
 
   @ApiProperty({ description: 'Yeni seansın minimum müddəti (dəq)' })

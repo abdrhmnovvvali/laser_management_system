@@ -85,8 +85,9 @@ export class GetAvailableReservationSlotsUseCase {
     });
 
     return {
-      workdayStart: slotStart,
-      workdayEnd: slotEnd,
+      // Rezervasiya üçün saat limiti yoxdur — bütün gün açıqdır.
+      workdayStart: '00:00',
+      workdayEnd: '24:00',
       durationMinMinutes: duration.minMinutes,
       durationMaxMinutes: duration.maxMinutes,
       bookings: bookings.map((booking) => ({
